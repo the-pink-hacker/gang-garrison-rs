@@ -3,18 +3,13 @@ name = "gg2-client"
 version = "0.1.0"
 edition = "2021"
 
-[profile.dev]
-opt-level = 1
-
-[profile.dev.package."*"]
-opt-level = 3
-
-[profile.release]
-codegen-units = 1
-lto = "thin"
-
 [dependencies]
-bevy = { version = "0.14.1", features = [ "wayland", "x11", "bevy_core_pipeline", "multi_threaded" ], default-features = false }
 crossbeam-channel = "0.5.13"
 dashmap = "6.0.1"
+gg2-common = { path = "../gg2-common" }
 tokio = { version = "1.39.3", features = ["io-util", "net", "rt", "rt-multi-thread", "sync"] }
+
+[dependencies.bevy]
+version = "0.14.1"
+features = [ "wayland", "x11", "bevy_core_pipeline", "multi_threaded" ]
+default-features = false

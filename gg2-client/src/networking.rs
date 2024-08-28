@@ -3,7 +3,7 @@ use bevy::prelude::*;
 mod socket;
 
 fn setup_networking() {
-    print!("hi");
+    print!("hi, {}", gg2_common::networking::PacketId::Hello as u8);
 }
 
 pub struct NetworkingPlugin;

@@ -1420,7 +1420,15 @@ dependencies = [
  "bevy",
  "crossbeam-channel",
  "dashmap",
+ "gg2-common",
  "tokio",
+]
+
+[[package]]
+name = "gg2-common"
+version = "0.1.0"
+dependencies = [
+ "uuid",
 ]
 
 [[package]]
