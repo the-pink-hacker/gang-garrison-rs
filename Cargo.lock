@@ -1422,6 +1422,7 @@ dependencies = [
  "dashmap",
  "gg2-common",
  "log",
+ "thiserror",
  "tokio",
 ]
 

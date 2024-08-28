@@ -9,6 +9,7 @@ dashmap = "6.0.1"
 gg2-common = { path = "../gg2-common" }
 tokio = { version = "1.39.3", features = ["io-util", "net", "rt", "rt-multi-thread", "sync"] }
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
+thiserror = "1.0.63"
 
 [dependencies.bevy]
 version = "0.14.1"
