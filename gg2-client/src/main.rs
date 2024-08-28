@@ -1,12 +1,11 @@
 use bevy::prelude::*;
+use networking::NetworkingPlugin;
 
-fn test() {
-    println!("Hello, world!");
-}
+mod networking;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Update, test)
+        .add_plugins(NetworkingPlugin)
         .run();
 }
