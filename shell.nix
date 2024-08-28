@@ -5,6 +5,7 @@ with pkgs;
 mkShell rec {
   nativeBuildInputs = [
     pkg-config
+    mold
   ];
   buildInputs = [
     udev alsa-lib vulkan-loader
@@ -12,4 +13,5 @@ mkShell rec {
     libxkbcommon wayland # To use the wayland feature
   ];
   LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
+  RUSTFLAGS = "-Clink-arg=-fuse-ld=${pkgs.mold}/bin/mold";
 }

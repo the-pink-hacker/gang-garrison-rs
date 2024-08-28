@@ -1347,13 +1347,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gang-garrison-rs"
-version = "0.1.0"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "gethostname"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1374,6 +1367,13 @@ dependencies = [
  "libc",
  "wasi",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "gg2-client"
+version = "0.1.0"
+dependencies = [
+ "bevy",
 ]
 
 [[package]]

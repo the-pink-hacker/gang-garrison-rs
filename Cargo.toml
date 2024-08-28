@@ -1,20 +1,5 @@
-[package]
-name = "gang-garrison-rs"
-version = "0.1.0"
-edition = "2021"
-
 [workspace]
 resolver = "2"
-
-[profile.dev]
-opt-level = 1
-
-[profile.dev.package."*"]
-opt-level = 3
-
-[profile.release]
-codegen-units = 1
-lto = "thin"
-
-[dependencies]
-bevy = { version = "0.14.1", features = [ "wayland", "x11", "bevy_core_pipeline", "multi_threaded" ], default-features = false }
+members = [
+    "gg2-client",
+]
