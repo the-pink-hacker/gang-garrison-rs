@@ -1,9 +1,9 @@
 use uuid::{uuid, Uuid};
 
-const PROTOCOL_UUID: Uuid = uuid!("b31c2209-4256-9a19-d0ef-c71c5373bd75");
+pub const PROTOCOL_UUID: Uuid = uuid!("b31c2209-4256-9a19-d0ef-c71c5373bd75");
 
 #[derive(Debug, Clone, Copy)]
-pub enum PacketId {
+pub enum PacketKind {
     Hello,
     PlayerJoin,
     PlayerLeave,
@@ -63,8 +63,8 @@ pub enum PacketId {
     ReserveSlot,
 }
 
-impl From<PacketId> for u8 {
-    fn from(value: PacketId) -> Self {
+impl From<PacketKind> for u8 {
+    fn from(value: PacketKind) -> Self {
         value as u8
     }
 }
