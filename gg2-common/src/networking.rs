@@ -1,7 +1,8 @@
-use std::fmt::{Debug, Formatter};
-
+use error::Error;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 use uuid::{uuid, Uuid};
 
+pub mod error;
 pub mod message;
 
 pub const PROTOCOL_UUID: Uuid = uuid!("b31c2209-4256-9a19-d0ef-c71c5373bd75");
@@ -20,7 +21,22 @@ impl From<NetworkPacket> for Vec<u8> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl TryFrom<&Vec<u8>> for NetworkPacket {
+    type Error = error::Error;
+
+    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
+        let mut stream = value.iter().cloned();
+        let raw_kind = stream.next().ok_or(error::Error::PacketEmpty)?;
+        let kind = raw_kind
+            .try_into()
+            .map_err(|_| Error::PacketKind(raw_kind))?;
+        let data = stream.collect();
+        Ok(Self { kind, data })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PacketKind {
     Hello,
     PlayerJoin,
@@ -79,10 +95,4 @@ pub enum PacketKind {
     ClientSettings,
     KickMultiClient,
     ReserveSlot,
-}
-
-impl From<PacketKind> for u8 {
-    fn from(value: PacketKind) -> Self {
-        value as u8
-    }
 }

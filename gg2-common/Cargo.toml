@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+num_enum = "0.7.3"
+thiserror = "1.0.63"
 uuid = "1.10.0"

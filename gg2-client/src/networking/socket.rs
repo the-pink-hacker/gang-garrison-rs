@@ -2,36 +2,20 @@
 
 use std::{net::SocketAddr, sync::Arc};
 
-use bevy::{prelude::*, reflect::List};
+use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
 use gg2_common::networking::{message::GGMessage, NetworkPacket, PacketKind};
+use log::debug;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream, ToSocketAddrs,
     },
-    runtime::Runtime,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
 };
-
-#[derive(thiserror::Error, Debug)]
-pub enum NetworkError {
-    #[error("An error occured when accepting a new connnection: {0}")]
-    Accept(std::io::Error),
-    #[error("Could not find connection")]
-    ConnectionNotFound,
-    #[error("Connection closed")]
-    ChannelClosed,
-    #[error("Not connected to any server")]
-    NotConnected,
-    #[error("An error occured when trying to start listening for new connections: {0}")]
-    Listen(std::io::Error),
-    #[error("An error occured when trying to connect: {0}")]
-    Connection(std::io::Error),
-}
 
 #[derive(Debug)]
 pub struct SyncChannel<T> {
@@ -55,9 +39,7 @@ pub struct NetworkSettings {
 impl Default for NetworkSettings {
     fn default() -> Self {
         Self {
-            // TODO: Find out good packet size
-            // 10mb
-            max_packet_length: 10 * 1024 * 1024,
+            max_packet_length: 1024,
         }
     }
 }
@@ -66,7 +48,7 @@ impl Default for NetworkSettings {
 pub enum ClientNetworkEvent {
     Connected,
     Disconnected,
-    Error(NetworkError),
+    Error(gg2_common::networking::error::Error),
 }
 
 #[derive(Debug)]
@@ -88,18 +70,19 @@ impl ServerConnection {
 pub struct NetworkClient {
     runtime: tokio::runtime::Runtime,
     server_connection: Option<ServerConnection>,
-    receive_message_map: Arc<DashMap<u8, Vec<Vec<u8>>>>,
+    receive_message_map: Arc<DashMap<PacketKind, Vec<Vec<u8>>>>,
     network_events: SyncChannel<ClientNetworkEvent>,
     connection_events: SyncChannel<(TcpStream, SocketAddr, NetworkSettings)>,
 }
 
 impl NetworkClient {
+    // Connects to a new server
     pub fn connect(
         &mut self,
         address: impl ToSocketAddrs + Send + 'static,
         network_settings: NetworkSettings,
     ) {
-        println!("Starting connection.");
+        debug!("Starting connection.");
 
         self.disconnect();
 
@@ -110,10 +93,10 @@ impl NetworkClient {
             let stream = match TcpStream::connect(address).await {
                 Ok(stream) => stream,
                 Err(error) => {
-                    if let Err(error) = network_error_sender
-                        .send(ClientNetworkEvent::Error(NetworkError::Connection(error)))
-                    {
-                        println!("Couldn't send error event: {}", error);
+                    if let Err(error) = network_error_sender.send(ClientNetworkEvent::Error(
+                        gg2_common::networking::error::Error::Connection(error),
+                    )) {
+                        error!("Couldn't send error event: {}", error);
                     };
                     return;
                 }
@@ -124,7 +107,7 @@ impl NetworkClient {
                 .expect("Couldn't fetch peer_addr of existing stream");
 
             if let Err(error) = connection_event_sender.send((stream, address, network_settings)) {
-                println!("Coudln't initiate connection: {}", error);
+                error!("Coudln't initiate connection: {}", error);
             }
         });
     }
@@ -140,16 +123,19 @@ impl NetworkClient {
         }
     }
 
-    pub fn send_message<T: GGMessage>(&self, message: T) -> Result<(), NetworkError> {
-        println!("Sending message to server.");
+    pub fn send_message<T: GGMessage>(
+        &self,
+        message: T,
+    ) -> Result<(), gg2_common::networking::error::Error> {
+        debug!("Sending message to server.");
         let server_connection = match self.server_connection.as_ref() {
             Some(server) => server,
-            None => return Err(NetworkError::NotConnected),
+            None => return Err(gg2_common::networking::error::Error::NotConnected),
         };
 
         if let Err(error) = server_connection.send_message.send(message.into()) {
-            println!("Server disconnected: {}", error);
-            return Err(NetworkError::NotConnected);
+            error!("Server disconnected: {}", error);
+            return Err(gg2_common::networking::error::Error::NotConnected);
         }
 
         Ok(())
@@ -171,6 +157,7 @@ impl Default for NetworkClient {
     }
 }
 
+// Sets up send and receive threads
 pub fn handle_connection_event(
     mut client: ResMut<NetworkClient>,
     mut events: EventWriter<ClientNetworkEvent>,
@@ -206,93 +193,74 @@ pub fn handle_connection_event(
     events.send(ClientNetworkEvent::Connected);
 }
 
+// Sends network packets to server
 async fn send_task(
     mut receive_message: UnboundedReceiver<NetworkPacket>,
     mut send_socket: OwnedWriteHalf,
     network_event_sender: Sender<ClientNetworkEvent>,
 ) {
-    println!("Starting new server connection; sending task.");
+    debug!("Starting new server connection; sending task.");
 
     while let Some(message) = receive_message.recv().await {
         let message_kind = message.kind;
         let encoded_message = Vec::from(message);
 
         if let Err(error) = send_socket.write_all(&encoded_message).await {
-            println!("Couldn't send packet: {:?}: {}", message_kind, error);
+            error!("Couldn't send packet: {:?}: {}", message_kind, error);
         }
 
-        println!("Succesfully written all!");
+        debug!("Succesfully written all!");
     }
 
     let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);
 }
 
+// Receives data from server and passes network packets
 async fn receive_task(
-    mut read_socket: OwnedReadHalf,
+    read_socket: OwnedReadHalf,
     network_settings: NetworkSettings,
-    receive_message_map: Arc<DashMap<u8, Vec<Vec<u8>>>>,
+    receive_message_map: Arc<DashMap<PacketKind, Vec<Vec<u8>>>>,
     peer_address: SocketAddr,
     network_event_sender: Sender<ClientNetworkEvent>,
 ) {
-    // TODO: Actually implement
-    //let mut buffer = (0..network_settings.max_packet_length)
-    //    .map(|_| 0)
-    //    .collect::<Vec<u8>>();
-    //loop {
-    //    let length = match read_socket.read_u32().await {
-    //        Ok(len) => len as usize,
-    //        Err(err) => {
-    //            error!(
-    //                "Encountered error while fetching length [{}]: {}",
-    //                peer_address, err
-    //            );
-    //            break;
-    //        }
-    //    };
-    //
-    //    if length > network_settings.max_packet_length {
-    //        error!(
-    //            "Received too large packet from [{}]: {} > {}",
-    //            peer_address, length, network_settings.max_packet_length
-    //        );
-    //        break;
-    //    }
-    //
-    //    match read_socket.read_exact(&mut buffer[..length]).await {
-    //        Ok(_) => (),
-    //        Err(err) => {
-    //            error!(
-    //                "Encountered error while fetching stream of length {} [{}]: {}",
-    //                length, peer_address, err
-    //            );
-    //            break;
-    //        }
-    //    }
-    //
-    //    let packet: NetworkPacket = match bincode::deserialize(&buffer[..length]) {
-    //        Ok(packet) => packet,
-    //        Err(err) => {
-    //            error!(
-    //                "Failed to decode network packet from [{}]: {}",
-    //                peer_addr, err
-    //            );
-    //            break;
-    //        }
-    //    };
-    //
-    //    match receive_message_map.get_mut(&packet.kind.into()) {
-    //        Some(mut packets) => packets.push(packet.data),
-    //        None => {
-    //            error!(
-    //                "Could not find existing entries for message kinds: {:?}",
-    //                packet
-    //            );
-    //        }
-    //    }
-    //    debug!("Received message from: {}", peer_addr);
-    //}
-    //
-    //let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);
+    let mut buffer = vec![0; network_settings.max_packet_length];
+    loop {
+        read_socket.readable().await.expect("Not readable");
+
+        if let Err(error) = read_socket.try_read(&mut buffer) {
+            println!(
+                "Encountered error while fetching stream [{}]: {}",
+                peer_address, error
+            );
+            break;
+        }
+
+        let packet: NetworkPacket = match NetworkPacket::try_from(&buffer) {
+            Ok(packet) => packet,
+            Err(error) => {
+                println!(
+                    "Failed to decode network packet from [{}]: {}",
+                    peer_address, error
+                );
+                break;
+            }
+        };
+
+        let packet_kind = packet.kind;
+
+        match receive_message_map.get_mut(&packet_kind) {
+            Some(mut packets) => packets.push(packet.data),
+            None => {
+                println!(
+                    "Could not find existing entries for message kinds: {:?}",
+                    packet_kind
+                );
+            }
+        }
+        println!("Received message from: {}", peer_address);
+    }
+
+    let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);
 }
 
 pub fn send_client_network_events(
@@ -300,6 +268,65 @@ pub fn send_client_network_events(
     mut client_network_events: EventWriter<ClientNetworkEvent>,
 ) {
     client_network_events.send_batch(client_server.network_events.receiver.try_iter());
+}
+
+#[derive(Debug, Deref, Event)]
+pub struct NetworkData<T: Send + Sync> {
+    //source: ConnectionId,
+    #[deref]
+    inner: T,
+}
+
+pub trait AppNetworkClientMessage {
+    fn listen_for_client_message<T: GGMessage + 'static>(&mut self) -> &mut Self;
+}
+
+impl AppNetworkClientMessage for App {
+    // Registers message events for the client
+    fn listen_for_client_message<T: GGMessage + 'static>(&mut self) -> &mut Self {
+        let client = self
+            .world()
+            .get_resource::<NetworkClient>()
+            .expect("Failed to get network client");
+
+        assert!(
+            !client.receive_message_map.contains_key(&T::KIND),
+            "Duplicate registration of client message: {:?}",
+            T::KIND
+        );
+
+        debug!("Register a new client message: {:?}", T::KIND);
+
+        client.receive_message_map.insert(T::KIND, Vec::new());
+
+        self.add_event::<NetworkData<T>>()
+            .add_systems(PreUpdate, register_client_message::<T>)
+    }
+}
+
+// Reads in network packets and passes messages to Bevy
+fn register_client_message<T: GGMessage + 'static>(
+    client: ResMut<NetworkClient>,
+    mut events: EventWriter<NetworkData<T>>,
+) {
+    let mut messages = match client.receive_message_map.get_mut(&T::KIND) {
+        Some(message) => message,
+        None => return,
+    };
+
+    events.send_batch(
+        messages
+            .drain(..)
+            .map(T::deserialize)
+            .filter_map(|message| match message {
+                Ok(message) => Some(message),
+                Err(error) => {
+                    error!("Failed to deserialize message: {}", error);
+                    None
+                }
+            })
+            .map(|msg| NetworkData { inner: msg }),
+    );
 }
 
 pub struct ClientPlugin;
@@ -310,7 +337,7 @@ impl Plugin for ClientPlugin {
             .add_event::<ClientNetworkEvent>()
             .init_resource::<NetworkSettings>()
             .add_systems(
-                PreUpdate,
+                FixedPreUpdate,
                 (send_client_network_events, handle_connection_event),
             );
     }

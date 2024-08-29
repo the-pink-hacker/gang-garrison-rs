@@ -1,8 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
-use gg2_common::networking::message::GGMessageHello;
-use socket::{NetworkClient, NetworkSettings};
+use gg2_common::networking::message::{ClientHello, ServerHello};
+use socket::{AppNetworkClientMessage, NetworkClient, NetworkData, NetworkSettings};
 
 mod socket;
 
@@ -13,8 +13,14 @@ fn setup_networking(mut client: ResMut<NetworkClient>, network_settings: Res<Net
 }
 
 fn hello(client: ResMut<NetworkClient>) {
-    if let Err(error) = client.send_message(GGMessageHello) {
+    if let Err(error) = client.send_message(ClientHello::default()) {
         println!("Failed to send message: {}", error);
+    }
+}
+
+fn hello_server(mut hello_events: EventReader<NetworkData<ServerHello>>) {
+    for hello_event in hello_events.read() {
+        println!("{:#?}", hello_event);
     }
 }
 
@@ -22,8 +28,11 @@ pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(socket::ClientPlugin)
-            .add_systems(Startup, setup_networking)
-            .add_systems(Update, hello);
+        app.add_plugins(socket::ClientPlugin);
+
+        app.listen_for_client_message::<ServerHello>();
+
+        app.add_systems(Startup, setup_networking)
+            .add_systems(FixedUpdate, (hello, hello_server));
     }
 }

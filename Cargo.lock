@@ -1422,7 +1422,6 @@ dependencies = [
  "dashmap",
  "gg2-common",
  "log",
- "thiserror",
  "tokio",
 ]
 
@@ -1430,6 +1429,8 @@ dependencies = [
 name = "gg2-common"
 version = "0.1.0"
 dependencies = [
+ "num_enum",
+ "thiserror",
  "uuid",
 ]
 
