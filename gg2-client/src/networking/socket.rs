@@ -1,6 +1,6 @@
 // Loosly based on https://github.com/CabbitStudios/bevy_spicy_networking
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{io, net::SocketAddr, sync::Arc};
 
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
@@ -8,7 +8,7 @@ use dashmap::DashMap;
 use gg2_common::networking::{message::GGMessage, NetworkPacket, PacketKind};
 use log::debug;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::AsyncWriteExt,
     net::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream, ToSocketAddrs,
@@ -228,11 +228,16 @@ async fn receive_task(
         read_socket.readable().await.expect("Not readable");
 
         if let Err(error) = read_socket.try_read(&mut buffer) {
-            println!(
-                "Encountered error while fetching stream [{}]: {}",
-                peer_address, error
-            );
-            break;
+            match error.kind() {
+                io::ErrorKind::WouldBlock => continue,
+                _ => {
+                    println!(
+                        "Encountered error while fetching stream [{}]: {}",
+                        peer_address, error
+                    );
+                    break;
+                }
+            }
         }
 
         let packet: NetworkPacket = match NetworkPacket::try_from(&buffer) {

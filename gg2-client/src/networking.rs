@@ -2,7 +2,9 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
 use gg2_common::networking::message::{ClientHello, ServerHello};
-use socket::{AppNetworkClientMessage, NetworkClient, NetworkData, NetworkSettings};
+use socket::{
+    AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkData, NetworkSettings,
+};
 
 mod socket;
 
@@ -12,9 +14,24 @@ fn setup_networking(mut client: ResMut<NetworkClient>, network_settings: Res<Net
     client.connect(SERVER_ADDRESS, network_settings.clone());
 }
 
-fn hello(client: ResMut<NetworkClient>) {
-    if let Err(error) = client.send_message(ClientHello::default()) {
-        println!("Failed to send message: {}", error);
+fn on_network_event(
+    client: ResMut<NetworkClient>,
+    mut connection_events: EventReader<ClientNetworkEvent>,
+) {
+    for event in connection_events.read() {
+        match event {
+            ClientNetworkEvent::Connected => {
+                if let Err(error) = client.send_message(ClientHello::default()) {
+                    println!("Failed to send message: {}", error);
+                }
+            }
+            ClientNetworkEvent::Error(error) => {
+                println!("Client network error: {}", error);
+            }
+            ClientNetworkEvent::Disconnected => {
+                println!("Disconnected from server.");
+            }
+        }
     }
 }
 
@@ -33,6 +50,6 @@ impl Plugin for NetworkingPlugin {
         app.listen_for_client_message::<ServerHello>();
 
         app.add_systems(Startup, setup_networking)
-            .add_systems(FixedUpdate, (hello, hello_server));
+            .add_systems(FixedUpdate, (on_network_event, hello_server));
     }
 }
