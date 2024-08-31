@@ -13,8 +13,11 @@ jobs:
       matrix:
         toolchain:
           - nightly
-        os: [ windows-latest, ubuntu-latest ]
+        os: [ ubuntu-latest ]
     steps:
+      - name: Install Dependencies
+        if: ${{ runner.os != "Windows" }}
+        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev
       - uses: actions/checkout@v4
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo build --verbose
