@@ -42,10 +42,22 @@ impl GGMessage for ClientReserveSlot {
         write_utf8_short_string(self.player_name, buffer)
     }
 
-    fn deserialize<I: IntoIterator<Item = u8>>(_payload: I) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn deserialize<I: IntoIterator<Item = u8>>(_payload: I) -> Result<Self> {
         unimplemented!();
+    }
+}
+
+#[derive(Debug)]
+pub struct ClientPlayerJoin;
+
+impl GGMessage for ClientPlayerJoin {
+    const KIND: PacketKind = PacketKind::PlayerJoin;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        Ok(())
+    }
+
+    fn deserialize<I: IntoIterator<Item = u8>>(_payload: I) -> Result<Self> {
+        unimplemented!()
     }
 }
