@@ -4,6 +4,12 @@ members = [
     "gg2-client", "gg2-common",
 ]
 
+[workspace.package]
+version = "0.1.0"
+authors = [ "ThePinkHacker" ]
+license = "GPL-3.0-or-later"
+repository = "https://github.thepinkhacker.com/gang-garrison-rs"
+
 [profile.dev]
 opt-level = 1
 

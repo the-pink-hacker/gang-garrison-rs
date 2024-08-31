@@ -1,7 +1,10 @@
 [package]
 name = "gg2-common"
-version = "0.1.0"
 edition = "2021"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 num_enum = "0.7.3"
