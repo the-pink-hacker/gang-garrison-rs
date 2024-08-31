@@ -17,8 +17,7 @@ impl GGMessage for ServerHello {
         unimplemented!();
     }
 
-    fn deserialize<I: IntoIterator<Item = u8>>(payload: I) -> Result<Self> {
-        let mut payload = payload.into_iter();
+    fn deserialize<I: Iterator<Item = u8>>(mut payload: I) -> Result<Self> {
         let server_name = read_utf8_short_string(&mut payload)?;
         let map_name = read_utf8_short_string(&mut payload)?;
 
@@ -44,8 +43,8 @@ impl GGMessage for ServerReserveSlot {
         unimplemented!()
     }
 
-    fn deserialize<I: IntoIterator<Item = u8>>(_payload: I) -> Result<Self> {
-        Ok(ServerReserveSlot {})
+    fn deserialize<I: Iterator<Item = u8>>(_payload: I) -> Result<Self> {
+        Ok(ServerReserveSlot)
     }
 }
 
@@ -59,7 +58,71 @@ impl GGMessage for ServerServerFull {
         unimplemented!()
     }
 
-    fn deserialize<I: IntoIterator<Item = u8>>(_payload: I) -> Result<Self> {
-        Ok(ServerServerFull {})
+    fn deserialize<I: Iterator<Item = u8>>(_payload: I) -> Result<Self> {
+        Ok(ServerServerFull)
+    }
+}
+
+// TODO: Implement inputstate
+#[derive(Debug)]
+pub struct ServerInputstate;
+
+impl GGMessage for ServerInputstate {
+    const KIND: PacketKind = PacketKind::Inputstate;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
+        Ok(ServerInputstate {})
+    }
+}
+
+// TODO: Implement quick update
+#[derive(Debug)]
+pub struct ServerQuickUpdate;
+
+impl GGMessage for ServerQuickUpdate {
+    const KIND: PacketKind = PacketKind::QuickUpdate;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
+        Ok(ServerQuickUpdate {})
+    }
+}
+
+// TODO: Implement player join
+#[derive(Debug)]
+pub struct ServerPlayerJoin;
+
+impl GGMessage for ServerPlayerJoin {
+    const KIND: PacketKind = PacketKind::PlayerJoin;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
+        Ok(ServerPlayerJoin {})
+    }
+}
+
+// TODO: Implement join update
+#[derive(Debug)]
+pub struct ServerJoinUpdate;
+
+impl GGMessage for ServerJoinUpdate {
+    const KIND: PacketKind = PacketKind::JoinUpdate;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
+        Ok(ServerJoinUpdate {})
     }
 }

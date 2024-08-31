@@ -2,8 +2,8 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
 use gg2_common::networking::message::{
-    ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerHello, ServerReserveSlot,
-    ServerServerFull,
+    ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerHello, ServerInputstate,
+    ServerJoinUpdate, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
 };
 use socket::{
     AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkData, NetworkSettings,
@@ -74,15 +74,18 @@ pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(socket::ClientPlugin);
-
-        app.listen_for_client_message::<ServerHello>();
-        app.listen_for_client_message::<ServerReserveSlot>();
-        app.listen_for_client_message::<ServerServerFull>();
-
-        app.add_systems(Startup, setup_networking).add_systems(
-            FixedUpdate,
-            (on_network_event, hello_server, reserve_slot, server_full),
-        );
+        app.add_plugins(socket::ClientPlugin)
+            .listen_for_client_message::<ServerHello>()
+            .listen_for_client_message::<ServerReserveSlot>()
+            .listen_for_client_message::<ServerServerFull>()
+            .listen_for_client_message::<ServerInputstate>()
+            .listen_for_client_message::<ServerQuickUpdate>()
+            .listen_for_client_message::<ServerPlayerJoin>()
+            .listen_for_client_message::<ServerJoinUpdate>()
+            .add_systems(Startup, setup_networking)
+            .add_systems(
+                FixedUpdate,
+                (on_network_event, hello_server, reserve_slot, server_full),
+            );
     }
 }

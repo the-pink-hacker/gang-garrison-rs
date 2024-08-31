@@ -198,7 +198,7 @@ async fn send_task(
     while let Some(message) = receive_message.recv().await {
         let message_kind = message.kind;
         let encoded_message = Vec::from(message);
-        println!("Sending: {}", encoded_message.escape_ascii());
+        debug!("Sending: {}", encoded_message.escape_ascii());
 
         if let Err(error) = send_socket.write_all(&encoded_message).await {
             error!("Couldn't send packet: {:?}: {}", message_kind, error);
@@ -221,7 +221,7 @@ async fn receive_task(
     let mut buffer = vec![0; network_settings.max_packet_length];
     loop {
         let length = read_socket.read(&mut buffer).await.unwrap();
-        println!(
+        debug!(
             "Received {} bytes: {}",
             length,
             buffer[0..length].escape_ascii()
@@ -239,7 +239,7 @@ async fn receive_task(
         };
 
         let packet_kind = packet.kind;
-        println!("Packet kind: {:?}", packet_kind);
+        debug!("Packet kind: {:?}", packet_kind);
 
         match receive_message_map.get_mut(&packet_kind) {
             Some(mut packets) => packets.push(packet.data),
@@ -308,6 +308,7 @@ fn register_client_message<T: GGMessage + 'static>(
     events.send_batch(
         messages
             .drain(..)
+            .map(Vec::into_iter)
             .map(T::deserialize)
             .filter_map(|message| match message {
                 Ok(message) => Some(message),

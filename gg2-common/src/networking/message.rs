@@ -12,7 +12,7 @@ pub trait GGMessage: Sync + Send + Sized {
 
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()>;
 
-    fn deserialize<I: IntoIterator<Item = u8>>(payload: I) -> Result<Self>;
+    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self>;
 
     fn into_packet(self) -> Result<NetworkPacket> {
         let mut data = Vec::new();
