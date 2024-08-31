@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
-use gg2_common::networking::message::{ClientHello, ServerHello};
+use gg2_common::networking::message::{ClientHello, ClientReserveSlot, ServerHello};
 use socket::{
     AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkData, NetworkSettings,
 };
@@ -35,9 +35,17 @@ fn on_network_event(
     }
 }
 
-fn hello_server(mut hello_events: EventReader<NetworkData<ServerHello>>) {
+fn hello_server(
+    mut hello_events: EventReader<NetworkData<ServerHello>>,
+    client: ResMut<NetworkClient>,
+) {
     for hello_event in hello_events.read() {
         println!("{:#?}", hello_event);
+        if let Err(error) = client.send_message(ClientReserveSlot {
+            player_name: "PlayerName".to_string(),
+        }) {
+            println!("Failed to send message: {}", error);
+        }
     }
 }
 

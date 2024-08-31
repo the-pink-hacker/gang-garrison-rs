@@ -1,14 +1,18 @@
 // Loosly based on https://github.com/CabbitStudios/bevy_spicy_networking
 
-use std::{io, net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
-use gg2_common::networking::{message::GGMessage, NetworkPacket, PacketKind};
+use gg2_common::networking::{
+    error::{Error, Result},
+    message::GGMessage,
+    NetworkPacket, PacketKind,
+};
 use log::debug;
 use tokio::{
-    io::AsyncWriteExt,
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream, ToSocketAddrs,
@@ -53,7 +57,6 @@ pub enum ClientNetworkEvent {
 
 #[derive(Debug)]
 pub struct ServerConnection {
-    peer_address: SocketAddr,
     receive_task: JoinHandle<()>,
     send_task: JoinHandle<()>,
     send_message: UnboundedSender<NetworkPacket>,
@@ -93,9 +96,9 @@ impl NetworkClient {
             let stream = match TcpStream::connect(address).await {
                 Ok(stream) => stream,
                 Err(error) => {
-                    if let Err(error) = network_error_sender.send(ClientNetworkEvent::Error(
-                        gg2_common::networking::error::Error::Connection(error),
-                    )) {
+                    if let Err(error) = network_error_sender
+                        .send(ClientNetworkEvent::Error(Error::Connection(error)))
+                    {
                         error!("Couldn't send error event: {}", error);
                     };
                     return;
@@ -123,22 +126,14 @@ impl NetworkClient {
         }
     }
 
-    pub fn send_message<T: GGMessage>(
-        &self,
-        message: T,
-    ) -> Result<(), gg2_common::networking::error::Error> {
+    pub fn send_message<T: GGMessage>(&self, message: T) -> Result<()> {
         debug!("Sending message to server.");
-        let server_connection = match self.server_connection.as_ref() {
-            Some(server) => server,
-            None => return Err(gg2_common::networking::error::Error::NotConnected),
-        };
-
-        if let Err(error) = server_connection.send_message.send(message.into()) {
-            error!("Server disconnected: {}", error);
-            return Err(gg2_common::networking::error::Error::NotConnected);
-        }
-
-        Ok(())
+        self.server_connection
+            .as_ref()
+            .ok_or(Error::NotConnected)?
+            .send_message
+            .send(message.into_packet()?)
+            .map_err(|_| Error::NotConnected)
     }
 }
 
@@ -174,7 +169,6 @@ pub fn handle_connection_event(
     let (send_message, receive_message) = unbounded_channel();
 
     client.server_connection = Some(ServerConnection {
-        peer_address,
         send_task: client.runtime.spawn(send_task(
             receive_message,
             send_socket,
@@ -204,6 +198,7 @@ async fn send_task(
     while let Some(message) = receive_message.recv().await {
         let message_kind = message.kind;
         let encoded_message = Vec::from(message);
+        println!("Sending: {}", encoded_message.escape_ascii());
 
         if let Err(error) = send_socket.write_all(&encoded_message).await {
             error!("Couldn't send packet: {:?}: {}", message_kind, error);
@@ -217,7 +212,7 @@ async fn send_task(
 
 // Receives data from server and passes network packets
 async fn receive_task(
-    read_socket: OwnedReadHalf,
+    mut read_socket: OwnedReadHalf,
     network_settings: NetworkSettings,
     receive_message_map: Arc<DashMap<PacketKind, Vec<Vec<u8>>>>,
     peer_address: SocketAddr,
@@ -225,20 +220,12 @@ async fn receive_task(
 ) {
     let mut buffer = vec![0; network_settings.max_packet_length];
     loop {
-        read_socket.readable().await.expect("Not readable");
-
-        if let Err(error) = read_socket.try_read(&mut buffer) {
-            match error.kind() {
-                io::ErrorKind::WouldBlock => continue,
-                _ => {
-                    println!(
-                        "Encountered error while fetching stream [{}]: {}",
-                        peer_address, error
-                    );
-                    break;
-                }
-            }
-        }
+        let length = read_socket.read(&mut buffer).await.unwrap();
+        println!(
+            "Received {} bytes: {}",
+            length,
+            buffer[0..length].escape_ascii()
+        );
 
         let packet: NetworkPacket = match NetworkPacket::try_from(&buffer) {
             Ok(packet) => packet,
@@ -277,7 +264,6 @@ pub fn send_client_network_events(
 
 #[derive(Debug, Deref, Event)]
 pub struct NetworkData<T: Send + Sync> {
-    //source: ConnectionId,
     #[deref]
     inner: T,
 }

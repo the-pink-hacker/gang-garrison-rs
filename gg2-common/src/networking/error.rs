@@ -22,4 +22,6 @@ pub enum Error {
     UnexpectedEOF,
     #[error("Packet payload is improperly formated")]
     PacketPayload,
+    #[error("Failed to serialize packet payload: {0}")]
+    StringLength(std::num::TryFromIntError),
 }
