@@ -95,9 +95,10 @@ impl GGMessage for ServerQuickUpdate {
     }
 }
 
-// TODO: Implement player join
 #[derive(Debug)]
-pub struct ServerPlayerJoin;
+pub struct ServerPlayerJoin {
+    pub player_name: String,
+}
 
 impl GGMessage for ServerPlayerJoin {
     const KIND: PacketKind = PacketKind::PlayerJoin;
@@ -106,8 +107,10 @@ impl GGMessage for ServerPlayerJoin {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
-        Ok(ServerPlayerJoin {})
+    fn deserialize<I: Iterator<Item = u8>>(mut payload: I) -> Result<Self> {
+        let player_name = read_utf8_short_string(&mut payload)?;
+
+        Ok(ServerPlayerJoin { player_name })
     }
 }
 

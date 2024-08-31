@@ -70,6 +70,12 @@ fn server_full(mut server_full_events: EventReader<NetworkData<ServerServerFull>
     }
 }
 
+fn player_join(mut player_join_events: EventReader<NetworkData<ServerPlayerJoin>>) {
+    for event in player_join_events.read() {
+        println!("{:#?}", event);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
@@ -85,7 +91,13 @@ impl Plugin for NetworkingPlugin {
             .add_systems(Startup, setup_networking)
             .add_systems(
                 FixedUpdate,
-                (on_network_event, hello_server, reserve_slot, server_full),
+                (
+                    on_network_event,
+                    hello_server,
+                    reserve_slot,
+                    server_full,
+                    player_join,
+                ),
             );
     }
 }
