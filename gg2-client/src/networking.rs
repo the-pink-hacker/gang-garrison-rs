@@ -1,7 +1,9 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
-use gg2_common::networking::message::{ClientHello, ClientReserveSlot, ServerHello};
+use gg2_common::networking::message::{
+    ClientHello, ClientReserveSlot, ServerHello, ServerReserveSlot, ServerServerFull,
+};
 use socket::{
     AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkData, NetworkSettings,
 };
@@ -56,6 +58,8 @@ impl Plugin for NetworkingPlugin {
         app.add_plugins(socket::ClientPlugin);
 
         app.listen_for_client_message::<ServerHello>();
+        app.listen_for_client_message::<ServerReserveSlot>();
+        app.listen_for_client_message::<ServerServerFull>();
 
         app.add_systems(Startup, setup_networking)
             .add_systems(FixedUpdate, (on_network_event, hello_server));

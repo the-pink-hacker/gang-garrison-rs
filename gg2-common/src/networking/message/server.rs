@@ -33,3 +33,33 @@ impl GGMessage for ServerHello {
         })
     }
 }
+
+#[derive(Debug)]
+pub struct ServerReserveSlot;
+
+impl GGMessage for ServerReserveSlot {
+    const KIND: PacketKind = PacketKind::ReserveSlot;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: IntoIterator<Item = u8>>(_payload: I) -> Result<Self> {
+        Ok(ServerReserveSlot {})
+    }
+}
+
+#[derive(Debug)]
+pub struct ServerServerFull;
+
+impl GGMessage for ServerServerFull {
+    const KIND: PacketKind = PacketKind::ServerFull;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: IntoIterator<Item = u8>>(_payload: I) -> Result<Self> {
+        Ok(ServerServerFull {})
+    }
+}

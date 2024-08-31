@@ -239,6 +239,7 @@ async fn receive_task(
         };
 
         let packet_kind = packet.kind;
+        println!("Packet kind: {:?}", packet_kind);
 
         match receive_message_map.get_mut(&packet_kind) {
             Some(mut packets) => packets.push(packet.data),
@@ -249,7 +250,6 @@ async fn receive_task(
                 );
             }
         }
-        println!("Received message from: {}", peer_address);
     }
 
     let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);
