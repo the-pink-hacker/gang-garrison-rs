@@ -1,4 +1,7 @@
-use crate::networking::{error::Result, PacketKind};
+use crate::networking::{
+    error::{Error, Result},
+    PacketKind,
+};
 
 use super::{read_utf8_short_string, GGMessage};
 
@@ -114,9 +117,11 @@ impl GGMessage for ServerPlayerJoin {
     }
 }
 
-// TODO: Implement join update
 #[derive(Debug)]
-pub struct ServerJoinUpdate;
+pub struct ServerJoinUpdate {
+    pub amount_of_players: u8,
+    pub map_area: u8,
+}
 
 impl GGMessage for ServerJoinUpdate {
     const KIND: PacketKind = PacketKind::JoinUpdate;
@@ -125,7 +130,12 @@ impl GGMessage for ServerJoinUpdate {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
-        Ok(ServerJoinUpdate {})
+    fn deserialize<I: Iterator<Item = u8>>(mut payload: I) -> Result<Self> {
+        let amount_of_players = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let map_area = payload.next().ok_or(Error::UnexpectedEOF)?;
+        Ok(ServerJoinUpdate {
+            amount_of_players,
+            map_area,
+        })
     }
 }

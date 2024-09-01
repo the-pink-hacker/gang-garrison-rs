@@ -85,6 +85,12 @@ fn player_join(
     }
 }
 
+fn join_update(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>) {
+    for event in join_update_events.read() {
+        println!("{:#?}", event);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
@@ -106,6 +112,7 @@ impl Plugin for NetworkingPlugin {
                     reserve_slot,
                     server_full,
                     player_join,
+                    join_update,
                 ),
             );
     }
