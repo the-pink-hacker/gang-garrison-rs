@@ -31,7 +31,6 @@ jobs:
           path: |
             target/debug
             !target/debug/build
-            !target/debug/deps
             !target/debug/examples
             !target/debug/incremental
             !target/debug/.fingerprint
