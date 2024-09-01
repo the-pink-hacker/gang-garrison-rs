@@ -1,9 +1,12 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
-use gg2_common::networking::message::{
-    ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerHello, ServerInputstate,
-    ServerJoinUpdate, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
+use gg2_common::{
+    networking::message::{
+        ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerHello, ServerInputstate,
+        ServerJoinUpdate, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
+    },
+    player::Player,
 };
 use socket::{
     AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkData, NetworkSettings,
@@ -59,7 +62,7 @@ fn reserve_slot(
     for _ in reserve_events.read() {
         println!("Joining server.");
         let _ = client
-            .send_message(ClientPlayerJoin {})
+            .send_message(ClientPlayerJoin)
             .inspect_err(|error| eprintln!("{}", error));
     }
 }
@@ -70,9 +73,15 @@ fn server_full(mut server_full_events: EventReader<NetworkData<ServerServerFull>
     }
 }
 
-fn player_join(mut player_join_events: EventReader<NetworkData<ServerPlayerJoin>>) {
+fn player_join(
+    mut player_join_events: EventReader<NetworkData<ServerPlayerJoin>>,
+    mut commands: Commands,
+) {
     for event in player_join_events.read() {
         println!("{:#?}", event);
+        commands.spawn(Player {
+            name: event.player_name.clone(),
+        });
     }
 }
 

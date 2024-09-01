@@ -1,11 +1,12 @@
 use bevy::prelude::*;
-use networking::NetworkingPlugin;
 
 mod networking;
+mod player;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(NetworkingPlugin)
+        .add_plugins(networking::NetworkingPlugin)
+        .add_plugins(player::PlayerPlugin)
         .run();
 }

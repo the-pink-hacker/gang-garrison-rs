@@ -1401,6 +1401,7 @@ dependencies = [
 name = "gg2-common"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "num_enum",
  "thiserror",
  "uuid",
