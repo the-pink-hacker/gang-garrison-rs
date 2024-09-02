@@ -4,8 +4,8 @@ use bevy::prelude::*;
 use gg2_common::{
     networking::message::{
         ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerHello,
-        ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerJoin,
-        ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
+        ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerChangeTeam,
+        ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
     },
     player::Player,
 };
@@ -79,7 +79,7 @@ fn player_join(
     mut commands: Commands,
 ) {
     for event in player_join_events.read() {
-        println!("{:#?}", event);
+        println!("{:#?}", **event);
         commands.spawn(Player {
             name: event.player_name.clone(),
         });
@@ -88,13 +88,13 @@ fn player_join(
 
 fn join_update(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>) {
     for event in join_update_events.read() {
-        println!("{:#?}", event);
+        println!("{:#?}", **event);
     }
 }
 
 fn change_map(mut change_map_events: EventReader<NetworkData<ServerChangeMap>>) {
     for event in change_map_events.read() {
-        println!("{:#?}", event);
+        println!("{:#?}", **event);
     }
 }
 
@@ -102,7 +102,15 @@ fn player_change_class(
     mut player_change_class_events: EventReader<NetworkData<ServerPlayerChangeClass>>,
 ) {
     for event in player_change_class_events.read() {
-        println!("{:#?}", event);
+        println!("{:#?}", **event);
+    }
+}
+
+fn player_change_team(
+    mut player_change_team_events: EventReader<NetworkData<ServerPlayerChangeTeam>>,
+) {
+    for event in player_change_team_events.read() {
+        println!("{:#?}", **event);
     }
 }
 
@@ -120,6 +128,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerJoinUpdate>()
             .listen_for_client_message::<ServerChangeMap>()
             .listen_for_client_message::<ServerPlayerChangeClass>()
+            .listen_for_client_message::<ServerPlayerChangeTeam>()
             .add_systems(Startup, setup_networking)
             .add_systems(
                 FixedUpdate,
@@ -132,6 +141,7 @@ impl Plugin for NetworkingPlugin {
                     join_update,
                     change_map,
                     player_change_class,
+                    player_change_team,
                 ),
             );
     }

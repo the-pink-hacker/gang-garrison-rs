@@ -4,7 +4,7 @@ use crate::{
         message::read_md5,
         PacketKind,
     },
-    player::Class,
+    player::{Class, Team},
 };
 
 use super::{read_utf8_long_string, read_utf8_short_string, GGMessage};
@@ -187,9 +187,38 @@ impl GGMessage for ServerPlayerChangeClass {
             .ok_or(Error::UnexpectedEOF)?
             .try_into()
             .map_err(|_| Error::PacketPayload)?;
+
         Ok(Self {
             player_index,
             player_class,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct ServerPlayerChangeTeam {
+    pub player_index: u8,
+    pub player_team: Team,
+}
+
+impl GGMessage for ServerPlayerChangeTeam {
+    const KIND: PacketKind = PacketKind::PlayerChangeTeam;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_index = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let player_team = payload
+            .next()
+            .ok_or(Error::UnexpectedEOF)?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
+
+        Ok(Self {
+            player_index,
+            player_team,
         })
     }
 }
