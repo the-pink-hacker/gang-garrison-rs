@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 bevy = { version = "0.14.1", default-features = false }
+hex = "0.4.3"
 num_enum = "0.7.3"
 thiserror = "1.0.63"
 uuid = "1.10.0"
