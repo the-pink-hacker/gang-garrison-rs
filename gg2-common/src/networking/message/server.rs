@@ -1,5 +1,6 @@
 use crate::networking::{
     error::{Error, Result},
+    message::read_md5,
     PacketKind,
 };
 
@@ -24,12 +25,7 @@ impl GGMessage for ServerHello {
         let server_name = read_utf8_short_string(payload)?;
         let map_name = read_utf8_short_string(payload)?;
 
-        let map_md5_string = read_utf8_short_string(payload)?;
-        let map_md5 = if map_md5_string.is_empty() {
-            None
-        } else {
-            Some(map_md5_string.parse().map_err(|_| Error::PacketPayload)?)
-        };
+        let map_md5 = read_md5(payload)?;
 
         let plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
         let plugins_raw = read_utf8_long_string(payload)?;
@@ -145,5 +141,25 @@ impl GGMessage for ServerJoinUpdate {
             amount_of_players,
             map_area,
         })
+    }
+}
+
+#[derive(Debug)]
+pub struct ServerChangeMap {
+    pub map_name: String,
+    pub map_md5: Option<u128>,
+}
+
+impl GGMessage for ServerChangeMap {
+    const KIND: PacketKind = PacketKind::ChangeMap;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let map_name = read_utf8_short_string(payload)?;
+        let map_md5 = read_md5(payload)?;
+        Ok(Self { map_name, map_md5 })
     }
 }

@@ -30,12 +30,25 @@ fn read_utf8_short_string<I: Iterator<Item = u8>>(stream: &mut I) -> Result<Stri
     String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
 }
 
+fn read_u16<I: Iterator<Item = u8>>(stream: &mut I) -> Result<u16> {
+    let least_significant = stream.next().ok_or(Error::UnexpectedEOF)? as u16;
+    let most_significant = stream.next().ok_or(Error::UnexpectedEOF)? as u16;
+    Ok(least_significant | (most_significant << 8))
+}
+
 fn read_utf8_long_string<I: Iterator<Item = u8>>(stream: &mut I) -> Result<String> {
-    let length_least_significant = stream.next().ok_or(Error::UnexpectedEOF)? as usize;
-    let length_most_significant = stream.next().ok_or(Error::UnexpectedEOF)? as usize;
-    let length = length_least_significant | (length_most_significant << 8);
+    let length = read_u16(stream)? as usize;
     let bytes = stream.take(length).collect();
     String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
+}
+
+fn read_md5<I: Iterator<Item = u8>>(stream: &mut I) -> Result<Option<u128>> {
+    let md5_string = read_utf8_short_string(stream)?;
+    if md5_string.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(md5_string.parse().map_err(|_| Error::PacketPayload)?))
+    }
 }
 
 fn write_utf8_short_string(text: String, buffer: &mut Vec<u8>) -> Result<()> {

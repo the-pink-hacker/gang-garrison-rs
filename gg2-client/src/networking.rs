@@ -3,8 +3,9 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use bevy::prelude::*;
 use gg2_common::{
     networking::message::{
-        ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerHello, ServerInputstate,
-        ServerJoinUpdate, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
+        ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerHello,
+        ServerInputstate, ServerJoinUpdate, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot,
+        ServerServerFull,
     },
     player::Player,
 };
@@ -91,6 +92,12 @@ fn join_update(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>
     }
 }
 
+fn change_map(mut change_map_events: EventReader<NetworkData<ServerChangeMap>>) {
+    for event in change_map_events.read() {
+        println!("{:#?}", event);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
@@ -103,6 +110,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerQuickUpdate>()
             .listen_for_client_message::<ServerPlayerJoin>()
             .listen_for_client_message::<ServerJoinUpdate>()
+            .listen_for_client_message::<ServerChangeMap>()
             .add_systems(Startup, setup_networking)
             .add_systems(
                 FixedUpdate,
@@ -113,6 +121,7 @@ impl Plugin for NetworkingPlugin {
                     server_full,
                     player_join,
                     join_update,
+                    change_map,
                 ),
             );
     }
