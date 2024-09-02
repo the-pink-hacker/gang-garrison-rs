@@ -9,7 +9,7 @@ use crate::{
 
 use super::{read_utf8_long_string, read_utf8_short_string, GGMessage};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerHello {
     pub server_name: String,
     pub map_name: String,
@@ -43,7 +43,7 @@ impl GGMessage for ServerHello {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerReserveSlot;
 
 impl GGMessage for ServerReserveSlot {
@@ -58,7 +58,7 @@ impl GGMessage for ServerReserveSlot {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerServerFull;
 
 impl GGMessage for ServerServerFull {
@@ -74,7 +74,7 @@ impl GGMessage for ServerServerFull {
 }
 
 // TODO: Implement inputstate
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerInputState;
 
 impl GGMessage for ServerInputState {
@@ -90,7 +90,7 @@ impl GGMessage for ServerInputState {
 }
 
 // TODO: Implement quick update
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerQuickUpdate;
 
 impl GGMessage for ServerQuickUpdate {
@@ -105,7 +105,7 @@ impl GGMessage for ServerQuickUpdate {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerPlayerJoin {
     pub player_name: String,
 }
@@ -124,7 +124,7 @@ impl GGMessage for ServerPlayerJoin {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerJoinUpdate {
     pub amount_of_players: u8,
     pub map_area: u8,
@@ -147,7 +147,7 @@ impl GGMessage for ServerJoinUpdate {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerChangeMap {
     pub map_name: String,
     pub map_md5: Option<u128>,
@@ -167,7 +167,7 @@ impl GGMessage for ServerChangeMap {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerPlayerChangeClass {
     pub player_index: u8,
     pub player_class: Class,
@@ -195,7 +195,7 @@ impl GGMessage for ServerPlayerChangeClass {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerPlayerChangeTeam {
     pub player_index: u8,
     pub player_team: Team,

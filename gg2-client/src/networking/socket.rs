@@ -291,7 +291,7 @@ impl AppNetworkClientMessage for App {
         client.receive_message_map.insert(T::KIND, Vec::new());
 
         self.add_event::<NetworkData<T>>()
-            .add_systems(PreUpdate, register_client_message::<T>)
+            .add_systems(FixedPreUpdate, register_client_message::<T>)
     }
 }
 
@@ -335,36 +335,6 @@ fn register_client_message<T: GGMessage + 'static>(
             })
             .map(|msg| NetworkData { inner: msg }),
     );
-
-    //events.send_batch(
-    //    messages
-    //        .drain(..)
-    //        .map(|bytes| {
-    //            let mut stream = bytes.into_iter();
-    //            println!("Stream: {}", stream.len());
-    //            (
-    //                T::deserialize(&mut stream),
-    //                NetworkPacket::try_from(&stream.collect()),
-    //            )
-    //        })
-    //        .filter_map(|(message, remaining_packet)| match message {
-    //            Ok(message) => Some((message, remaining_packet)),
-    //            Err(error) => {
-    //                error!("Failed to deserialize message: {}", error);
-    //                None
-    //            }
-    //        })
-    //        .map(|(message, remaining_packet)| {
-    //            if let Ok(packet) = remaining_packet {
-    //                if let Some(packets) = &mut client.receive_message_map.get_mut(&packet.kind) {
-    //                    println!("Secret additional packet sent: {:?}", packet.kind);
-    //                    //packets.push(packet.data);
-    //                }
-    //            }
-    //            message
-    //        })
-    //        .map(|message| NetworkData { inner: message }),
-    //);
 }
 
 pub struct ClientPlugin;

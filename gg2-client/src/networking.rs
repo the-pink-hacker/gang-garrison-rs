@@ -1,19 +1,16 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
-use gg2_common::{
-    networking::message::{
-        ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerHello,
-        ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerChangeTeam,
-        ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
-    },
-    player::Player,
+use gg2_common::networking::message::{
+    ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerHello,
+    ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerChangeTeam,
+    ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
 };
-use socket::{
-    AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkData, NetworkSettings,
-};
+use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 
 mod socket;
+
+pub use socket::NetworkData;
 
 const SERVER_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 0)), 8150);
 
@@ -74,18 +71,6 @@ fn server_full(mut server_full_events: EventReader<NetworkData<ServerServerFull>
     }
 }
 
-fn player_join(
-    mut player_join_events: EventReader<NetworkData<ServerPlayerJoin>>,
-    mut commands: Commands,
-) {
-    for event in player_join_events.read() {
-        println!("{:#?}", **event);
-        commands.spawn(Player {
-            name: event.player_name.clone(),
-        });
-    }
-}
-
 fn join_update(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>) {
     for event in join_update_events.read() {
         println!("{:#?}", **event);
@@ -94,22 +79,6 @@ fn join_update(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>
 
 fn change_map(mut change_map_events: EventReader<NetworkData<ServerChangeMap>>) {
     for event in change_map_events.read() {
-        println!("{:#?}", **event);
-    }
-}
-
-fn player_change_class(
-    mut player_change_class_events: EventReader<NetworkData<ServerPlayerChangeClass>>,
-) {
-    for event in player_change_class_events.read() {
-        println!("{:#?}", **event);
-    }
-}
-
-fn player_change_team(
-    mut player_change_team_events: EventReader<NetworkData<ServerPlayerChangeTeam>>,
-) {
-    for event in player_change_team_events.read() {
         println!("{:#?}", **event);
     }
 }
@@ -137,11 +106,8 @@ impl Plugin for NetworkingPlugin {
                     hello_server,
                     reserve_slot,
                     server_full,
-                    player_join,
                     join_update,
                     change_map,
-                    player_change_class,
-                    player_change_team,
                 ),
             );
     }
