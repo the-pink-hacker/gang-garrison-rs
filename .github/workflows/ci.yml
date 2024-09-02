@@ -25,7 +25,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ runner.os }}
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo build --verbose
       - run: cargo test --verbose
       - name: Archive production artifacts
