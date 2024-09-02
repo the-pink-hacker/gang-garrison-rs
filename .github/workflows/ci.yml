@@ -19,7 +19,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev mold
       - uses: actions/checkout@v4
-        uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ runner.os }}
           save-if: ${{ github.ref == 'refs/heads/master' }}
