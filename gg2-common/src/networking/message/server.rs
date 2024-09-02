@@ -1,7 +1,10 @@
-use crate::networking::{
-    error::{Error, Result},
-    message::read_md5,
-    PacketKind,
+use crate::{
+    networking::{
+        error::{Error, Result},
+        message::read_md5,
+        PacketKind,
+    },
+    player::Class,
 };
 
 use super::{read_utf8_long_string, read_utf8_short_string, GGMessage};
@@ -72,17 +75,17 @@ impl GGMessage for ServerServerFull {
 
 // TODO: Implement inputstate
 #[derive(Debug)]
-pub struct ServerInputstate;
+pub struct ServerInputState;
 
-impl GGMessage for ServerInputstate {
-    const KIND: PacketKind = PacketKind::Inputstate;
+impl GGMessage for ServerInputState {
+    const KIND: PacketKind = PacketKind::InputState;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
         unimplemented!()
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        Ok(ServerInputstate {})
+        Ok(ServerInputState {})
     }
 }
 
@@ -161,5 +164,32 @@ impl GGMessage for ServerChangeMap {
         let map_name = read_utf8_short_string(payload)?;
         let map_md5 = read_md5(payload)?;
         Ok(Self { map_name, map_md5 })
+    }
+}
+
+#[derive(Debug)]
+pub struct ServerPlayerChangeClass {
+    pub player_index: u8,
+    pub player_class: Class,
+}
+
+impl GGMessage for ServerPlayerChangeClass {
+    const KIND: PacketKind = PacketKind::PlayerChangeClass;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_index = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let player_class = payload
+            .next()
+            .ok_or(Error::UnexpectedEOF)?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
+        Ok(Self {
+            player_index,
+            player_class,
+        })
     }
 }

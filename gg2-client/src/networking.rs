@@ -4,8 +4,8 @@ use bevy::prelude::*;
 use gg2_common::{
     networking::message::{
         ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerHello,
-        ServerInputstate, ServerJoinUpdate, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot,
-        ServerServerFull,
+        ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerJoin,
+        ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
     },
     player::Player,
 };
@@ -98,6 +98,14 @@ fn change_map(mut change_map_events: EventReader<NetworkData<ServerChangeMap>>) 
     }
 }
 
+fn player_change_class(
+    mut player_change_class_events: EventReader<NetworkData<ServerPlayerChangeClass>>,
+) {
+    for event in player_change_class_events.read() {
+        println!("{:#?}", event);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
@@ -106,11 +114,12 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerHello>()
             .listen_for_client_message::<ServerReserveSlot>()
             .listen_for_client_message::<ServerServerFull>()
-            .listen_for_client_message::<ServerInputstate>()
+            .listen_for_client_message::<ServerInputState>()
             .listen_for_client_message::<ServerQuickUpdate>()
             .listen_for_client_message::<ServerPlayerJoin>()
             .listen_for_client_message::<ServerJoinUpdate>()
             .listen_for_client_message::<ServerChangeMap>()
+            .listen_for_client_message::<ServerPlayerChangeClass>()
             .add_systems(Startup, setup_networking)
             .add_systems(
                 FixedUpdate,
@@ -122,6 +131,7 @@ impl Plugin for NetworkingPlugin {
                     player_join,
                     join_update,
                     change_map,
+                    player_change_class,
                 ),
             );
     }
