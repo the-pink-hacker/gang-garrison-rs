@@ -17,7 +17,7 @@ impl GGMessage for ClientHello {
         Ok(())
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(_payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         unimplemented!();
     }
 }
@@ -42,7 +42,7 @@ impl GGMessage for ClientReserveSlot {
         write_utf8_short_string(self.player_name, buffer)
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(_payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         unimplemented!();
     }
 }
@@ -57,7 +57,7 @@ impl GGMessage for ClientPlayerJoin {
         Ok(())
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(_payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         unimplemented!()
     }
 }

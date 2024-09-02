@@ -3,7 +3,7 @@ use crate::networking::{
     PacketKind,
 };
 
-use super::{read_utf8_short_string, GGMessage};
+use super::{read_utf8_long_string, read_utf8_short_string, GGMessage};
 
 #[derive(Debug)]
 pub struct ServerHello {
@@ -20,17 +20,25 @@ impl GGMessage for ServerHello {
         unimplemented!();
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(mut payload: I) -> Result<Self> {
-        let server_name = read_utf8_short_string(&mut payload)?;
-        let map_name = read_utf8_short_string(&mut payload)?;
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let server_name = read_utf8_short_string(payload)?;
+        let map_name = read_utf8_short_string(payload)?;
 
-        // TODO: Parse MD5 and plugins
-        //let md5_string = read_utf8_short_string(&mut payload)?;
+        let map_md5_string = read_utf8_short_string(payload)?;
+        let map_md5 = if map_md5_string.is_empty() {
+            None
+        } else {
+            Some(map_md5_string.parse().map_err(|_| Error::PacketPayload)?)
+        };
+
+        let plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let plugins_raw = read_utf8_long_string(payload)?;
+        println!("Found {} plugins: [ {} ]", plugins_amounts, plugins_raw);
 
         Ok(Self {
             server_name,
             map_name,
-            map_md5: None,
+            map_md5,
             plugins: Vec::new(),
         })
     }
@@ -46,7 +54,7 @@ impl GGMessage for ServerReserveSlot {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(_payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         Ok(ServerReserveSlot)
     }
 }
@@ -61,7 +69,7 @@ impl GGMessage for ServerServerFull {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(_payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         Ok(ServerServerFull)
     }
 }
@@ -77,7 +85,7 @@ impl GGMessage for ServerInputstate {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         Ok(ServerInputstate {})
     }
 }
@@ -93,7 +101,7 @@ impl GGMessage for ServerQuickUpdate {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         Ok(ServerQuickUpdate {})
     }
 }
@@ -110,8 +118,8 @@ impl GGMessage for ServerPlayerJoin {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(mut payload: I) -> Result<Self> {
-        let player_name = read_utf8_short_string(&mut payload)?;
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_name = read_utf8_short_string(payload)?;
 
         Ok(ServerPlayerJoin { player_name })
     }
@@ -130,7 +138,7 @@ impl GGMessage for ServerJoinUpdate {
         unimplemented!()
     }
 
-    fn deserialize<I: Iterator<Item = u8>>(mut payload: I) -> Result<Self> {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let amount_of_players = payload.next().ok_or(Error::UnexpectedEOF)?;
         let map_area = payload.next().ok_or(Error::UnexpectedEOF)?;
         Ok(ServerJoinUpdate {

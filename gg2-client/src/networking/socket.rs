@@ -221,13 +221,13 @@ async fn receive_task(
     let mut buffer = vec![0; network_settings.max_packet_length];
     loop {
         let length = read_socket.read(&mut buffer).await.unwrap();
-        debug!(
+        println!(
             "Received {} bytes: {}",
             length,
             buffer[0..length].escape_ascii()
         );
 
-        let packet: NetworkPacket = match NetworkPacket::try_from(&buffer) {
+        let packet: NetworkPacket = match NetworkPacket::try_from(&buffer[..length]) {
             Ok(packet) => packet,
             Err(error) => {
                 println!(
@@ -245,7 +245,7 @@ async fn receive_task(
             Some(mut packets) => packets.push(packet.data),
             None => {
                 println!(
-                    "Could not find existing entries for message kinds: {:?}",
+                    "Couldn't find existing entries for message kinds: {:?}",
                     packet_kind
                 );
             }
@@ -308,8 +308,24 @@ fn register_client_message<T: GGMessage + 'static>(
     events.send_batch(
         messages
             .drain(..)
-            .map(Vec::into_iter)
-            .map(T::deserialize)
+            .map(|bytes| {
+                let mut bytes = bytes.into_iter();
+                let output = T::deserialize(&mut bytes);
+                if output.is_ok() && bytes.len() > 0 {
+                    if let Some(kind) = bytes.next().and_then(|raw| PacketKind::try_from(raw).ok())
+                    {
+                        println!("Another packet was found of type: {:?}", kind);
+                        match &mut client.receive_message_map.get_mut(&kind) {
+                            Some(messages) => messages.push(bytes.collect()),
+                            None => println!(
+                                "Couldn't find existing entries for message kinds: {:?}",
+                                kind
+                            ),
+                        }
+                    }
+                }
+                output
+            })
             .filter_map(|message| match message {
                 Ok(message) => Some(message),
                 Err(error) => {
@@ -319,6 +335,36 @@ fn register_client_message<T: GGMessage + 'static>(
             })
             .map(|msg| NetworkData { inner: msg }),
     );
+
+    //events.send_batch(
+    //    messages
+    //        .drain(..)
+    //        .map(|bytes| {
+    //            let mut stream = bytes.into_iter();
+    //            println!("Stream: {}", stream.len());
+    //            (
+    //                T::deserialize(&mut stream),
+    //                NetworkPacket::try_from(&stream.collect()),
+    //            )
+    //        })
+    //        .filter_map(|(message, remaining_packet)| match message {
+    //            Ok(message) => Some((message, remaining_packet)),
+    //            Err(error) => {
+    //                error!("Failed to deserialize message: {}", error);
+    //                None
+    //            }
+    //        })
+    //        .map(|(message, remaining_packet)| {
+    //            if let Ok(packet) = remaining_packet {
+    //                if let Some(packets) = &mut client.receive_message_map.get_mut(&packet.kind) {
+    //                    println!("Secret additional packet sent: {:?}", packet.kind);
+    //                    //packets.push(packet.data);
+    //                }
+    //            }
+    //            message
+    //        })
+    //        .map(|message| NetworkData { inner: message }),
+    //);
 }
 
 pub struct ClientPlugin;

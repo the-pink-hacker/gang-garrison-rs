@@ -3,7 +3,7 @@ use gg2_common::player::Player;
 
 fn update_player_position(player_query: Query<&Player>) {
     for player in player_query.iter() {
-        println!("Player of name: {}", player.name);
+        //println!("Player of name: {}", player.name);
     }
 }
 

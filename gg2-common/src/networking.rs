@@ -21,10 +21,10 @@ impl From<NetworkPacket> for Vec<u8> {
     }
 }
 
-impl TryFrom<&Vec<u8>> for NetworkPacket {
+impl TryFrom<&[u8]> for NetworkPacket {
     type Error = error::Error;
 
-    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let mut stream = value.iter().cloned();
         let raw_kind = stream.next().ok_or(error::Error::PacketEmpty)?;
         let kind = raw_kind

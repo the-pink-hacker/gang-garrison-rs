@@ -12,7 +12,7 @@ pub trait GGMessage: Sync + Send + Sized {
 
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()>;
 
-    fn deserialize<I: Iterator<Item = u8>>(payload: I) -> Result<Self>;
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self>;
 
     fn into_packet(self) -> Result<NetworkPacket> {
         let mut data = Vec::new();
@@ -23,8 +23,17 @@ pub trait GGMessage: Sync + Send + Sized {
         })
     }
 }
+
 fn read_utf8_short_string<I: Iterator<Item = u8>>(stream: &mut I) -> Result<String> {
     let length = stream.next().ok_or(Error::UnexpectedEOF)? as usize;
+    let bytes = stream.take(length).collect();
+    String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
+}
+
+fn read_utf8_long_string<I: Iterator<Item = u8>>(stream: &mut I) -> Result<String> {
+    let length_least_significant = stream.next().ok_or(Error::UnexpectedEOF)? as usize;
+    let length_most_significant = stream.next().ok_or(Error::UnexpectedEOF)? as usize;
+    let length = length_least_significant | (length_most_significant << 8);
     let bytes = stream.take(length).collect();
     String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
 }
