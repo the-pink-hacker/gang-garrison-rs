@@ -396,3 +396,21 @@ impl GGMessage for ServerFullUpdate {
         })
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ServerMessageString {
+    pub message: String,
+}
+
+impl GGMessage for ServerMessageString {
+    const KIND: PacketKind = PacketKind::MessageString;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!();
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let message = payload.read_utf8_short_string()?;
+        Ok(Self { message })
+    }
+}

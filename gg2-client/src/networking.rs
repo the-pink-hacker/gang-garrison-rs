@@ -1,12 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
-use gg2_common::networking::message::{
-    ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerFullUpdate,
-    ServerHello, ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass,
-    ServerPlayerChangeTeam, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot,
-    ServerServerFull,
-};
+use gg2_common::networking::message::*;
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 
 mod socket;
@@ -107,6 +102,16 @@ fn handle_full_update(mut events: EventReader<NetworkData<ServerFullUpdate>>) {
     }
 }
 
+fn handle_message_string(
+    mut events: EventReader<NetworkData<ServerMessageString>>,
+    mut state: ResMut<NextState<NetworkingState>>,
+) {
+    for event in events.read() {
+        println!("{:#?}", **event);
+        state.set(NetworkingState::InGame);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
@@ -124,6 +129,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerPlayerChangeClass>()
             .listen_for_client_message::<ServerPlayerChangeTeam>()
             .listen_for_client_message::<ServerFullUpdate>()
+            .listen_for_client_message::<ServerMessageString>()
             .add_systems(
                 FixedUpdate,
                 (
@@ -132,7 +138,8 @@ impl Plugin for NetworkingPlugin {
                     handle_hello.run_if(in_state(NetworkingState::AwaitingHello)),
                     (handle_reserve_slot, handle_server_full)
                         .run_if(in_state(NetworkingState::ReserveSlot)),
-                    handle_join_update.run_if(in_state(NetworkingState::PlayerJoining)),
+                    (handle_join_update, handle_message_string)
+                        .run_if(in_state(NetworkingState::PlayerJoining)),
                     (handle_change_map, handle_full_update)
                         .run_if(in_state(NetworkingState::PlayerJoining))
                         .run_if(in_state(NetworkingState::InGame)),
