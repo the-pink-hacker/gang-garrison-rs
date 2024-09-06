@@ -87,7 +87,9 @@ impl NetworkClient {
     ) {
         debug!("Starting connection.");
 
-        self.disconnect();
+        if self.server_connection.is_some() {
+            self.disconnect();
+        }
 
         let network_error_sender = self.network_events.sender.clone();
         let connection_event_sender = self.connection_events.sender.clone();
