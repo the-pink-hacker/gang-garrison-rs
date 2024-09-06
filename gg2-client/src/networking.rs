@@ -130,11 +130,11 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerPlayerChangeTeam>()
             .listen_for_client_message::<ServerFullUpdate>()
             .listen_for_client_message::<ServerMessageString>()
+            .add_systems(Startup, setup_networking)
             .add_systems(
                 FixedUpdate,
                 (
-                    on_network_event,
-                    setup_networking.run_if(in_state(NetworkingState::Disconnected)),
+                    on_network_event.run_if(not(in_state(NetworkingState::Disconnected))),
                     handle_hello.run_if(in_state(NetworkingState::AwaitingHello)),
                     (handle_reserve_slot, handle_server_full)
                         .run_if(in_state(NetworkingState::ReserveSlot)),
