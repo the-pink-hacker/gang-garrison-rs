@@ -1,13 +1,15 @@
+use std::time::Duration;
+
 use crate::{
+    intel::RawIntel,
     networking::{
         error::{Error, Result},
-        message::read_md5,
         PacketKind,
     },
     player::{Class, Team},
 };
 
-use super::{read_utf8_long_string, read_utf8_short_string, GGMessage};
+use super::{GGMessage, MessageReader};
 
 #[derive(Debug, Clone)]
 pub struct ServerHello {
@@ -25,13 +27,13 @@ impl GGMessage for ServerHello {
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let server_name = read_utf8_short_string(payload)?;
-        let map_name = read_utf8_short_string(payload)?;
+        let server_name = payload.read_utf8_short_string()?;
+        let map_name = payload.read_utf8_short_string()?;
 
-        let map_md5 = read_md5(payload)?;
+        let map_md5 = payload.read_md5()?;
 
         let plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
-        let plugins_raw = read_utf8_long_string(payload)?;
+        let plugins_raw = payload.read_utf8_long_string()?;
         println!("Found {} plugins: [ {} ]", plugins_amounts, plugins_raw);
 
         Ok(Self {
@@ -50,7 +52,7 @@ impl GGMessage for ServerReserveSlot {
     const KIND: PacketKind = PacketKind::ReserveSlot;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
@@ -65,7 +67,7 @@ impl GGMessage for ServerServerFull {
     const KIND: PacketKind = PacketKind::ServerFull;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
@@ -81,7 +83,7 @@ impl GGMessage for ServerInputState {
     const KIND: PacketKind = PacketKind::InputState;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
@@ -97,7 +99,7 @@ impl GGMessage for ServerQuickUpdate {
     const KIND: PacketKind = PacketKind::QuickUpdate;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
@@ -114,11 +116,11 @@ impl GGMessage for ServerPlayerJoin {
     const KIND: PacketKind = PacketKind::PlayerJoin;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_name = read_utf8_short_string(payload)?;
+        let player_name = payload.read_utf8_short_string()?;
 
         Ok(ServerPlayerJoin { player_name })
     }
@@ -134,12 +136,12 @@ impl GGMessage for ServerJoinUpdate {
     const KIND: PacketKind = PacketKind::JoinUpdate;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let amount_of_players = payload.next().ok_or(Error::UnexpectedEOF)?;
-        let map_area = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let amount_of_players = payload.read_u8()?;
+        let map_area = payload.read_u8()?;
         Ok(ServerJoinUpdate {
             amount_of_players,
             map_area,
@@ -157,12 +159,12 @@ impl GGMessage for ServerChangeMap {
     const KIND: PacketKind = PacketKind::ChangeMap;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let map_name = read_utf8_short_string(payload)?;
-        let map_md5 = read_md5(payload)?;
+        let map_name = payload.read_utf8_short_string()?;
+        let map_md5 = payload.read_md5()?;
         Ok(Self { map_name, map_md5 })
     }
 }
@@ -177,14 +179,13 @@ impl GGMessage for ServerPlayerChangeClass {
     const KIND: PacketKind = PacketKind::PlayerChangeClass;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let player_index = payload.read_u8()?;
         let player_class = payload
-            .next()
-            .ok_or(Error::UnexpectedEOF)?
+            .read_u8()?
             .try_into()
             .map_err(|_| Error::PacketPayload)?;
 
@@ -205,20 +206,193 @@ impl GGMessage for ServerPlayerChangeTeam {
     const KIND: PacketKind = PacketKind::PlayerChangeTeam;
 
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!()
+        unimplemented!();
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let player_index = payload.read_u8()?;
         let player_team = payload
-            .next()
-            .ok_or(Error::UnexpectedEOF)?
+            .read_u8()?
             .try_into()
             .map_err(|_| Error::PacketPayload)?;
 
         Ok(Self {
             player_index,
             player_team,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PlayerUpdateInfo {
+    pub kills: u8,
+    pub deaths: u8,
+    pub caps: u8,
+    pub assists: u8,
+    pub destruction: u8,
+    pub stabs: u8,
+    pub healing: u16,
+    pub defenses: u8,
+    pub invulnerability: u8,
+    pub bonus: u8,
+    pub points: u8,
+    pub queue_jump: u8,
+    pub rewards: String,
+    pub dominations: Vec<u8>,
+    pub subobjects: Vec<()>,
+}
+
+impl PlayerUpdateInfo {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I, player_length: u8) -> Result<Self> {
+        let kills = payload.read_u8()?;
+        let deaths = payload.read_u8()?;
+        let caps = payload.read_u8()?;
+        let assists = payload.read_u8()?;
+        let destruction = payload.read_u8()?;
+        let stabs = payload.read_u8()?;
+        let healing = payload.read_u16()?;
+        let defenses = payload.read_u8()?;
+        let invulnerability = payload.read_u8()?;
+        let bonus = payload.read_u8()?;
+        let points = payload.read_u8()?;
+        let queue_jump = payload.read_u8()?;
+        let rewards = payload.read_utf8_long_string()?;
+
+        let non_current_players = if player_length == 0 {
+            0
+        } else {
+            player_length - 1
+        };
+
+        let dominations = payload
+            .take(non_current_players as usize)
+            .collect::<Vec<_>>();
+
+        let subobjects_length = payload.read_u8()?;
+        // TODO: Add subobjects
+        assert_eq!(subobjects_length, 0);
+
+        Ok(Self {
+            kills,
+            deaths,
+            caps,
+            assists,
+            destruction,
+            stabs,
+            healing,
+            defenses,
+            invulnerability,
+            bonus,
+            points,
+            queue_jump,
+            rewards,
+            dominations,
+            subobjects: Vec::new(),
+        })
+    }
+}
+
+impl RawIntel {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let amount = payload.read_u16()?;
+        let x = payload.read_fixed_point_u16()?;
+        let y = payload.read_fixed_point_u16()?;
+        let _recharge_time = payload.read_u16()? as i16;
+        Ok(Self {
+            amount,
+            x,
+            y,
+            recharge_time: Duration::default(),
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerFullUpdate {
+    pub team_death_match_invulnerability_ticks: u16,
+    pub player_info: Vec<PlayerUpdateInfo>,
+    pub red_intel: RawIntel,
+    pub blu_intel: RawIntel,
+    pub cap_limit: u8,
+    pub red_cap: u8,
+    pub blu_cap: u8,
+    pub respawn_time: Duration,
+    pub scout_limit: u8,
+    pub soldier_limit: u8,
+    pub sniper_limit: u8,
+    pub demoman_limit: u8,
+    pub medic_limit: u8,
+    pub engineer_limit: u8,
+    pub heavy_limit: u8,
+    pub spy_limit: u8,
+    pub pyro_limit: u8,
+    pub quote_limit: u8,
+}
+
+impl GGMessage for ServerFullUpdate {
+    const KIND: PacketKind = PacketKind::FullUpdate;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!();
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let team_death_match_invulnerability_ticks = payload.read_u16()?;
+        let player_length = payload.read_u8()?;
+
+        let mut player_info = Vec::with_capacity(player_length as usize);
+
+        for _ in 0..player_length {
+            player_info.push(PlayerUpdateInfo::deserialize(payload, player_length)?);
+        }
+
+        let red_intel = RawIntel::deserialize(payload)?;
+        let blu_intel = RawIntel::deserialize(payload)?;
+
+        let cap_limit = payload.read_u8()?;
+        let red_cap = payload.read_u8()?;
+        let blu_cap = payload.read_u8()?;
+
+        let raw_respawn_time = payload.read_u8()?;
+        let respawn_time = Duration::from_secs(raw_respawn_time as u64);
+
+        // TODO: HUD
+        payload.next();
+        payload.next();
+        payload.next();
+        payload.next();
+        payload.next();
+
+        let scout_limit = payload.read_u8()?;
+        let soldier_limit = payload.read_u8()?;
+        let sniper_limit = payload.read_u8()?;
+        let demoman_limit = payload.read_u8()?;
+        let medic_limit = payload.read_u8()?;
+        let engineer_limit = payload.read_u8()?;
+        let heavy_limit = payload.read_u8()?;
+        let spy_limit = payload.read_u8()?;
+        let pyro_limit = payload.read_u8()?;
+        let quote_limit = payload.read_u8()?;
+
+        Ok(Self {
+            team_death_match_invulnerability_ticks,
+            player_info,
+            red_intel,
+            blu_intel,
+            cap_limit,
+            red_cap,
+            blu_cap,
+            respawn_time,
+            scout_limit,
+            soldier_limit,
+            sniper_limit,
+            demoman_limit,
+            medic_limit,
+            engineer_limit,
+            heavy_limit,
+            spy_limit,
+            pyro_limit,
+            quote_limit,
         })
     }
 }

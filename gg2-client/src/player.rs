@@ -5,7 +5,7 @@ use gg2_common::{
     player::{Class, Player, Players, Team},
 };
 
-use crate::networking::NetworkData;
+use crate::networking::{state::NetworkingState, NetworkData};
 
 fn handle_player_join(
     mut events: EventReader<NetworkData<ServerPlayerJoin>>,
@@ -79,7 +79,7 @@ fn handle_player_change_class(
 
 fn debug_players(player_query: Query<(&Player, &Class, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
-        println!(
+        debug!(
             "[Player] name: \"{}\", class: {:?}, team: {:?}",
             player.name, class, team
         )
@@ -93,10 +93,15 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<Players>().add_systems(
             FixedUpdate,
             (
-                handle_player_join,
-                handle_player_change_team,
-                handle_player_change_class,
-                debug_players,
+                handle_player_join.run_if(in_state(NetworkingState::PlayerJoining)),
+                (
+                    handle_player_change_team,
+                    handle_player_change_class,
+                    debug_players,
+                )
+                    .run_if(in_state(NetworkingState::PlayerJoining))
+                    .run_if(in_state(NetworkingState::InGame))
+                    .after(handle_player_join),
             ),
         );
     }

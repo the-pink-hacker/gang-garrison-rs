@@ -24,46 +24,73 @@ pub trait GGMessage: Sync + Send + Sized {
     }
 }
 
-fn read_utf8_short_string<I: Iterator<Item = u8>>(stream: &mut I) -> Result<String> {
-    let length = stream.next().ok_or(Error::UnexpectedEOF)? as usize;
-    let bytes = stream.take(length).collect();
-    String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
+pub trait MessageReader {
+    fn read_u8(&mut self) -> Result<u8>;
+
+    fn read_u16(&mut self) -> Result<u16>;
+
+    fn read_fixed_point_u16(&mut self) -> Result<f32>;
+
+    fn read_utf8_short_string(&mut self) -> Result<String>;
+
+    fn read_utf8_long_string(&mut self) -> Result<String>;
+
+    fn read_md5(&mut self) -> Result<Option<u128>>;
 }
 
-fn read_u16<I: Iterator<Item = u8>>(stream: &mut I) -> Result<u16> {
-    let least_significant = stream.next().ok_or(Error::UnexpectedEOF)? as u16;
-    let most_significant = stream.next().ok_or(Error::UnexpectedEOF)? as u16;
-    Ok(least_significant | (most_significant << 8))
-}
+impl<T> MessageReader for T
+where
+    T: Iterator<Item = u8>,
+{
+    fn read_u8(&mut self) -> Result<u8> {
+        self.next().ok_or(Error::UnexpectedEOF)
+    }
 
-fn read_utf8_long_string<I: Iterator<Item = u8>>(stream: &mut I) -> Result<String> {
-    let length = read_u16(stream)? as usize;
-    let bytes = stream.take(length).collect();
-    String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
-}
+    fn read_u16(&mut self) -> Result<u16> {
+        let least_significant = self.read_u8()? as u16;
+        let most_significant = self.read_u8()? as u16;
+        Ok(least_significant | (most_significant << 8))
+    }
 
-fn read_md5<I: Iterator<Item = u8>>(stream: &mut I) -> Result<Option<u128>> {
-    let length = stream.next().ok_or(Error::UnexpectedEOF)?;
-    match length {
-        0 => Ok(None),
-        // The length of a 128-bit hex string
-        32 => {
-            let hex_bytes = stream.take(32).collect();
-            let hex_string = String::from_utf8(hex_bytes).map_err(|_| Error::PacketPayload)?;
-            let hash_bytes = hex::decode(hex_string).map_err(|_| Error::PacketPayload)?;
+    fn read_fixed_point_u16(&mut self) -> Result<f32> {
+        Ok(self.read_u16()? as f32 / 5.0)
+    }
 
-            assert_eq!(hash_bytes.len(), 16);
+    fn read_utf8_short_string(&mut self) -> Result<String> {
+        let length = self.read_u8()? as usize;
+        let bytes = self.take(length).collect();
+        String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
+    }
 
-            Ok(Some(
-                hash_bytes
-                    .into_iter()
-                    .rev()
-                    .enumerate()
-                    .map(|(i, byte)| (byte as u128) << (i * 8))
-                    .sum(),
-            ))
+    fn read_utf8_long_string(&mut self) -> Result<String> {
+        let length = self.read_u16()? as usize;
+        let bytes = self.take(length).collect();
+        String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
+    }
+
+    fn read_md5(&mut self) -> Result<Option<u128>> {
+        let length = self.read_u8()?;
+        match length {
+            0 => Ok(None),
+            // The length of a 128-bit hex string
+            32 => {
+                let hex_bytes = self.take(32).collect();
+                let hex_string = String::from_utf8(hex_bytes).map_err(|_| Error::PacketPayload)?;
+                let hash_bytes = hex::decode(hex_string).map_err(|_| Error::PacketPayload)?;
+
+                assert_eq!(hash_bytes.len(), 16);
+
+                Ok(Some(
+                    hash_bytes
+                        .into_iter()
+                        .rev()
+                        .enumerate()
+                        .map(|(i, byte)| (byte as u128) << (i * 8))
+                        .sum(),
+                ))
+            }
+            _ => Err(Error::PacketPayload),
         }
-        _ => Err(Error::PacketPayload),
     }
 }
 
@@ -82,14 +109,14 @@ mod tests {
     #[test]
     fn read_string_short() {
         let mut data = [4, b't', b'e', b's', b't'].into_iter();
-        let parsed = read_utf8_short_string(&mut data).unwrap();
+        let parsed = data.read_utf8_short_string().unwrap();
         assert_eq!(parsed, "test");
     }
 
     #[test]
     fn read_string_long() {
         let mut data = [4, 0, b'l', b'o', b'n', b'g'].into_iter();
-        let parsed = read_utf8_long_string(&mut data).unwrap();
+        let parsed = data.read_utf8_long_string().unwrap();
         assert_eq!(parsed, "long");
     }
 
@@ -97,14 +124,14 @@ mod tests {
     fn read_md5_string() {
         let mut data = vec![32];
         data.extend("e0cae13971b1ba6a8eef49cbcfc944bf".as_bytes());
-        let parsed = read_md5(&mut data.into_iter()).unwrap();
+        let parsed = data.into_iter().read_md5().unwrap();
         assert_eq!(parsed, Some(298800483114597941956032572434422514879));
     }
 
     #[test]
     fn read_md5_empty() {
         let mut data = vec![0].into_iter();
-        let parsed = read_md5(&mut data).unwrap();
+        let parsed = data.read_md5().unwrap();
         assert_eq!(parsed, None);
     }
 }

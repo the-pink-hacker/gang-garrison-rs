@@ -8,4 +8,5 @@ pub enum NetworkingState {
     AwaitingHello,
     ReserveSlot,
     PlayerJoining,
+    InGame,
 }

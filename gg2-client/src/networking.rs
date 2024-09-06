@@ -2,14 +2,15 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
 use gg2_common::networking::message::{
-    ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerHello,
-    ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerChangeTeam,
-    ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot, ServerServerFull,
+    ClientHello, ClientPlayerJoin, ClientReserveSlot, ServerChangeMap, ServerFullUpdate,
+    ServerHello, ServerInputState, ServerJoinUpdate, ServerPlayerChangeClass,
+    ServerPlayerChangeTeam, ServerPlayerJoin, ServerQuickUpdate, ServerReserveSlot,
+    ServerServerFull,
 };
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 
 mod socket;
-mod state;
+pub mod state;
 
 pub use socket::NetworkData;
 use state::NetworkingState;
@@ -100,6 +101,12 @@ fn handle_change_map(mut change_map_events: EventReader<NetworkData<ServerChange
     }
 }
 
+fn handle_full_update(mut events: EventReader<NetworkData<ServerFullUpdate>>) {
+    for event in events.read() {
+        println!("{:#?}", **event);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
@@ -116,24 +123,20 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerChangeMap>()
             .listen_for_client_message::<ServerPlayerChangeClass>()
             .listen_for_client_message::<ServerPlayerChangeTeam>()
-            .add_systems(FixedUpdate, on_network_event)
+            .listen_for_client_message::<ServerFullUpdate>()
             .add_systems(
                 FixedUpdate,
-                setup_networking.run_if(in_state(NetworkingState::Disconnected)),
-            )
-            .add_systems(
-                FixedUpdate,
-                handle_hello.run_if(in_state(NetworkingState::AwaitingHello)),
-            )
-            .add_systems(
-                FixedUpdate,
-                (handle_reserve_slot, handle_server_full)
-                    .run_if(in_state(NetworkingState::ReserveSlot)),
-            )
-            .add_systems(
-                FixedUpdate,
-                (handle_join_update, handle_change_map)
-                    .run_if(in_state(NetworkingState::PlayerJoining)),
+                (
+                    on_network_event,
+                    setup_networking.run_if(in_state(NetworkingState::Disconnected)),
+                    handle_hello.run_if(in_state(NetworkingState::AwaitingHello)),
+                    (handle_reserve_slot, handle_server_full)
+                        .run_if(in_state(NetworkingState::ReserveSlot)),
+                    handle_join_update.run_if(in_state(NetworkingState::PlayerJoining)),
+                    (handle_change_map, handle_full_update)
+                        .run_if(in_state(NetworkingState::PlayerJoining))
+                        .run_if(in_state(NetworkingState::InGame)),
+                ),
             );
     }
 }
