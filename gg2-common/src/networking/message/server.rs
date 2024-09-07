@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use bevy::prelude::*;
+
 use crate::{
     intel::RawIntel,
     networking::{
@@ -294,14 +296,11 @@ impl PlayerUpdateInfo {
 
 impl RawIntel {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let amount = payload.read_u16()?;
         let x = payload.read_fixed_point_u16()?;
         let y = payload.read_fixed_point_u16()?;
         let _recharge_time = payload.read_u16()? as i16;
         Ok(Self {
-            amount,
-            x,
-            y,
+            position: Vec2::new(x, y),
             recharge_time: Duration::default(),
         })
     }
@@ -311,8 +310,8 @@ impl RawIntel {
 pub struct ServerFullUpdate {
     pub team_death_match_invulnerability_ticks: u16,
     pub player_info: Vec<PlayerUpdateInfo>,
-    pub red_intel: RawIntel,
-    pub blu_intel: RawIntel,
+    pub red_intel: Vec<RawIntel>,
+    pub blu_intel: Vec<RawIntel>,
     pub cap_limit: u8,
     pub red_cap: u8,
     pub blu_cap: u8,
@@ -346,8 +345,19 @@ impl GGMessage for ServerFullUpdate {
             player_info.push(PlayerUpdateInfo::deserialize(payload, player_length)?);
         }
 
-        let red_intel = RawIntel::deserialize(payload)?;
-        let blu_intel = RawIntel::deserialize(payload)?;
+        let red_intel_length = payload.read_u8()?;
+        let mut red_intel = Vec::with_capacity(red_intel_length as usize);
+
+        for _ in 0..red_intel_length {
+            red_intel.push(RawIntel::deserialize(payload)?);
+        }
+
+        let blu_intel_length = payload.read_u8()?;
+        let mut blu_intel = Vec::with_capacity(blu_intel_length as usize);
+
+        for _ in 0..blu_intel_length {
+            blu_intel.push(RawIntel::deserialize(payload)?);
+        }
 
         let cap_limit = payload.read_u8()?;
         let red_cap = payload.read_u8()?;

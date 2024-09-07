@@ -14,12 +14,12 @@ impl Players {
         self.0.get(player_index as usize)
     }
 
-    pub fn add_player<'a>(
+    pub fn add_player<'a, T: Bundle>(
         &mut self,
         commands: &'a mut Commands,
-        player_component: Player,
+        player: T,
     ) -> EntityCommands<'a> {
-        let player = commands.spawn(player_component);
+        let player = commands.spawn(player);
         self.0.push(player.id());
         player
     }
@@ -40,7 +40,7 @@ impl Players {
     }
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Default)]
 pub struct Player {
     pub name: String,
 }
@@ -60,6 +60,24 @@ pub enum Team {
     Blu,
     #[default]
     Spectator,
+}
+
+impl Team {
+    pub fn is_visible(&self) -> bool {
+        match self {
+            Self::Red | Self::Blu => true,
+            Self::Spectator => false,
+        }
+    }
+}
+
+#[derive(Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
+#[repr(u8)]
+pub enum TeamChoice {
+    Red,
+    Blu,
+    Spectator,
+    #[default]
     Any,
 }
 

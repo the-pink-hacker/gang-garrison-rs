@@ -7,6 +7,14 @@ use gg2_common::{
 
 use crate::networking::{state::NetworkingState, NetworkData};
 
+#[derive(Bundle, Default)]
+struct PlayerBundle {
+    player: Player,
+    team: Team,
+    class: Class,
+    sprite: SpriteBundle,
+}
+
 fn handle_player_join(
     mut events: EventReader<NetworkData<ServerPlayerJoin>>,
     mut commands: Commands,
@@ -14,9 +22,18 @@ fn handle_player_join(
 ) {
     for event in events.read() {
         println!("Player join of name: \"{}\"", event.player_name);
-        let player = (**event).clone().into();
         players
-            .add_player(&mut commands, player)
+            .add_player(
+                &mut commands,
+                PlayerBundle {
+                    player: (*event).clone().into(),
+                    sprite: SpriteBundle {
+                        visibility: Visibility::Hidden,
+                        ..default()
+                    },
+                    ..default()
+                },
+            )
             .insert((Team::default(), Class::default()));
     }
 }
@@ -41,6 +58,10 @@ fn handle_player_change_team(
                     event.player_index, event.player_team
                 );
                 player.insert(event.player_team);
+
+                if event.player_team.is_visible() {
+                    player.insert(Visibility::Inherited);
+                }
             });
 
         if let Err(error) = player_result {
