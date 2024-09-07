@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bevy::prelude::*;
-use gg2_common::networking::message::*;
+use gg2_common::{networking::message::*, player::PlayerId};
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 
 mod socket;
@@ -102,6 +102,26 @@ fn handle_full_update(mut events: EventReader<NetworkData<ServerFullUpdate>>) {
     }
 }
 
+fn handle_input_state(
+    mut events: EventReader<NetworkData<ServerInputState>>,
+    mut player_query: Query<(&PlayerId, &mut Transform)>,
+) {
+    events.read().for_each(|event| {
+        player_query
+            .iter_mut()
+            .for_each(|(player_id, mut _player_transform)| {
+                match event.inputs.get(usize::from(*player_id)) {
+                    Some(input) => {
+                        if let Some(input) = input {
+                            debug!("Input on {:?}: {:#?}", player_id, input);
+                        }
+                    }
+                    None => eprintln!("Failed to lookup player: {:?}", player_id),
+                }
+            })
+    });
+}
+
 fn handle_message_string(
     mut events: EventReader<NetworkData<ServerMessageString>>,
     mut state: ResMut<NextState<NetworkingState>>,
@@ -121,7 +141,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerHello>()
             .listen_for_client_message::<ServerReserveSlot>()
             .listen_for_client_message::<ServerServerFull>()
-            //.listen_for_client_message::<ServerInputState>()
+            .listen_for_client_message::<ServerInputState>()
             //.listen_for_client_message::<ServerQuickUpdate>()
             .listen_for_client_message::<ServerPlayerJoin>()
             .listen_for_client_message::<ServerJoinUpdate>()
@@ -140,7 +160,7 @@ impl Plugin for NetworkingPlugin {
                         .run_if(in_state(NetworkingState::ReserveSlot)),
                     (handle_join_update, handle_message_string)
                         .run_if(in_state(NetworkingState::PlayerJoining)),
-                    (handle_change_map, handle_full_update).run_if(
+                    (handle_change_map, handle_full_update, handle_input_state).run_if(
                         in_state(NetworkingState::PlayerJoining)
                             .or_else(in_state(NetworkingState::InGame)),
                     ),

@@ -10,8 +10,8 @@ use crate::{
 pub struct Players(Vec<Entity>);
 
 impl Players {
-    pub fn get_entity(&self, player_index: u8) -> Option<&Entity> {
-        self.0.get(player_index as usize)
+    pub fn get_entity(&self, player_index: impl Into<PlayerId>) -> Option<&Entity> {
+        self.0.get(usize::from(player_index.into()))
     }
 
     pub fn add_player<'a, T: Bundle>(
@@ -19,12 +19,17 @@ impl Players {
         commands: &'a mut Commands,
         player: T,
     ) -> EntityCommands<'a> {
-        let player = commands.spawn(player);
+        let player = commands.spawn((player, PlayerId::from(self.0.len() as u8)));
         self.0.push(player.id());
         player
     }
 
-    pub fn remove_player(&mut self, commands: &mut Commands, player_index: u8) -> Result<()> {
+    pub fn remove_player(
+        &mut self,
+        commands: &mut Commands,
+        player_index: impl Into<PlayerId>,
+    ) -> Result<()> {
+        let player_index = player_index.into().into();
         let entity = if (player_index as usize) < self.0.len() {
             Ok(self.0.remove(player_index as usize))
         } else {
@@ -50,6 +55,27 @@ impl From<ServerPlayerJoin> for Player {
         Self {
             name: value.player_name,
         }
+    }
+}
+
+#[derive(Debug, Component, Clone, Copy)]
+pub struct PlayerId(u8);
+
+impl From<PlayerId> for u8 {
+    fn from(value: PlayerId) -> Self {
+        value.0
+    }
+}
+
+impl From<PlayerId> for usize {
+    fn from(value: PlayerId) -> Self {
+        value.0 as usize
+    }
+}
+
+impl From<u8> for PlayerId {
+    fn from(value: u8) -> Self {
+        Self(value)
     }
 }
 

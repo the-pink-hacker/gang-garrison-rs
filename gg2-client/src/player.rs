@@ -116,8 +116,10 @@ impl Plugin for PlayerPlugin {
                     handle_player_change_class,
                     debug_players,
                 )
-                    .run_if(in_state(NetworkingState::PlayerJoining))
-                    .run_if(in_state(NetworkingState::InGame))
+                    .run_if(
+                        in_state(NetworkingState::InGame)
+                            .or_else(in_state(NetworkingState::PlayerJoining)),
+                    )
                     .after(handle_player_join),
             ),
         );

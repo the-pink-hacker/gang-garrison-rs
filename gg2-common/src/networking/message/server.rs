@@ -77,9 +77,10 @@ impl GGMessage for ServerServerFull {
     }
 }
 
-// TODO: Implement inputstate
 #[derive(Debug, Clone)]
-pub struct ServerInputState;
+pub struct ServerInputState {
+    pub inputs: Vec<Option<RawInput>>,
+}
 
 impl GGMessage for ServerInputState {
     const KIND: PacketKind = PacketKind::InputState;
@@ -89,7 +90,21 @@ impl GGMessage for ServerInputState {
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        Ok(ServerInputState {})
+        let character_length = payload.read_u8()?;
+        let mut inputs = Vec::with_capacity(character_length as usize);
+
+        for _ in 0..character_length {
+            let has_character = payload.read_bool()?;
+            let input = if has_character {
+                Some(RawInput::deserialize(payload)?)
+            } else {
+                None
+            };
+
+            inputs.push(input);
+        }
+
+        Ok(Self { inputs })
     }
 }
 
