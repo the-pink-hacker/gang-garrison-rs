@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Install Dependencies
         if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev mold
+        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev mold libwayland-dev libxkbcommon-dev
       - uses: actions/checkout@v4
       - if: ${{ runner.os == 'Windows' }}
         uses: ilammy/msvc-dev-cmd@v1
