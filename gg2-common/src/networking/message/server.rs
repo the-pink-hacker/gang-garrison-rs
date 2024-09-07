@@ -8,7 +8,7 @@ use crate::{
         error::{Error, Result},
         PacketKind,
     },
-    player::{Class, Team},
+    player::{Class, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, Team},
 };
 
 use super::{GGMessage, MessageReader};
@@ -241,7 +241,54 @@ pub struct PlayerUpdateInfo {
     pub queue_jump: u8,
     pub rewards: String,
     pub dominations: Vec<u8>,
-    pub subobjects: Vec<()>,
+    pub character: Option<(RawInput, RawPlayerInfo, RawAdditionalPlayerInfo)>,
+}
+
+impl RawInput {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let key_state = payload.read_u8()?;
+        let net_aim_direction = payload.read_u16()?;
+        let aim_distance = payload.read_fixed_point_u8(0.5)?;
+
+        Ok(Self {
+            key_state,
+            net_aim_direction,
+            aim_distance,
+        })
+    }
+}
+
+impl RawPlayerInfo {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let position = payload.read_fixed_point_u16_vec2(5.0)?;
+
+        let velocity_x = payload.read_u8()? as i8 as f32 / 8.5;
+        let velocity_y = payload.read_u8()? as i8 as f32 / 8.5;
+        let velocity = Vec2::new(velocity_x, velocity_y);
+
+        let health = payload.read_u8()?;
+        let ammo_count = payload.read_u8()?;
+        let move_status = payload.read_u8()?;
+
+        Ok(Self {
+            position,
+            velocity,
+            health,
+            ammo_count,
+            move_status,
+        })
+    }
+}
+
+impl RawAdditionalPlayerInfo {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        // TODO: Implement additional player info
+        for _ in 0..9 {
+            payload.next();
+        }
+
+        Ok(Self {})
+    }
 }
 
 impl PlayerUpdateInfo {
@@ -260,19 +307,18 @@ impl PlayerUpdateInfo {
         let queue_jump = payload.read_u8()?;
         let rewards = payload.read_utf8_long_string()?;
 
-        let non_current_players = if player_length == 0 {
-            0
+        let non_current_players = player_length.saturating_sub(1);
+        let dominations = payload.take(non_current_players as usize).collect();
+
+        let character_present = payload.read_bool()?;
+        let character = if character_present {
+            let input = RawInput::deserialize(payload)?;
+            let player_info = RawPlayerInfo::deserialize(payload)?;
+            let additional_into = RawAdditionalPlayerInfo::deserialize(payload)?;
+            Some((input, player_info, additional_into))
         } else {
-            player_length - 1
+            None
         };
-
-        let dominations = payload
-            .take(non_current_players as usize)
-            .collect::<Vec<_>>();
-
-        let subobjects_length = payload.read_u8()?;
-        // TODO: Add subobjects
-        assert_eq!(subobjects_length, 0);
 
         Ok(Self {
             kills,
@@ -289,18 +335,17 @@ impl PlayerUpdateInfo {
             queue_jump,
             rewards,
             dominations,
-            subobjects: Vec::new(),
+            character,
         })
     }
 }
 
 impl RawIntel {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let x = payload.read_fixed_point_u16()?;
-        let y = payload.read_fixed_point_u16()?;
+        let position = payload.read_fixed_point_u16_vec2(5.0)?;
         let _recharge_time = payload.read_u16()? as i16;
         Ok(Self {
-            position: Vec2::new(x, y),
+            position,
             recharge_time: Duration::default(),
         })
     }
@@ -345,14 +390,14 @@ impl GGMessage for ServerFullUpdate {
             player_info.push(PlayerUpdateInfo::deserialize(payload, player_length)?);
         }
 
-        let red_intel_length = payload.read_u8()?;
+        let red_intel_length = payload.read_u16()?;
         let mut red_intel = Vec::with_capacity(red_intel_length as usize);
 
         for _ in 0..red_intel_length {
             red_intel.push(RawIntel::deserialize(payload)?);
         }
 
-        let blu_intel_length = payload.read_u8()?;
+        let blu_intel_length = payload.read_u16()?;
         let mut blu_intel = Vec::with_capacity(blu_intel_length as usize);
 
         for _ in 0..blu_intel_length {

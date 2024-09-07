@@ -62,15 +62,6 @@ pub enum Team {
     Spectator,
 }
 
-impl Team {
-    pub fn is_visible(&self) -> bool {
-        match self {
-            Self::Red | Self::Blu => true,
-            Self::Spectator => false,
-        }
-    }
-}
-
 #[derive(Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum TeamChoice {
@@ -96,3 +87,24 @@ pub enum Class {
     Pyro,
     Quote,
 }
+
+#[derive(Debug, Clone)]
+pub struct RawInput {
+    // TODO: Add key state
+    pub key_state: u8,
+    pub net_aim_direction: u16,
+    pub aim_distance: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct RawPlayerInfo {
+    pub position: Vec2,
+    pub velocity: Vec2,
+    pub health: u8,
+    pub ammo_count: u8,
+    // TODO: Add move status
+    pub move_status: u8,
+}
+
+#[derive(Debug, Clone)]
+pub struct RawAdditionalPlayerInfo {}

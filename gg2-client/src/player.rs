@@ -58,10 +58,6 @@ fn handle_player_change_team(
                     event.player_index, event.player_team
                 );
                 player.insert(event.player_team);
-
-                if event.player_team.is_visible() {
-                    player.insert(Visibility::Inherited);
-                }
             });
 
         if let Err(error) = player_result {

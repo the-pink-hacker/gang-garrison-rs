@@ -1,3 +1,5 @@
+use bevy::prelude::*;
+
 use crate::networking::error::Error;
 
 use super::{error::Result, NetworkPacket, PacketKind};
@@ -29,7 +31,13 @@ pub trait MessageReader {
 
     fn read_u16(&mut self) -> Result<u16>;
 
-    fn read_fixed_point_u16(&mut self) -> Result<f32>;
+    fn read_bool(&mut self) -> Result<bool>;
+
+    fn read_fixed_point_u8(&mut self, scale: f32) -> Result<f32>;
+
+    fn read_fixed_point_u16(&mut self, scale: f32) -> Result<f32>;
+
+    fn read_fixed_point_u16_vec2(&mut self, scale: f32) -> Result<Vec2>;
 
     fn read_utf8_short_string(&mut self) -> Result<String>;
 
@@ -52,8 +60,26 @@ where
         Ok(least_significant | (most_significant << 8))
     }
 
-    fn read_fixed_point_u16(&mut self) -> Result<f32> {
-        Ok(self.read_u16()? as f32 / 5.0)
+    fn read_bool(&mut self) -> Result<bool> {
+        self.read_u8().and_then(|value| match value {
+            0 => Ok(false),
+            1 => Ok(true),
+            _ => Err(Error::PacketPayload),
+        })
+    }
+
+    fn read_fixed_point_u8(&mut self, scale: f32) -> Result<f32> {
+        self.read_u8().map(|value| value as f32 / scale)
+    }
+
+    fn read_fixed_point_u16(&mut self, scale: f32) -> Result<f32> {
+        self.read_u16().map(|value| value as f32 / scale)
+    }
+
+    fn read_fixed_point_u16_vec2(&mut self, scale: f32) -> Result<Vec2> {
+        let x = self.read_fixed_point_u16(scale)?;
+        let y = self.read_fixed_point_u16(scale)?;
+        Ok(Vec2::new(x, y))
     }
 
     fn read_utf8_short_string(&mut self) -> Result<String> {

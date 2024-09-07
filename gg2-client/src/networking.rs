@@ -121,8 +121,8 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerHello>()
             .listen_for_client_message::<ServerReserveSlot>()
             .listen_for_client_message::<ServerServerFull>()
-            .listen_for_client_message::<ServerInputState>()
-            .listen_for_client_message::<ServerQuickUpdate>()
+            //.listen_for_client_message::<ServerInputState>()
+            //.listen_for_client_message::<ServerQuickUpdate>()
             .listen_for_client_message::<ServerPlayerJoin>()
             .listen_for_client_message::<ServerJoinUpdate>()
             .listen_for_client_message::<ServerChangeMap>()
@@ -140,9 +140,10 @@ impl Plugin for NetworkingPlugin {
                         .run_if(in_state(NetworkingState::ReserveSlot)),
                     (handle_join_update, handle_message_string)
                         .run_if(in_state(NetworkingState::PlayerJoining)),
-                    (handle_change_map, handle_full_update)
-                        .run_if(in_state(NetworkingState::PlayerJoining))
-                        .run_if(in_state(NetworkingState::InGame)),
+                    (handle_change_map, handle_full_update).run_if(
+                        in_state(NetworkingState::PlayerJoining)
+                            .or_else(in_state(NetworkingState::InGame)),
+                    ),
                 ),
             );
     }
