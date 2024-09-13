@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use error::{Error, Result};
-use flate2::bufread::ZlibDecoder;
+use flate2::{bufread::ZlibDecoder, Crc, CrcReader};
 
 use super::MapData;
 
@@ -15,7 +15,7 @@ pub mod error;
 
 const PNG_SIGNATURE: &[u8] = b"\x89PNG\x0d\x0a\x1a\x0a";
 const GG2_MAP_DATA_SIGNATURE: &[u8] = b"Gang Garrison 2 Level Data\x00";
-const EXIF_CHUNK: &str = "zTXt";
+const DATA_CHUNK: &str = "zTXt";
 const LAST_CHUNK: &str = "IEND";
 const CRC_LENGTH: u8 = 4;
 
@@ -51,11 +51,10 @@ impl AssetLoader for MapDataLoader {
         if is_png(reader).await? {
             let map_data_buffer = loop {
                 let (chunk_length, chunk_name) = get_png_chunk_header(reader).await?;
-                println!("{} {}", chunk_length, chunk_name);
 
                 match &*chunk_name {
                     LAST_CHUNK => return Err(Error::EOF),
-                    EXIF_CHUNK => {
+                    DATA_CHUNK => {
                         break read_map_data_chunk(reader, chunk_length).await?;
                     }
                     _ => {
@@ -103,24 +102,47 @@ async fn read_map_data_chunk(
     reader: &mut bevy::asset::io::Reader<'_>,
     length: u32,
 ) -> Result<Vec<u8>> {
-    let mut buffer = vec![0; length as usize + CRC_LENGTH as usize];
+    let mut buffer = vec![0; length as usize];
+    buffer[0] = 0;
     reader
         .read_exact(&mut buffer)
         .await
         .map_err(Error::ReadIO)?;
 
-    if !buffer.starts_with(GG2_MAP_DATA_SIGNATURE) {
+    let mut crc_reader = CrcReader::new(&buffer[..]);
+
+    let mut signature = [0; GG2_MAP_DATA_SIGNATURE.len() + 1];
+    crc_reader
+        .read_exact(&mut signature)
+        .map_err(Error::ReadIO)?;
+
+    if signature[0..GG2_MAP_DATA_SIGNATURE.len()] != *GG2_MAP_DATA_SIGNATURE {
         return Err(Error::ChunkFormat);
     }
 
-    match (*buffer.get(GG2_MAP_DATA_SIGNATURE.len()).ok_or(Error::EOF)?).into() {
+    match signature[27].into() {
         MapCompression::Deflate => {
-            let mut decoder = ZlibDecoder::new(&buffer[(GG2_MAP_DATA_SIGNATURE.len() + 1)..]);
+            let mut decoder = ZlibDecoder::new(&mut crc_reader);
             let mut map_data_buffer = Vec::with_capacity(length as usize);
             decoder
                 .read_to_end(&mut map_data_buffer)
                 .map_err(Error::ReadIO)?;
-            Ok(map_data_buffer)
+
+            let mut crc_buffer = [0; 4];
+            reader
+                .read_exact(&mut crc_buffer)
+                .await
+                .map_err(Error::ReadIO)?;
+            let expected_crc = u32::from_be_bytes(crc_buffer);
+            let mut crc = Crc::new();
+            crc.update(DATA_CHUNK.as_bytes());
+            crc.combine(crc_reader.crc());
+
+            if crc.sum() == expected_crc {
+                Ok(map_data_buffer)
+            } else {
+                Err(Error::CorruptedData(expected_crc, crc.sum()))
+            }
         }
         MapCompression::Unknown => Err(Error::CompressionType(MapCompression::Unknown)),
     }

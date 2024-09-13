@@ -14,4 +14,6 @@ pub enum Error {
     ChunkFormat,
     #[error("Compression type unsuported: {0:?}")]
     CompressionType(MapCompression),
+    #[error("PNG chunk has invalid CRC; Expected: {0}, Found: {1}")]
+    CorruptedData(u32, u32),
 }
