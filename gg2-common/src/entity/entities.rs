@@ -1,106 +1,216 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+pub struct Foreground {
+    #[serde(default = "Foreground::default_depth")]
+    depth: i8,
+    #[serde(default = "value_true")]
+    fade: bool,
+    #[serde(default = "value_f32_1")]
+    opacity: f32,
+    #[serde(default)]
+    animationspeed: u8,
+    #[serde(default)]
+    trigger: u8,
+    #[serde(default)]
+    distance: u8,
+    #[serde(default)]
+    resource: String,
+}
+
+impl Foreground {
+    fn default_depth() -> i8 {
+        -2
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MoveBox {
+    #[serde(flatten)]
+    pub transform: Transform,
+    // TODO: Confirm move box speed size
+    #[serde(default = "MoveBox::default_speed")]
+    pub speed: u8,
+}
+
+impl MoveBox {
+    fn default_speed() -> u8 {
+        5
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Position {
+    pub x: u32,
+    pub y: u32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Scale {
+    #[serde(rename = "xscale", default = "value_f32_1")]
+    pub x_scale: f32,
+    #[serde(rename = "yscale", default = "value_f32_1")]
+    pub y_scale: f32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Transform {
+    #[serde(flatten)]
+    pub position: Position,
+    #[serde(flatten)]
+    pub scale: Scale,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum MapEntity {
     #[serde(rename = "meta")]
-    Meta,
+    Meta {
+        background: String,
+        void: String,
+    },
     #[serde(rename = "spawnroom")]
-    SpawnRoom,
+    SpawnRoom(Transform),
     #[serde(rename = "redspawn")]
-    RedSpawn,
+    RedSpawn(Position),
     #[serde(rename = "redspawn1")]
-    RedSpawn1,
+    RedSpawn1(Position),
     #[serde(rename = "readspawn2")]
-    RedSpawn2,
+    RedSpawn2(Position),
     #[serde(rename = "readspawn3")]
-    RedSpawn3,
+    RedSpawn3(Position),
     #[serde(rename = "readspawn4")]
-    RedSpawn4,
+    RedSpawn4(Position),
     #[serde(rename = "bluespawn")]
-    BluSpawn,
+    BluSpawn(Position),
     #[serde(rename = "bluespawn1")]
-    BluSpawn1,
+    BluSpawn1(Position),
     #[serde(rename = "bluespawn2")]
-    BluSpawn2,
+    BluSpawn2(Position),
     #[serde(rename = "bluespawn3")]
-    BluSpawn3,
+    BluSpawn3(Position),
     #[serde(rename = "bluespawn4")]
-    BluSpawn4,
+    BluSpawn4(Position),
     #[serde(rename = "redintel")]
-    RedIntel,
+    RedIntel(Position),
     #[serde(rename = "blueintel")]
-    BluIntel,
+    BluIntel(Position),
     #[serde(rename = "redteamgate")]
-    RedTeamGate,
+    RedTeamGate(Transform),
     #[serde(rename = "blueteamgate")]
-    BluTeamGate,
+    BluTeamGate(Transform),
     #[serde(rename = "redteamgate2")]
-    RedTeamGate2,
+    RedTeamGate2(Transform),
     #[serde(rename = "blueteamgate2")]
-    BluTeamGate2,
+    BluTeamGate2(Transform),
     #[serde(rename = "redintelgate")]
-    RedIntelGate,
+    RedIntelGate(Transform),
     #[serde(rename = "blueintelgate")]
-    BluIntelGate,
+    BluIntelGate(Transform),
     #[serde(rename = "redintelgate2")]
-    RedIntelGate2,
+    RedIntelGate2(Transform),
     #[serde(rename = "blueintelgate2")]
-    BluIntelGate2,
+    BluIntelGate2(Transform),
     #[serde(rename = "intelgatehorizontal")]
-    IntelGateHorizontal,
+    IntelGateHorizontal(Transform),
     #[serde(rename = "intelgatevertical")]
-    IntelGateVertical,
+    IntelGateVertical(Transform),
     #[serde(rename = "medCabinet")]
-    MedicalCabinet,
+    MedicalCabinet {
+        #[serde(flatten)]
+        transform: Transform,
+        #[serde(default)]
+        heal: bool,
+        #[serde(default)]
+        refill: bool,
+        #[serde(default = "value_true")]
+        uber: bool,
+    },
     #[serde(rename = "killbox")]
-    KillBox,
+    KillBox(Transform),
     #[serde(rename = "pitfall")]
-    PitFall,
+    PitFall(Transform),
     #[serde(rename = "fragbox")]
-    FragBox,
+    FragBox(Transform),
     #[serde(rename = "playerwall")]
-    PlayerWall,
+    PlayerWall(Transform),
     #[serde(rename = "playerwall_horizontal")]
-    PlayerWallHorizontal,
+    PlayerWallHorizontal(Transform),
     #[serde(rename = "bulletwall")]
-    BulletWall,
+    BulletWall {
+        #[serde(flatten)]
+        transform: Transform,
+        // TODO: Confirm bullet wall distance size
+        #[serde(default = "value_i8_negative_1")]
+        distance: i8,
+    },
     #[serde(rename = "bulletwall_horizontal")]
-    BulletWallHorizontal,
+    BulletWallHorizontal(Transform),
     #[serde(rename = "leftdoor")]
-    LeftDoor,
+    LeftDoor(Transform),
     #[serde(rename = "rightdoor")]
-    RightDoor,
+    RightDoor(Transform),
     #[serde(rename = "controlPoint1")]
-    ControlPoint1,
+    ControlPoint1(Position),
     #[serde(rename = "controlPoint2")]
-    ControlPoint2,
+    ControlPoint2(Position),
     #[serde(rename = "controlPoint3")]
-    ControlPoint3,
+    ControlPoint3(Position),
     #[serde(rename = "controlPoint4")]
-    ControlPoint4,
+    ControlPoint4(Position),
     #[serde(rename = "controlPoint5")]
-    ControlPoint5,
+    ControlPoint5(Position),
     #[serde(rename = "NextArea0")]
-    NextArea,
-    CapturePoint,
-    SetupGate,
-    ArenaControlPoint,
-    GeneratorRed,
-    GeneratorBlue,
-    MoveBoxUp,
-    MoveBoxDown,
-    MoveBoxLeft,
-    MoveBoxRight,
-    KothControlPoint,
-    KothRedControlPoint,
-    KothBlueControlPoint,
+    NextArea(Position),
+    CapturePoint(Transform),
+    SetupGate(Transform),
+    ArenaControlPoint(Position),
+    GeneratorRed(Position),
+    GeneratorBlue(Position),
+    MoveBoxUp(MoveBox),
+    MoveBoxDown(MoveBox),
+    MoveBoxLeft(MoveBox),
+    MoveBoxRight(MoveBox),
+    KothControlPoint(Position),
+    KothRedControlPoint(Position),
+    KothBlueControlPoint(Position),
     #[serde(rename = "dropdownPlatform")]
-    DropDownPlatform,
+    DropDownPlatform {
+        #[serde(flatten)]
+        transform: Transform,
+        #[serde(rename = "reset_move_status", default = "value_u8_1")]
+        reset_move_status: u8,
+    },
     #[serde(rename = "foreground")]
-    Foreground,
+    Foreground {
+        #[serde(flatten)]
+        transform: Transform,
+        #[serde(flatten)]
+        foreground: Foreground,
+    },
     #[serde(rename = "foreground_scale")]
-    ForegroundScale,
+    ForegroundScale {
+        #[serde(flatten)]
+        scale: Scale,
+        #[serde(flatten)]
+        foreground: Foreground,
+    },
     #[serde(rename = "moving_platform")]
     MovingPlatform,
+}
+
+fn value_true() -> bool {
+    true
+}
+
+fn value_i8_negative_1() -> i8 {
+    -1
+}
+
+fn value_u8_1() -> u8 {
+    1
+}
+
+fn value_f32_1() -> f32 {
+    1.0
 }

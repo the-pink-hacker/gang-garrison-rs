@@ -1,8 +1,7 @@
 use std::io::Read;
 
 use bevy::{
-    asset::{AssetLoader, AsyncReadExt},
-    prelude::*,
+    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     tasks::futures_lite::AsyncSeekExt,
 };
 
@@ -44,10 +43,10 @@ impl AssetLoader for MapDataLoader {
 
     async fn load<'a>(
         &'a self,
-        reader: &'a mut bevy::asset::io::Reader<'_>,
+        reader: &'a mut Reader<'_>,
         settings: &'a Self::Settings,
-        load_context: &'a mut bevy::asset::LoadContext<'_>,
-    ) -> Result<Self::Asset> {
+        load_context: &'a mut LoadContext<'_>,
+    ) -> Result<MapData> {
         if is_png(reader).await? {
             let map_data_buffer = loop {
                 let (chunk_length, chunk_name) = get_png_chunk_header(reader).await?;
@@ -76,7 +75,7 @@ impl AssetLoader for MapDataLoader {
     }
 }
 
-async fn is_png(reader: &mut bevy::asset::io::Reader<'_>) -> Result<bool> {
+async fn is_png<'a>(reader: &'a mut Reader<'a>) -> Result<bool> {
     let mut signature = [0; 8];
     reader
         .read_exact(&mut signature)
@@ -85,7 +84,7 @@ async fn is_png(reader: &mut bevy::asset::io::Reader<'_>) -> Result<bool> {
     Ok(signature == PNG_SIGNATURE)
 }
 
-async fn get_png_chunk_header(reader: &mut bevy::asset::io::Reader<'_>) -> Result<(u32, String)> {
+async fn get_png_chunk_header<'a>(reader: &'a mut Reader<'a>) -> Result<(u32, String)> {
     let mut raw_header = [0; 8];
     reader
         .read_exact(&mut raw_header)
@@ -98,10 +97,7 @@ async fn get_png_chunk_header(reader: &mut bevy::asset::io::Reader<'_>) -> Resul
     Ok((chunk_length, chunk_name))
 }
 
-async fn read_map_data_chunk(
-    reader: &mut bevy::asset::io::Reader<'_>,
-    length: u32,
-) -> Result<Vec<u8>> {
+async fn read_map_data_chunk<'a>(reader: &'a mut Reader<'a>, length: u32) -> Result<Vec<u8>> {
     let mut buffer = vec![0; length as usize];
 
     reader
