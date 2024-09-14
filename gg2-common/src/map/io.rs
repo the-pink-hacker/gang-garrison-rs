@@ -103,7 +103,7 @@ async fn read_map_data_chunk(
     length: u32,
 ) -> Result<Vec<u8>> {
     let mut buffer = vec![0; length as usize];
-    buffer[0] = 0;
+
     reader
         .read_exact(&mut buffer)
         .await
