@@ -3,19 +3,19 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct Foreground {
     #[serde(default = "Foreground::default_depth")]
-    depth: i8,
+    pub depth: i8,
     #[serde(default = "value_true")]
-    fade: bool,
+    pub fade: bool,
     #[serde(default = "value_f32_1")]
-    opacity: f32,
+    pub opacity: f32,
     #[serde(default)]
-    animationspeed: u8,
+    pub animationspeed: u8,
     #[serde(default)]
-    trigger: u8,
+    pub trigger: u8,
     #[serde(default)]
-    distance: u8,
+    pub distance: u8,
     #[serde(default)]
-    resource: String,
+    pub resource: String,
 }
 
 impl Foreground {

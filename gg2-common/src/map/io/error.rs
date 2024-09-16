@@ -1,4 +1,4 @@
-use super::MapCompression;
+use super::{MapCompression, MapDataTag};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -16,4 +16,12 @@ pub enum Error {
     CompressionType(MapCompression),
     #[error("PNG chunk has invalid CRC; Expected: {0}, Found: {1}")]
     CorruptedData(u32, u32),
+    #[error("Unknown map data tag: {0}")]
+    DataTag(String),
+    #[error("Missing tag: {0}")]
+    DataTagMissing(MapDataTag),
+    #[error("End of map data")]
+    DataEOF,
+    #[error("Entity deserialization error: {0}")]
+    Entity(serde_hjson::Error),
 }

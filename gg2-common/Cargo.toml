@@ -10,7 +10,6 @@ repository.workspace = true
 bevy = { version = "0.14.1", default-features = false }
 flate2 = "1.0.33"
 hex = "0.4.3"
-image = { version = "0.25.2", default-features = false, features = ["png"] }
 num_enum = "0.7.3"
 serde = { version = "1.0.210", features = ["derive"] }
 serde-hjson = { version = "1.0.0", default-features = false }
