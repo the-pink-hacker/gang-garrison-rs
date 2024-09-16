@@ -246,13 +246,13 @@ mod tests {
 
     #[test]
     fn data_tag_walk_mask() {
-        let parsed = MapDataTag::from_str("{WALkMASK}").unwrap();
+        let parsed = MapDataTag::from_str("{WALKMASK}").unwrap();
         assert_eq!(parsed, MapDataTag::WalkMask);
     }
 
     #[test]
     fn data_tag_end_walk_mask() {
-        let parsed = MapDataTag::from_str("{END WALkMASK}").unwrap();
+        let parsed = MapDataTag::from_str("{END WALKMASK}").unwrap();
         assert_eq!(parsed, MapDataTag::EndWalkMask);
     }
 
