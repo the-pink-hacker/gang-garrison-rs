@@ -49,7 +49,7 @@ impl WalkBitMask {
 
     pub fn collidable(&self, x: u16, y: u16) -> bool {
         if x >= self.width || y >= self.height {
-            return false;
+            return true;
         }
 
         let bit_index = x as u32 + y as u32 * self.width as u32;
@@ -59,7 +59,7 @@ impl WalkBitMask {
         self.mask
             .get(byte_index as usize)
             .map(|byte| byte & 2u8.pow(byte_bit_index) != 0)
-            .unwrap_or_default()
+            .unwrap_or(true)
     }
 }
 
@@ -90,7 +90,7 @@ mod tests {
         );
     }
 
-    const BITMASK: [u8; 4] = [0b0000_0001, 0b0000_0101, 0b0000_0000, 0b0000_0000];
+    const BITMASK: [u8; 4] = [0b0000_0001, 0b0000_0001, 0b0000_0000, 0b0000_0000];
 
     #[test]
     fn bitmask_lookup_0() {
@@ -122,7 +122,7 @@ mod tests {
             mask: BITMASK.into(),
         };
 
-        assert!(!bitmask.collidable(4, 1));
+        assert!(bitmask.collidable(4, 1));
     }
 
     #[test]
@@ -133,6 +133,6 @@ mod tests {
             mask: BITMASK.into(),
         };
 
-        assert!(!bitmask.collidable(0, 4));
+        assert!(bitmask.collidable(0, 4));
     }
 }
