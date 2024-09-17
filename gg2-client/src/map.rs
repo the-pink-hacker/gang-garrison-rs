@@ -17,7 +17,7 @@ fn load_map(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn debug(loaded_map: Res<LoadedMap>, maps: Res<Assets<MapData>>) {
     if let Some(map) = maps.get(&loaded_map.map_data) {
-        //panic!("{:#?}", map);
+        panic!("{:#?}", map);
     }
 }
 

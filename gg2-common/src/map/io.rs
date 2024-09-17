@@ -10,7 +10,7 @@ use flate2::{bufread::ZlibDecoder, Crc, CrcReader};
 
 use crate::entity::entities::MapEntity;
 
-use super::MapData;
+use super::{collision::WalkBitMask, MapData};
 
 pub mod error;
 
@@ -194,7 +194,7 @@ fn parse_map_data(raw: String) -> Result<MapData> {
                 entities = Some(parse_map_entities(&mut raw_lines)?);
             }
             MapDataTag::WalkMask => {
-                walk_mask = Some(parse_walk_mask(&mut raw_lines)?);
+                walk_mask = Some(WalkBitMask::read(&mut raw_lines)?);
             }
             MapDataTag::EndEntities | MapDataTag::EndWalkMask => (),
         }
@@ -216,16 +216,6 @@ where
         .replace(',', "\n")
         .replace('}', "\n}");
     serde_hjson::from_str(&data).map_err(Error::Entity)
-}
-
-fn parse_walk_mask<'a, I>(data_stream: &mut I) -> Result<Vec<()>>
-where
-    I: Iterator<Item = &'a str>,
-{
-    let width = data_stream.next().ok_or(Error::DataEOF)?;
-    let length = data_stream.next().ok_or(Error::DataEOF)?;
-    let mask = data_stream.next().ok_or(Error::DataEOF)?;
-    Ok(vec![])
 }
 
 #[cfg(test)]

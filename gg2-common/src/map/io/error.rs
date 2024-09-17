@@ -24,4 +24,6 @@ pub enum Error {
     DataEOF,
     #[error("Entity deserialization error: {0}")]
     Entity(serde_hjson::Error),
+    #[error("{0}")]
+    ParseInt(std::num::ParseIntError),
 }
