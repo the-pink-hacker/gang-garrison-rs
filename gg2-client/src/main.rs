@@ -3,6 +3,7 @@ use bevy::prelude::*;
 mod camera;
 mod map;
 mod networking;
+mod physics;
 mod player;
 
 fn main() {
@@ -13,6 +14,7 @@ fn main() {
             player::PlayerPlugin,
             camera::CameraPlugin,
             map::MapPlugin,
+            physics::ClientPhysicsPlugin,
         ))
         .run();
 }

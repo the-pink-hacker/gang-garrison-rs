@@ -10,7 +10,10 @@ use flate2::{bufread::ZlibDecoder, Crc, CrcReader};
 
 use crate::entity::entities::MapEntity;
 
-use super::{collision::WalkBitMask, MapData};
+use super::{
+    collision::{mesh::WalkQuadMask, WalkBitMask},
+    MapData,
+};
 
 pub mod error;
 
@@ -200,9 +203,12 @@ fn parse_map_data(raw: String) -> Result<MapData> {
         }
     }
 
+    let walk_bit_mask = walk_mask.ok_or(Error::DataTagMissing(MapDataTag::WalkMask))?;
+    let walk_mask = WalkQuadMask::from_bits(walk_bit_mask).triangulate();
+
     Ok(MapData {
         entities: entities.ok_or(Error::DataTagMissing(MapDataTag::Entities))?,
-        walk_mask: walk_mask.ok_or(Error::DataTagMissing(MapDataTag::WalkMask))?,
+        walk_mask,
     })
 }
 
