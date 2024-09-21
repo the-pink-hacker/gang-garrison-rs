@@ -1,4 +1,6 @@
-// Implemented off of: https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
+// Based on: https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
+// I frankly don't understand it though.
+// Not fully greedy yet.
 
 use std::cmp::Ordering;
 
@@ -35,6 +37,43 @@ impl WalkQuadMask {
         Self { quads }
     }
 
+    pub fn reduce_greedy(mut self) -> Self {
+        let mut changed = true;
+
+        while changed {
+            changed = false;
+
+            (0..self.quads.len() - 1).rev().for_each(|index| {
+                let quad_a = &self.quads[index];
+                let quad_b = &self.quads[index + 1];
+
+                match quad_a.can_merge(quad_b) {
+                    MergeDirection::None => (),
+                    MergeDirection::Vertical => {
+                        let quad_b = self.quads.swap_remove(index + 1);
+                        let quad_a = &mut self.quads[index];
+                        quad_a.y = quad_a.y.max(quad_b.y);
+                        quad_a.h += quad_b.h;
+                        changed = true;
+                    }
+                    MergeDirection::Horizontal => {
+                        let quad_b = self.quads.swap_remove(index + 1);
+                        let quad_a = &mut self.quads[index];
+                        quad_a.x = quad_a.x.min(quad_b.x);
+                        quad_a.w += quad_b.w;
+                        changed = true;
+                    }
+                }
+            });
+
+            if changed {
+                self.quads.sort();
+            }
+        }
+
+        self
+    }
+
     pub fn triangulate(self) -> WalkMeshMask {
         let (vertices, indices) = self
             .quads
@@ -57,6 +96,13 @@ impl WalkQuadMask {
             indices: indices.into_flattened(),
         }
     }
+}
+
+#[derive(Debug)]
+enum MergeDirection {
+    None,
+    Horizontal,
+    Vertical,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -82,11 +128,18 @@ impl Quad {
             Vec2::new(x + w, y - h),
         ]
     }
-}
 
-impl From<&Quad> for (u16, u16, u16, u16) {
-    fn from(value: &Quad) -> Self {
-        (value.x, value.y, value.w, value.h)
+    fn can_merge(&self, other: &Self) -> MergeDirection {
+        let (x0, y0, w0, h0) = self.into();
+        let (x1, y1, w1, h1) = other.into();
+
+        if y0 == y1 && h0 == h1 && x0 + w0 == x1 {
+            MergeDirection::Horizontal
+        } else if x0 == x1 && w0 == w1 && y0 - h0 == y1 {
+            MergeDirection::Vertical
+        } else {
+            MergeDirection::None
+        }
     }
 }
 
@@ -124,6 +177,12 @@ impl Ord for Quad {
 impl PartialOrd for Quad {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl From<&Quad> for (u16, u16, u16, u16) {
+    fn from(value: &Quad) -> Self {
+        (value.x, value.y, value.w, value.h)
     }
 }
 
