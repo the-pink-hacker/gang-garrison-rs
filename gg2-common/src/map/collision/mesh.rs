@@ -8,8 +8,7 @@ use crate::map::collision::BITMASK_BITS_PER_BYTE;
 
 use super::WalkBitMask;
 
-const MAP_SCALE: f32 = 6.0;
-const TEMP_SHIFT_Y: f32 = 200.0 / 2.0;
+const TEMP_SHIFT_Y: f32 = 200.0;
 
 pub struct WalkQuadMask {
     quads: Vec<Quad>,
@@ -20,20 +19,16 @@ impl WalkQuadMask {
         let quads = walk_bit_mask
             .mask
             .into_iter()
+            .flat_map(|byte| {
+                (0..BITMASK_BITS_PER_BYTE)
+                    .rev()
+                    .map(move |bit_index| ((byte >> bit_index) & 1) != 0)
+            })
             .enumerate()
-            .flat_map(|(byte_index, byte)| {
-                let index = byte_index * BITMASK_BITS_PER_BYTE as usize;
-                let byte_x = (index % walk_bit_mask.width as usize) as u16;
-                let byte_y = (index / walk_bit_mask.width as usize) as u16;
-
-                (0..BITMASK_BITS_PER_BYTE).flat_map(move |bit_index| {
-                    // Shifts the current bit into the ones place and tests bit.
-                    let collidable = ((byte >> bit_index) & 1) != 0;
-                    let x = byte_x + bit_index as u16;
-                    let y = byte_y;
-
-                    collidable.then(|| Quad::square_unit(x, y))
-                })
+            .flat_map(|(index, collidable)| {
+                let x = (index % walk_bit_mask.width as usize) as u16;
+                let y = walk_bit_mask.height - (index / walk_bit_mask.width as usize) as u16;
+                collidable.then(|| Quad::square_unit(x, y))
             })
             .collect();
 
@@ -46,7 +41,7 @@ impl WalkQuadMask {
             .into_iter()
             .enumerate()
             .map(|(quad_index, quad)| {
-                let quad_index = quad_index as u32;
+                let quad_index = quad_index as u32 * 4;
                 (
                     quad.vertices(),
                     [
@@ -79,17 +74,12 @@ impl Quad {
 
     fn vertices(&self) -> [Vec2; 4] {
         let (x, y, w, h) = self.into();
-        let (x, y, w, h) = (
-            x as f32 * MAP_SCALE,
-            (y as f32 - TEMP_SHIFT_Y) * MAP_SCALE,
-            w as f32 * MAP_SCALE,
-            h as f32 * MAP_SCALE,
-        );
+        let (x, y, w, h) = (x as f32, y as f32 - TEMP_SHIFT_Y, w as f32, h as f32);
         [
             Vec2::new(x, y),
             Vec2::new(x + w, y),
-            Vec2::new(x, y + h),
-            Vec2::new(x + w, y + h),
+            Vec2::new(x, y - h),
+            Vec2::new(x + w, y - h),
         ]
     }
 }

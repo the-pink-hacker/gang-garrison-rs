@@ -9,7 +9,7 @@ mod player;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins,
+            DefaultPlugins.set(ImagePlugin::default_nearest()),
             //networking::NetworkingPlugin,
             player::PlayerPlugin,
             camera::CameraPlugin,
