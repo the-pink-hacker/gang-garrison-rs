@@ -43,7 +43,6 @@ impl WalkQuadMask {
 
                 for x in x_positions.by_ref() {
                     let collidable = &mut mask[x + quad_y * width];
-                    // Unessesary???
                     if !*collidable {
                         break;
                     }
@@ -60,7 +59,8 @@ impl WalkQuadMask {
 
                     // Check for possible quad breakups.
                     if (quad_x != 0 && mask[quad_x - 1 + y_offset])
-                        || (quad_x != width && mask[quad_x + 1 + quad_width as usize])
+                        || (quad_x + quad_width as usize != width
+                            && mask[quad_x + quad_width as usize])
                     {
                         break;
                     }
