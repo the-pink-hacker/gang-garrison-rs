@@ -56,10 +56,18 @@ impl WalkQuadMask {
                 let mut quad_height = 1;
 
                 'outer: for y in (quad_y + 1)..height {
+                    let y_offset = y * width;
+
+                    // Check for possible quad breakups.
+                    if (quad_x != 0 && mask[quad_x - 1 + y_offset])
+                        || (quad_x != width && mask[quad_x + 1 + quad_width as usize])
+                    {
+                        break;
+                    }
+
                     // Scan if can merge.
                     for x in quad_x..(quad_x + quad_width as usize) {
-                        let collidable = mask[x + y * width];
-                        if !collidable {
+                        if !mask[x + y_offset] {
                             // Failed to merge row.
                             break 'outer;
                         }
@@ -69,7 +77,7 @@ impl WalkQuadMask {
 
                     for x in quad_x..(quad_x + quad_width as usize) {
                         // Already known to be collidable.
-                        mask[x + y * width] = false;
+                        mask[x + y_offset] = false;
                     }
                 }
 
