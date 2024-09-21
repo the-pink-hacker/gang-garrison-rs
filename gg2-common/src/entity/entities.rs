@@ -66,8 +66,8 @@ pub struct Transform {
 pub enum MapEntity {
     #[serde(rename = "meta")]
     Meta {
-        background: String,
-        void: String,
+        //    background: String,
+        //    void: String,
     },
     #[serde(rename = "spawnroom")]
     SpawnRoom(Transform),
@@ -160,7 +160,7 @@ pub enum MapEntity {
     ControlPoint4(Position),
     #[serde(rename = "controlPoint5")]
     ControlPoint5(Position),
-    #[serde(rename = "NextArea0")]
+    #[serde(rename = "NextAreaO")]
     NextArea(Position),
     CapturePoint(Transform),
     SetupGate(Transform),

@@ -4,8 +4,6 @@ use crate::map::collision::BITMASK_BITS_PER_BYTE;
 
 use super::WalkBitMask;
 
-const TEMP_SHIFT_Y: f32 = 200.0;
-
 pub struct WalkQuadMask {
     quads: Vec<Quad>,
 }
@@ -128,7 +126,7 @@ struct Quad {
 impl Quad {
     fn vertices(&self) -> [Vec2; 4] {
         let (x, y, w, h) = self.into();
-        let (x, y, w, h) = (x as f32, y as f32 - TEMP_SHIFT_Y, w as f32, h as f32);
+        let (x, y, w, h) = (x as f32, y as f32, w as f32, h as f32);
         [
             Vec2::new(x, y),
             Vec2::new(x + w, y),

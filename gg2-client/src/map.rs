@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use gg2_common::map::{io::MapDataLoader, MapData};
 
-const DEBUG_MAP: &str = "maps/ctf_eiger.png";
+const DEBUG_MAP: &str = "maps/cp_dirtbowl.png";
 const MAP_SCALE: f32 = 6.0;
 
 fn load_map(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -13,7 +13,7 @@ fn load_map(mut commands: Commands, asset_server: Res<AssetServer>) {
         CurrentMap,
         SpriteBundle {
             sprite: Sprite {
-                anchor: bevy::sprite::Anchor::TopLeft,
+                anchor: bevy::sprite::Anchor::BottomLeft,
                 ..default()
             },
             texture: map_image_handle,
