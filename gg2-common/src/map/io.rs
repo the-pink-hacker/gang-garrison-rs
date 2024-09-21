@@ -204,9 +204,7 @@ fn parse_map_data(raw: String) -> Result<MapData> {
     }
 
     let walk_bit_mask = walk_mask.ok_or(Error::DataTagMissing(MapDataTag::WalkMask))?;
-    let walk_mask = WalkQuadMask::from_bits(walk_bit_mask)
-        .reduce_greedy()
-        .triangulate();
+    let walk_mask = WalkQuadMask::from_bits(walk_bit_mask).triangulate();
 
     Ok(MapData {
         entities: entities.ok_or(Error::DataTagMissing(MapDataTag::Entities))?,

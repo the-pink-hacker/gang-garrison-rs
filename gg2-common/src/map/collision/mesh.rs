@@ -1,9 +1,3 @@
-// Based on: https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
-// I frankly don't understand it though.
-// Not fully greedy yet.
-
-use std::cmp::Ordering;
-
 use bevy::prelude::*;
 
 use crate::map::collision::BITMASK_BITS_PER_BYTE;
@@ -18,7 +12,7 @@ pub struct WalkQuadMask {
 
 impl WalkQuadMask {
     pub fn from_bits(walk_bit_mask: WalkBitMask) -> Self {
-        let quads = walk_bit_mask
+        let mut mask = walk_bit_mask
             .mask
             .into_iter()
             .flat_map(|byte| {
@@ -26,52 +20,69 @@ impl WalkQuadMask {
                     .rev()
                     .map(move |bit_index| ((byte >> bit_index) & 1) != 0)
             })
-            .enumerate()
-            .flat_map(|(index, collidable)| {
-                let x = (index % walk_bit_mask.width as usize) as u16;
-                let y = walk_bit_mask.height - (index / walk_bit_mask.width as usize) as u16;
-                collidable.then(|| Quad::square_unit(x, y))
-            })
-            .collect();
+            .collect::<Vec<_>>();
 
-        Self { quads }
-    }
+        let width = walk_bit_mask.width as usize;
+        let height = walk_bit_mask.height as usize;
+        let mut quads = Vec::with_capacity(width * height);
 
-    pub fn reduce_greedy(mut self) -> Self {
-        let mut changed = true;
+        for quad_y in 0..height {
+            let mut x_positions = 0..width;
 
-        while changed {
-            changed = false;
+            while let Some(quad_x) = x_positions.next() {
+                let collidable = &mut mask[quad_x + quad_y * width];
 
-            (0..self.quads.len() - 1).rev().for_each(|index| {
-                let quad_a = &self.quads[index];
-                let quad_b = &self.quads[index + 1];
+                if !*collidable {
+                    continue;
+                }
 
-                match quad_a.can_merge(quad_b) {
-                    MergeDirection::None => (),
-                    MergeDirection::Vertical => {
-                        let quad_b = self.quads.swap_remove(index + 1);
-                        let quad_a = &mut self.quads[index];
-                        quad_a.y = quad_a.y.max(quad_b.y);
-                        quad_a.h += quad_b.h;
-                        changed = true;
+                *collidable = false;
+
+                // Count collidable tiles in x direction.
+                let mut quad_width = 1;
+
+                for x in x_positions.by_ref() {
+                    let collidable = &mut mask[x + quad_y * width];
+                    // Unessesary???
+                    if !*collidable {
+                        break;
                     }
-                    MergeDirection::Horizontal => {
-                        let quad_b = self.quads.swap_remove(index + 1);
-                        let quad_a = &mut self.quads[index];
-                        quad_a.x = quad_a.x.min(quad_b.x);
-                        quad_a.w += quad_b.w;
-                        changed = true;
+
+                    quad_width += 1;
+                    *collidable = false;
+                }
+
+                // Count collidable tiles in y direction.
+                let mut quad_height = 1;
+
+                'outer: for y in (quad_y + 1)..height {
+                    // Scan if can merge.
+                    for x in quad_x..(quad_x + quad_width as usize) {
+                        let collidable = mask[x + y * width];
+                        if !collidable {
+                            // Failed to merge row.
+                            break 'outer;
+                        }
+                    }
+
+                    quad_height += 1;
+
+                    for x in quad_x..(quad_x + quad_width as usize) {
+                        // Already known to be collidable.
+                        mask[x + y * width] = false;
                     }
                 }
-            });
 
-            if changed {
-                self.quads.sort();
+                quads.push(Quad {
+                    x: quad_x as u16,
+                    y: (height - quad_y) as u16,
+                    width: quad_width,
+                    height: quad_height,
+                });
             }
         }
 
-        self
+        Self { quads }
     }
 
     pub fn triangulate(self) -> WalkMeshMask {
@@ -99,25 +110,14 @@ impl WalkQuadMask {
 }
 
 #[derive(Debug)]
-enum MergeDirection {
-    None,
-    Horizontal,
-    Vertical,
-}
-
-#[derive(Debug, PartialEq, Eq)]
 struct Quad {
     x: u16,
     y: u16,
-    w: u16,
-    h: u16,
+    width: u16,
+    height: u16,
 }
 
 impl Quad {
-    const fn square_unit(x: u16, y: u16) -> Self {
-        Self { x, y, w: 1, h: 1 }
-    }
-
     fn vertices(&self) -> [Vec2; 4] {
         let (x, y, w, h) = self.into();
         let (x, y, w, h) = (x as f32, y as f32 - TEMP_SHIFT_Y, w as f32, h as f32);
@@ -128,61 +128,11 @@ impl Quad {
             Vec2::new(x + w, y - h),
         ]
     }
-
-    fn can_merge(&self, other: &Self) -> MergeDirection {
-        let (x0, y0, w0, h0) = self.into();
-        let (x1, y1, w1, h1) = other.into();
-
-        if y0 == y1 && h0 == h1 && x0 + w0 == x1 {
-            MergeDirection::Horizontal
-        } else if x0 == x1 && w0 == w1 && y0 - h0 == y1 {
-            MergeDirection::Vertical
-        } else {
-            MergeDirection::None
-        }
-    }
-}
-
-impl Ord for Quad {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let (x0, y0, w0, h0) = self.into();
-        let (x1, y1, w1, h1) = other.into();
-
-        if y0 != y1 {
-            if y0 < y1 {
-                Ordering::Greater
-            } else {
-                Ordering::Less
-            }
-        } else if x0 != x1 {
-            if x0 < x1 {
-                Ordering::Greater
-            } else {
-                Ordering::Less
-            }
-        } else if w0 != w1 {
-            if w0 > w1 {
-                Ordering::Greater
-            } else {
-                Ordering::Less
-            }
-        } else if h0 >= h1 {
-            Ordering::Greater
-        } else {
-            Ordering::Less
-        }
-    }
-}
-
-impl PartialOrd for Quad {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl From<&Quad> for (u16, u16, u16, u16) {
     fn from(value: &Quad) -> Self {
-        (value.x, value.y, value.w, value.h)
+        (value.x, value.y, value.width, value.height)
     }
 }
 
