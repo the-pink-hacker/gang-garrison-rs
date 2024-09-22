@@ -19,7 +19,7 @@ fn load_map(
         commands.spawn((
             CommonMapBundle::from_handle(map_data_handle),
             Sprite {
-                anchor: bevy::sprite::Anchor::BottomLeft,
+                anchor: bevy::sprite::Anchor::TopLeft,
                 ..default()
             },
             Visibility::default(),

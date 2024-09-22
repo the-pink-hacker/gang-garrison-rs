@@ -1,7 +1,11 @@
+use std::ops::Deref;
+
 use bevy::prelude::*;
 use gg2_common::{
     error::Error,
-    networking::message::{ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin},
+    networking::message::{
+        ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin, ServerQuickUpdate,
+    },
     player::{Class, Player, Players, Team},
 };
 
@@ -21,7 +25,8 @@ fn handle_player_join(
     mut players: ResMut<Players>,
 ) {
     for event in events.read() {
-        println!("Player join of name: \"{}\"", event.player_name);
+        debug!("Player join of name: \"{}\"", event.player_name);
+
         players
             .add_player(
                 &mut commands,
@@ -58,6 +63,13 @@ fn handle_player_change_team(
                     event.player_index, event.player_team
                 );
                 player.insert(event.player_team);
+
+                match event.player_team {
+                    Team::Red | Team::Blu => {
+                        player.insert(Visibility::Visible);
+                    }
+                    Team::Spectator => (),
+                }
             });
 
         if let Err(error) = player_result {
@@ -70,6 +82,7 @@ fn handle_player_change_class(
     mut events: EventReader<NetworkData<ServerPlayerChangeClass>>,
     mut commands: Commands,
     players: Res<Players>,
+    asset_server: Res<AssetServer>,
 ) {
     for event in events.read() {
         let player_result = players
@@ -85,11 +98,41 @@ fn handle_player_change_class(
                     "Player of index {} is changing class to: {:?}",
                     event.player_index, event.player_class
                 );
-                player.insert(event.player_class);
+                let player_texture = asset_server.load::<Image>("sprites/character.png");
+                player.insert((event.player_class, player_texture));
             });
 
         if let Err(error) = player_result {
             eprintln!("Failed to change player's class: {}", error);
+        }
+    }
+}
+
+fn handle_quick_update(
+    mut events: EventReader<NetworkData<ServerQuickUpdate>>,
+    mut commands: Commands,
+    players: Res<Players>,
+) {
+    for event in events.read() {
+        for (player_index, player) in players.as_ref().into_iter().enumerate() {
+            let player_result = commands
+                .get_entity(*player)
+                .ok_or(Error::PlayerLookup(player_index as u8))
+                .map(|mut player| {
+                    dbg!(player_index);
+                    if let Some((_input, player_info)) = event
+                        .player_characters
+                        .get(player_index)
+                        .and_then(Option::as_ref)
+                    {
+                        let new_position = player_info.position.extend(10.0);
+                        player.insert(Transform::from_translation(new_position));
+                    }
+                });
+
+            if let Err(error) = player_result {
+                eprintln!("Failed to update player: {}", error);
+            }
         }
     }
 }
@@ -114,6 +157,7 @@ impl Plugin for PlayerPlugin {
                 (
                     handle_player_change_team,
                     handle_player_change_class,
+                    handle_quick_update,
                     debug_players,
                 )
                     .run_if(

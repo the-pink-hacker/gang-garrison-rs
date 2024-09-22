@@ -6,6 +6,7 @@ use super::WalkBitMask;
 
 pub struct WalkQuadMask {
     quads: Vec<Quad>,
+    height: u16,
 }
 
 impl WalkQuadMask {
@@ -88,7 +89,10 @@ impl WalkQuadMask {
             }
         }
 
-        Self { quads }
+        Self {
+            quads,
+            height: walk_bit_mask.height,
+        }
     }
 
     pub fn triangulate(self) -> WalkMeshMask {
@@ -99,7 +103,7 @@ impl WalkQuadMask {
             .map(|(quad_index, quad)| {
                 let quad_index = quad_index as u32 * 4;
                 (
-                    quad.vertices(),
+                    quad.vertices(self.height as f32),
                     [
                         [quad_index, quad_index + 1, quad_index + 2],
                         [quad_index + 1, quad_index + 2, quad_index + 3],
@@ -124,9 +128,9 @@ struct Quad {
 }
 
 impl Quad {
-    fn vertices(&self) -> [Vec2; 4] {
+    fn vertices(&self, y_shift: f32) -> [Vec2; 4] {
         let (x, y, w, h) = self.into();
-        let (x, y, w, h) = (x as f32, y as f32, w as f32, h as f32);
+        let (x, y, w, h) = (x as f32, y as f32 - y_shift, w as f32, h as f32);
         [
             Vec2::new(x, y),
             Vec2::new(x + w, y),

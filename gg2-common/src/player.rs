@@ -45,6 +45,15 @@ impl Players {
     }
 }
 
+impl<'a> IntoIterator for &'a Players {
+    type Item = &'a Entity;
+    type IntoIter = std::slice::Iter<'a, Entity>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
 #[derive(Debug, Component, Default)]
 pub struct Player {
     pub name: String,
