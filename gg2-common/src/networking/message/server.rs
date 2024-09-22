@@ -182,7 +182,12 @@ impl GGMessage for ServerChangeMap {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let map_name = payload.read_utf8_short_string()?;
         let map_md5 = payload.read_md5()?;
-        Ok(Self { map_name, map_md5 })
+
+        if map_name.chars().by_ref().all(char::is_alphanumeric) {
+            Err(Error::UnsanitizedString)
+        } else {
+            Ok(Self { map_name, map_md5 })
+        }
     }
 }
 

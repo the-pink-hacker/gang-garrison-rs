@@ -10,7 +10,7 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
-            //networking::NetworkingPlugin,
+            networking::NetworkingPlugin,
             player::PlayerPlugin,
             camera::CameraPlugin,
             map::MapPlugin,

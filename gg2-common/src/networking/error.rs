@@ -24,4 +24,6 @@ pub enum Error {
     PacketPayload,
     #[error("Failed to serialize packet payload: {0}")]
     StringLength(std::num::TryFromIntError),
+    #[error("Unsanitized string")]
+    UnsanitizedString,
 }
