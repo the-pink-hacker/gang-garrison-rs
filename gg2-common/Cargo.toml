@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 bevy = { version = "0.14.1", default-features = false, features = ["bevy_core_pipeline"] }
+bevy_rapier2d = "0.27.0"
 flate2 = "1.0.33"
 hex = "0.4.3"
 num_enum = "0.7.3"

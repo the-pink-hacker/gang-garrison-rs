@@ -1,67 +1,38 @@
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
-use gg2_common::map::{io::MapDataLoader, MapData};
+use gg2_common::map::*;
 
 const DEBUG_MAP: &str = "maps/cp_dirtbowl.png";
-const MAP_SCALE: f32 = 6.0;
 
-fn load_map(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_map(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut load_state: ResMut<NextState<MapLoadState>>,
+) {
     let map_data_handle = asset_server.load::<MapData>(DEBUG_MAP);
     let map_image_handle = asset_server.load::<Image>(DEBUG_MAP);
 
     commands.spawn((
-        CurrentMap,
-        SpriteBundle {
-            sprite: Sprite {
-                anchor: bevy::sprite::Anchor::BottomLeft,
-                ..default()
-            },
-            texture: map_image_handle,
-            transform: Transform {
-                scale: Vec3::splat(MAP_SCALE),
-                ..default()
-            },
+        CommonMapBundle::from_handle(map_data_handle),
+        Sprite {
+            anchor: bevy::sprite::Anchor::BottomLeft,
             ..default()
         },
-        Collider::default(),
+        Visibility::default(),
+        InheritedVisibility::default(),
+        ViewVisibility::default(),
+        map_image_handle,
     ));
 
-    commands.insert_resource(LoadedMap {
-        map_data: map_data_handle,
-    });
-}
-
-fn setup_walk_collisions(
-    mut current_map_query: Query<(&mut Transform, &mut Collider), With<CurrentMap>>,
-    loaded_map: Res<LoadedMap>,
-    mut maps: ResMut<Assets<MapData>>,
-) {
-    if let Ok((map_transform, mut map_collider)) = current_map_query.get_single_mut() {
-        if let Some(map) = maps.remove(&loaded_map.map_data) {
-            *map_collider = Collider::trimesh_with_flags(
-                map.walk_mask.vertices,
-                map.walk_mask.indices,
-                TriMeshFlags::MERGE_DUPLICATE_VERTICES,
-            );
-        }
-    }
-}
-
-#[derive(Component)]
-pub struct CurrentMap;
-
-#[derive(Debug, Resource)]
-pub struct LoadedMap {
-    pub map_data: Handle<MapData>,
+    load_state.set(MapLoadState::Loading);
 }
 
 pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.init_asset::<MapData>()
-            .init_asset_loader::<MapDataLoader>()
-            .add_systems(PreStartup, load_map)
-            .add_systems(Update, setup_walk_collisions);
+        app.add_plugins(CommonMapPlugin).add_systems(
+            FixedUpdate,
+            load_map.run_if(in_state(MapLoadState::Unloaded)),
+        );
     }
 }
