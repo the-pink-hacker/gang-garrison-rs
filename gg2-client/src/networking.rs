@@ -132,6 +132,12 @@ fn handle_message_string(
     }
 }
 
+fn handle_quick_update(mut events: EventReader<NetworkData<ServerQuickUpdate>>) {
+    for event in events.read() {
+        println!("{:#?}", **event);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
@@ -142,7 +148,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerReserveSlot>()
             .listen_for_client_message::<ServerServerFull>()
             .listen_for_client_message::<ServerInputState>()
-            //.listen_for_client_message::<ServerQuickUpdate>()
+            .listen_for_client_message::<ServerQuickUpdate>()
             .listen_for_client_message::<ServerPlayerJoin>()
             .listen_for_client_message::<ServerJoinUpdate>()
             .listen_for_client_message::<ServerChangeMap>()
@@ -164,6 +170,7 @@ impl Plugin for NetworkingPlugin {
                         in_state(NetworkingState::PlayerJoining)
                             .or_else(in_state(NetworkingState::InGame)),
                     ),
+                    handle_quick_update.run_if(in_state(NetworkingState::InGame)),
                 ),
             );
     }

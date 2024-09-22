@@ -110,7 +110,9 @@ impl GGMessage for ServerInputState {
 
 // TODO: Implement quick update
 #[derive(Debug, Clone)]
-pub struct ServerQuickUpdate;
+pub struct ServerQuickUpdate {
+    player_characters: Vec<Option<(RawInput, RawPlayerInfo)>>,
+}
 
 impl GGMessage for ServerQuickUpdate {
     const KIND: PacketKind = PacketKind::QuickUpdate;
@@ -120,7 +122,25 @@ impl GGMessage for ServerQuickUpdate {
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        Ok(ServerQuickUpdate {})
+        let player_length = payload.read_u8()?;
+
+        let mut player_characters = Vec::with_capacity(player_length.into());
+
+        for _ in 0..player_length {
+            let character_present = payload.read_bool()?;
+            let character = if character_present {
+                let input = RawInput::deserialize(payload)?;
+                let player_info = RawPlayerInfo::deserialize(payload)?;
+
+                Some((input, player_info))
+            } else {
+                None
+            };
+
+            player_characters.push(character);
+        }
+
+        Ok(Self { player_characters })
     }
 }
 
