@@ -8,7 +8,7 @@ pub mod state;
 pub use socket::NetworkData;
 use state::NetworkingState;
 
-use crate::config::ClientConfig;
+use crate::{config::ClientConfig, state::ClientState};
 
 fn setup_networking_system(
     mut client: ResMut<NetworkClient>,
@@ -158,7 +158,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerPlayerChangeTeam>()
             .listen_for_client_message::<ServerFullUpdate>()
             .listen_for_client_message::<ServerMessageString>()
-            .add_systems(Startup, setup_networking_system)
+            .add_systems(OnEnter(ClientState::InGame), setup_networking_system)
             .add_systems(
                 FixedUpdate,
                 (

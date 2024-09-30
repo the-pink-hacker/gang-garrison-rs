@@ -15,7 +15,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
-        TcpStream, ToSocketAddrs,
+        TcpStream,
     },
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
@@ -80,11 +80,7 @@ pub struct NetworkClient {
 
 impl NetworkClient {
     // Connects to a new server
-    pub fn connect(
-        &mut self,
-        address: impl ToSocketAddrs + Send + 'static,
-        network_settings: NetworkSettings,
-    ) {
+    pub fn connect(&mut self, address: SocketAddr, network_settings: NetworkSettings) {
         debug!("Starting connection.");
 
         if self.server_connection.is_some() {
@@ -99,7 +95,7 @@ impl NetworkClient {
                 Ok(stream) => stream,
                 Err(error) => {
                     if let Err(error) = network_error_sender
-                        .send(ClientNetworkEvent::Error(Error::Connection(error)))
+                        .send(ClientNetworkEvent::Error(Error::Connection(error, address)))
                     {
                         error!("Couldn't send error event: {}", error);
                     };
