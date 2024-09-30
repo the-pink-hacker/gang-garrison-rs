@@ -20,13 +20,13 @@ fn main() {
                     }),
                     ..default()
                 }),
-            camera::CameraPlugin,
+            //camera::CameraPlugin,
             config::ClientConfigPlugin,
             gui::GuiPlugin,
             //map::MapPlugin,
             //networking::NetworkingPlugin,
             //physics::ClientPhysicsPlugin,
-            player::PlayerPlugin,
+            //player::PlayerPlugin,
         ))
         .insert_resource(ClearColor(Color::BLACK))
         .run();

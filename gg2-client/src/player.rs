@@ -17,7 +17,7 @@ struct PlayerBundle {
     sprite: SpriteBundle,
 }
 
-fn handle_player_join(
+fn handle_player_join_system(
     mut events: EventReader<NetworkData<ServerPlayerJoin>>,
     mut commands: Commands,
     mut players: ResMut<Players>,
@@ -41,7 +41,7 @@ fn handle_player_join(
     }
 }
 
-fn handle_player_change_team(
+fn handle_player_change_team_system(
     mut events: EventReader<NetworkData<ServerPlayerChangeTeam>>,
     mut commands: Commands,
     players: Res<Players>,
@@ -76,7 +76,7 @@ fn handle_player_change_team(
     }
 }
 
-fn handle_player_change_class(
+fn handle_player_change_class_system(
     mut events: EventReader<NetworkData<ServerPlayerChangeClass>>,
     mut commands: Commands,
     players: Res<Players>,
@@ -106,7 +106,7 @@ fn handle_player_change_class(
     }
 }
 
-fn handle_quick_update(
+fn handle_quick_update_system(
     mut events: EventReader<NetworkData<ServerQuickUpdate>>,
     mut commands: Commands,
     players: Res<Players>,
@@ -135,7 +135,7 @@ fn handle_quick_update(
     }
 }
 
-fn debug_players(player_query: Query<(&Player, &Class, &Team)>) {
+fn debug_players_system(player_query: Query<(&Player, &Class, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
         debug!(
             "[Player] name: \"{}\", class: {:?}, team: {:?}",
@@ -151,18 +151,18 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<Players>().add_systems(
             FixedUpdate,
             (
-                handle_player_join.run_if(in_state(NetworkingState::PlayerJoining)),
+                handle_player_join_system.run_if(in_state(NetworkingState::PlayerJoining)),
                 (
-                    handle_player_change_team,
-                    handle_player_change_class,
-                    handle_quick_update,
-                    debug_players,
+                    handle_player_change_team_system,
+                    handle_player_change_class_system,
+                    handle_quick_update_system,
+                    debug_players_system,
                 )
                     .run_if(
                         in_state(NetworkingState::InGame)
                             .or_else(in_state(NetworkingState::PlayerJoining)),
                     )
-                    .after(handle_player_join),
+                    .after(handle_player_join_system),
             ),
         );
     }

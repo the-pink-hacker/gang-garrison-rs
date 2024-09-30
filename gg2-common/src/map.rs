@@ -40,7 +40,7 @@ impl CommonMapBundle {
     }
 }
 
-fn setup_walk_collisions(
+fn setup_walk_collisions_system(
     mut current_map_query: Query<(&mut Collider, &Handle<MapData>), With<CurrentMap>>,
     maps: Res<Assets<MapData>>,
 ) {
@@ -55,12 +55,12 @@ fn setup_walk_collisions(
     }
 }
 
-fn leave_construction(mut load_state: ResMut<NextState<MapLoadState>>) {
+fn leave_construction_system(mut load_state: ResMut<NextState<MapLoadState>>) {
     load_state.set(MapLoadState::Loaded);
 }
 
 /// When the map data asset is finished loading the state is changed to construction
-fn map_check_load(
+fn map_check_load_system(
     current_map_query: Query<&Handle<MapData>, With<CurrentMap>>,
     maps: Res<Assets<MapData>>,
     mut load_state: ResMut<NextState<MapLoadState>>,
@@ -90,11 +90,11 @@ impl Plugin for CommonMapPlugin {
             .init_state::<MapLoadState>()
             .add_systems(
                 FixedUpdate,
-                map_check_load.run_if(in_state(MapLoadState::Loading)),
+                map_check_load_system.run_if(in_state(MapLoadState::Loading)),
             )
             .add_systems(
                 OnEnter(MapLoadState::Constructing),
-                (setup_walk_collisions, leave_construction),
+                (setup_walk_collisions_system, leave_construction_system),
             );
     }
 }

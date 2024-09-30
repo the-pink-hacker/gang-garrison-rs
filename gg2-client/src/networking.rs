@@ -10,7 +10,7 @@ use state::NetworkingState;
 
 use crate::config::ClientConfig;
 
-fn setup_networking(
+fn setup_networking_system(
     mut client: ResMut<NetworkClient>,
     network_settings: Res<NetworkSettings>,
     mut state: ResMut<NextState<NetworkingState>>,
@@ -23,7 +23,7 @@ fn setup_networking(
     state.set(NetworkingState::AttemptingConnection);
 }
 
-fn on_network_event(
+fn on_network_event_system(
     client: ResMut<NetworkClient>,
     mut connection_events: EventReader<ClientNetworkEvent>,
     mut state: ResMut<NextState<NetworkingState>>,
@@ -46,7 +46,7 @@ fn on_network_event(
     }
 }
 
-fn handle_hello(
+fn handle_hello_system(
     mut hello_events: EventReader<NetworkData<ServerHello>>,
     client: ResMut<NetworkClient>,
     mut state: ResMut<NextState<NetworkingState>>,
@@ -62,7 +62,7 @@ fn handle_hello(
     }
 }
 
-fn handle_reserve_slot(
+fn handle_reserve_slot_system(
     mut reserve_events: EventReader<NetworkData<ServerReserveSlot>>,
     client: ResMut<NetworkClient>,
     mut state: ResMut<NextState<NetworkingState>>,
@@ -76,7 +76,7 @@ fn handle_reserve_slot(
     }
 }
 
-fn handle_server_full(
+fn handle_server_full_system(
     mut server_full_events: EventReader<NetworkData<ServerServerFull>>,
     mut client: ResMut<NetworkClient>,
 ) {
@@ -86,25 +86,25 @@ fn handle_server_full(
     }
 }
 
-fn handle_join_update(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>) {
+fn handle_join_update_system(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>) {
     for event in join_update_events.read() {
         println!("{:#?}", **event);
     }
 }
 
-fn handle_change_map(mut change_map_events: EventReader<NetworkData<ServerChangeMap>>) {
+fn handle_change_map_system(mut change_map_events: EventReader<NetworkData<ServerChangeMap>>) {
     for event in change_map_events.read() {
         println!("{:#?}", **event);
     }
 }
 
-fn handle_full_update(mut events: EventReader<NetworkData<ServerFullUpdate>>) {
+fn handle_full_update_system(mut events: EventReader<NetworkData<ServerFullUpdate>>) {
     for event in events.read() {
         println!("{:#?}", **event);
     }
 }
 
-fn handle_input_state(
+fn handle_input_state_system(
     mut events: EventReader<NetworkData<ServerInputState>>,
     mut player_query: Query<(&PlayerId, &mut Transform)>,
 ) {
@@ -124,7 +124,7 @@ fn handle_input_state(
     });
 }
 
-fn handle_message_string(
+fn handle_message_string_system(
     mut events: EventReader<NetworkData<ServerMessageString>>,
     mut state: ResMut<NextState<NetworkingState>>,
 ) {
@@ -134,7 +134,7 @@ fn handle_message_string(
     }
 }
 
-fn handle_quick_update(mut events: EventReader<NetworkData<ServerQuickUpdate>>) {
+fn handle_quick_update_system(mut events: EventReader<NetworkData<ServerQuickUpdate>>) {
     for event in events.read() {
         println!("{:#?}", **event);
     }
@@ -158,21 +158,26 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerPlayerChangeTeam>()
             .listen_for_client_message::<ServerFullUpdate>()
             .listen_for_client_message::<ServerMessageString>()
-            .add_systems(Startup, setup_networking)
+            .add_systems(Startup, setup_networking_system)
             .add_systems(
                 FixedUpdate,
                 (
-                    on_network_event.run_if(not(in_state(NetworkingState::Disconnected))),
-                    handle_hello.run_if(in_state(NetworkingState::AwaitingHello)),
-                    (handle_reserve_slot, handle_server_full)
+                    on_network_event_system.run_if(not(in_state(NetworkingState::Disconnected))),
+                    handle_hello_system.run_if(in_state(NetworkingState::AwaitingHello)),
+                    (handle_reserve_slot_system, handle_server_full_system)
                         .run_if(in_state(NetworkingState::ReserveSlot)),
-                    (handle_join_update, handle_message_string)
+                    (handle_join_update_system, handle_message_string_system)
                         .run_if(in_state(NetworkingState::PlayerJoining)),
-                    (handle_change_map, handle_full_update, handle_input_state).run_if(
-                        in_state(NetworkingState::PlayerJoining)
-                            .or_else(in_state(NetworkingState::InGame)),
-                    ),
-                    handle_quick_update.run_if(in_state(NetworkingState::InGame)),
+                    (
+                        handle_change_map_system,
+                        handle_full_update_system,
+                        handle_input_state_system,
+                    )
+                        .run_if(
+                            in_state(NetworkingState::PlayerJoining)
+                                .or_else(in_state(NetworkingState::InGame)),
+                        ),
+                    handle_quick_update_system.run_if(in_state(NetworkingState::InGame)),
                 ),
             );
     }

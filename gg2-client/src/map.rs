@@ -5,7 +5,7 @@ use gg2_common::{map::*, networking::message::ServerChangeMap};
 
 use crate::networking::NetworkData;
 
-fn load_map(
+fn load_map_system(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut load_state: ResMut<NextState<MapLoadState>>,
@@ -38,7 +38,7 @@ impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(CommonMapPlugin).add_systems(
             FixedUpdate,
-            load_map
+            load_map_system
                 .run_if(in_state(MapLoadState::Unloaded).or_else(in_state(MapLoadState::Loaded)))
                 .run_if(on_event::<NetworkData<ServerChangeMap>>()),
         );

@@ -155,7 +155,7 @@ impl Default for NetworkClient {
 }
 
 // Sets up send and receive threads
-pub fn handle_connection_event(
+pub fn handle_connection_event_system(
     mut client: ResMut<NetworkClient>,
     mut events: EventWriter<ClientNetworkEvent>,
 ) {
@@ -257,7 +257,7 @@ async fn receive_task(
     let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);
 }
 
-pub fn send_client_network_events(
+pub fn send_client_network_events_system(
     client_server: ResMut<NetworkClient>,
     mut client_network_events: EventWriter<ClientNetworkEvent>,
 ) {
@@ -293,12 +293,12 @@ impl AppNetworkClientMessage for App {
         client.receive_message_map.insert(T::KIND, Vec::new());
 
         self.add_event::<NetworkData<T>>()
-            .add_systems(FixedPreUpdate, register_client_message::<T>)
+            .add_systems(FixedPreUpdate, register_client_message_system::<T>)
     }
 }
 
 // Reads in network packets and passes messages to Bevy
-fn register_client_message<T: GGMessage + 'static>(
+fn register_client_message_system<T: GGMessage + 'static>(
     client: ResMut<NetworkClient>,
     mut events: EventWriter<NetworkData<T>>,
 ) {
@@ -348,7 +348,10 @@ impl Plugin for ClientPlugin {
             .init_resource::<NetworkSettings>()
             .add_systems(
                 FixedPreUpdate,
-                (send_client_network_events, handle_connection_event),
+                (
+                    send_client_network_events_system,
+                    handle_connection_event_system,
+                ),
             );
     }
 }
