@@ -41,7 +41,7 @@ impl Default for ClientConfigNetworking {
     }
 }
 
-fn save_on_startup_system(config: Res<ClientConfig>) {
+fn save_config_system(config: Res<ClientConfig>) {
     config.save_wrapped();
 }
 
@@ -50,6 +50,9 @@ pub struct ClientConfigPlugin;
 impl Plugin for ClientConfigPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClientConfig::load_wrapped())
-            .add_systems(Startup, save_on_startup_system);
+            .add_systems(
+                FixedUpdate,
+                save_config_system.run_if(resource_changed::<ClientConfig>),
+            );
     }
 }
