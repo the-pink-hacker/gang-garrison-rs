@@ -15,12 +15,15 @@ fn ui_main_menu_system(mut contexts: EguiContexts, mut exit_event: EventWriter<A
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.heading("Gang Garrison 2: Rust");
         let _ = ui.button("Host Game");
-        let _ = ui.button("Join (lobby)");
-        let _ = ui.button("Join (manual)");
-        let _ = ui.button("Garrison Builder");
+        let _ = ui.button("Join");
         let _ = ui.button("Options");
         let _ = ui.button("Credits");
-        let _ = ui.button("Visit The Forums");
+
+        if ui.button("Visit The Forums").clicked() {
+            ctx.open_url(egui::OpenUrl::new_tab(
+                "https://www.ganggarrison.com/forums/index.php",
+            ));
+        }
 
         if ui.button("Quit").clicked() {
             println!("User quiting game.");

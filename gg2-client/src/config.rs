@@ -51,7 +51,7 @@ impl Plugin for ClientConfigPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClientConfig::load_wrapped())
             .add_systems(
-                FixedUpdate,
+                FixedPostUpdate,
                 save_config_system.run_if(resource_changed::<ClientConfig>),
             );
     }
