@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 mod camera;
+mod config;
 mod map;
 mod networking;
 mod physics;
@@ -15,6 +16,7 @@ fn main() {
             camera::CameraPlugin,
             map::MapPlugin,
             physics::ClientPhysicsPlugin,
+            config::ClientConfigPlugin,
         ))
         .run();
 }

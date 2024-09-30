@@ -1,5 +1,3 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-
 use bevy::prelude::*;
 use gg2_common::{networking::message::*, player::PlayerId};
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
@@ -10,14 +8,18 @@ pub mod state;
 pub use socket::NetworkData;
 use state::NetworkingState;
 
-const SERVER_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 0)), 8150);
+use crate::config::ClientConfig;
 
 fn setup_networking(
     mut client: ResMut<NetworkClient>,
     network_settings: Res<NetworkSettings>,
     mut state: ResMut<NextState<NetworkingState>>,
+    config: Res<ClientConfig>,
 ) {
-    client.connect(SERVER_ADDRESS, network_settings.clone());
+    client.connect(
+        config.networking.default_server_address,
+        network_settings.clone(),
+    );
     state.set(NetworkingState::AttemptingConnection);
 }
 

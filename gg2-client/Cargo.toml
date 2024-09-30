@@ -13,6 +13,8 @@ gg2-common = { path = "../gg2-common" }
 tokio = { version = "1.39.3", features = ["io-util", "net", "rt", "rt-multi-thread", "sync"] }
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
 bevy_rapier2d = "0.27.0"
+serde = { version = "1.0.210", features = ["derive"] }
+toml = "0.8.19"
 
 [dependencies.bevy]
 version = "0.14.1"
