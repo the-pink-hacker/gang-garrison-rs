@@ -34,11 +34,3 @@ jobs:
           name: ${{ runner.os }}
           path: |
             target/debug
-            !target/debug/build
-            !target/debug/deps
-            !target/debug/examples
-            !target/debug/incremental
-            !target/debug/.fingerprint
-            !target/debug/.cargo-lock
-            !target/debug/**/*.d
-            !target/debug/**/*.rlib
