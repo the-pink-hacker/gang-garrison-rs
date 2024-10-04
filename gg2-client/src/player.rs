@@ -2,9 +2,10 @@ use bevy::prelude::*;
 use gg2_common::{
     error::Error,
     networking::message::{
-        ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin, ServerQuickUpdate,
+        ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin, ServerPlayerLeave,
+        ServerQuickUpdate,
     },
-    player::{Class, Player, Players, Team},
+    player::{Class, CommonPlayerPlugin, Player, Players, Team},
 };
 
 use crate::{
@@ -26,7 +27,7 @@ fn handle_player_join_system(
     mut players: ResMut<Players>,
 ) {
     for event in events.read() {
-        debug!("Player join of name: \"{}\"", event.player_name);
+        println!("Player join of name: \"{}\"", event.player_name);
 
         players
             .add_player(
@@ -52,10 +53,9 @@ fn handle_player_change_team_system(
     for event in events.read() {
         let player_result = players
             .get_entity(event.player_index)
-            .ok_or(Error::PlayerLookup(event.player_index))
             .and_then(|player| {
                 commands
-                    .get_entity(*player)
+                    .get_entity(player)
                     .ok_or(Error::PlayerLookup(event.player_index))
             })
             .map(|mut player| {
@@ -88,10 +88,9 @@ fn handle_player_change_class_system(
     for event in events.read() {
         let player_result = players
             .get_entity(event.player_index)
-            .ok_or(Error::PlayerLookup(event.player_index))
             .and_then(|player| {
                 commands
-                    .get_entity(*player)
+                    .get_entity(player)
                     .ok_or(Error::PlayerLookup(event.player_index))
             })
             .map(|mut player| {
@@ -118,9 +117,8 @@ fn handle_quick_update_system(
         for (player_index, player) in players.as_ref().into_iter().enumerate() {
             let player_result = commands
                 .get_entity(*player)
-                .ok_or(Error::PlayerLookup(player_index as u8))
+                .ok_or(Error::PlayerLookup((player_index as u8).into()))
                 .map(|mut player| {
-                    dbg!(player_index);
                     if let Some((_input, player_info)) = event
                         .player_characters
                         .get(player_index)
@@ -138,13 +136,26 @@ fn handle_quick_update_system(
     }
 }
 
+fn handle_player_leave_system(
+    mut commands: Commands,
+    mut events: EventReader<NetworkData<ServerPlayerLeave>>,
+    players: Res<Players>,
+) {
+    for event in events.read() {
+        println!("Leaving: {}", event.player_index);
+        if let Err(error) = players.mark_remove(&mut commands, event.player_index) {
+            eprintln!("Failed to mark player for removal: {}", error);
+        }
+    }
+}
+
 fn clear_players(mut players: ResMut<Players>) {
     players.clear();
 }
 
 fn debug_players_system(player_query: Query<(&Player, &Class, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
-        debug!(
+        println!(
             "[Player] name: \"{}\", class: {:?}, team: {:?}",
             player.name, class, team
         )
@@ -156,15 +167,17 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Players>()
+            .add_plugins(CommonPlayerPlugin)
             .add_systems(
                 FixedUpdate,
                 (
-                    handle_player_join_system.run_if(in_state(NetworkingState::PlayerJoining)),
+                    handle_player_join_system,
                     (
                         handle_player_change_team_system,
                         handle_player_change_class_system,
                         handle_quick_update_system,
                         debug_players_system,
+                        handle_player_leave_system,
                     )
                         .run_if(
                             in_state(NetworkingState::InGame)

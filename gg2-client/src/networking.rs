@@ -163,6 +163,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerPlayerChangeTeam>()
             .listen_for_client_message::<ServerFullUpdate>()
             .listen_for_client_message::<ServerMessageString>()
+            .listen_for_client_message::<ServerPlayerLeave>()
             .add_systems(OnEnter(ClientState::InGame), setup_networking_system)
             .add_systems(
                 FixedUpdate,

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bevy::{ecs::system::EntityCommands, prelude::*};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -7,14 +9,13 @@ use crate::{
     networking::message::ServerPlayerJoin,
 };
 
+#[derive(Component)]
+struct MarkedForRemoval;
+
 #[derive(Debug, Default, Resource)]
 pub struct Players(Vec<Entity>);
 
 impl Players {
-    pub fn get_entity(&self, player_index: impl Into<PlayerId>) -> Option<&Entity> {
-        self.0.get(usize::from(player_index.into()))
-    }
-
     pub fn add_player<'a, T: Bundle>(
         &mut self,
         commands: &'a mut Commands,
@@ -25,28 +26,32 @@ impl Players {
         player
     }
 
-    pub fn remove_player(
-        &mut self,
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+
+    pub fn get_entity(&self, player_index: impl Into<PlayerId>) -> Result<Entity> {
+        let player_index = player_index.into();
+        self.0
+            .get(usize::from(player_index))
+            .cloned()
+            .ok_or(Error::PlayerLookup(player_index))
+    }
+
+    pub fn mark_remove(
+        &self,
         commands: &mut Commands,
         player_index: impl Into<PlayerId>,
     ) -> Result<()> {
-        let player_index = player_index.into().into();
-        let entity = if (player_index as usize) < self.0.len() {
-            Ok(self.0.remove(player_index as usize))
-        } else {
-            Err(Error::PlayerLookup(player_index))
-        }?;
+        let player_index = player_index.into();
+        let entity = self.get_entity(player_index)?;
 
         commands
             .get_entity(entity)
             .ok_or(Error::PlayerLookup(player_index))?
-            .despawn_recursive();
+            .insert(MarkedForRemoval);
 
         Ok(())
-    }
-
-    pub fn clear(&mut self) {
-        self.0.clear();
     }
 }
 
@@ -74,6 +79,12 @@ impl From<ServerPlayerJoin> for Player {
 
 #[derive(Debug, Component, Clone, Copy)]
 pub struct PlayerId(u8);
+
+impl Display for PlayerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        u8::from(*self).fmt(f)
+    }
+}
 
 impl From<PlayerId> for u8 {
     fn from(value: PlayerId) -> Self {
@@ -148,3 +159,36 @@ pub struct RawPlayerInfo {
 
 #[derive(Debug, Clone)]
 pub struct RawAdditionalPlayerInfo {}
+
+fn remove_stale_players_system(
+    mut commands: Commands,
+    query: Query<(Entity, &PlayerId), With<MarkedForRemoval>>,
+    mut players: ResMut<Players>,
+) {
+    let mut remove_indices = Vec::new();
+
+    for (entity, player_index) in query.iter() {
+        commands.entity(entity).despawn();
+
+        remove_indices.push(u8::from(*player_index));
+    }
+
+    // Sorted in reverse to prevent index shifting.
+    remove_indices.sort_by(|a, b| b.cmp(a));
+
+    for index in remove_indices {
+        if (index as usize) < players.0.len() {
+            players.0.remove(index.into());
+        } else {
+            eprintln!("Failed to remove player of index: {}", index);
+        }
+    }
+}
+
+pub struct CommonPlayerPlugin;
+
+impl Plugin for CommonPlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(FixedPostUpdate, remove_stale_players_system);
+    }
+}

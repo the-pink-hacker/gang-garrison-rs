@@ -8,7 +8,7 @@ use crate::{
         error::{Error, Result},
         PacketKind,
     },
-    player::{Class, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, Team},
+    player::{Class, PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, Team},
 };
 
 use super::{GGMessage, MessageReader};
@@ -212,7 +212,7 @@ impl GGMessage for ServerChangeMap {
 
 #[derive(Debug, Clone)]
 pub struct ServerPlayerChangeClass {
-    pub player_index: u8,
+    pub player_index: PlayerId,
     pub player_class: Class,
 }
 
@@ -224,7 +224,7 @@ impl GGMessage for ServerPlayerChangeClass {
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?;
+        let player_index = payload.read_u8()?.into();
         let player_class = payload
             .read_u8()?
             .try_into()
@@ -239,7 +239,7 @@ impl GGMessage for ServerPlayerChangeClass {
 
 #[derive(Debug, Clone)]
 pub struct ServerPlayerChangeTeam {
-    pub player_index: u8,
+    pub player_index: PlayerId,
     pub player_team: Team,
 }
 
@@ -251,7 +251,7 @@ impl GGMessage for ServerPlayerChangeTeam {
     }
 
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?;
+        let player_index = payload.read_u8()?.into();
         let player_team = payload
             .read_u8()?
             .try_into()
@@ -506,5 +506,23 @@ impl GGMessage for ServerMessageString {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let message = payload.read_utf8_short_string()?;
         Ok(Self { message })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerPlayerLeave {
+    pub player_index: PlayerId,
+}
+
+impl GGMessage for ServerPlayerLeave {
+    const KIND: PacketKind = PacketKind::PlayerLeave;
+
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        unimplemented!();
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_index = payload.read_u8()?.into();
+        Ok(Self { player_index })
     }
 }
