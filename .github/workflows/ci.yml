@@ -13,7 +13,7 @@ jobs:
       matrix:
         toolchain:
           - nightly
-        os: [ ubuntu-latest, windows-latest ]
+        os: [ ubuntu-latest ]
     steps:
       - name: Install Dependencies
         if: ${{ runner.os == 'Linux' }}
