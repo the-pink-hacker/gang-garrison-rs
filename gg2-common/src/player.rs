@@ -44,6 +44,10 @@ impl Players {
 
         Ok(())
     }
+
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
 }
 
 impl<'a> IntoIterator for &'a Players {

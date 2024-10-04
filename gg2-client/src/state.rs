@@ -10,7 +10,7 @@ pub enum ClientState {
 
 #[derive(Debug, Default, SubStates, Hash, PartialEq, Eq, Clone)]
 #[source(ClientState = ClientState::InGame)]
-pub enum InGameVisualState {
+pub enum InGamePauseState {
     #[default]
     None,
     Paused,
@@ -25,7 +25,7 @@ pub struct ClientStatePlugin;
 impl Plugin for ClientStatePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<ClientState>()
-            .add_sub_state::<InGameVisualState>()
+            .add_sub_state::<InGamePauseState>()
             .add_systems(PostStartup, enter_menus);
     }
 }

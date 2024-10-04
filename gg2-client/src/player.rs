@@ -7,7 +7,10 @@ use gg2_common::{
     player::{Class, Player, Players, Team},
 };
 
-use crate::networking::{state::NetworkingState, NetworkData};
+use crate::{
+    networking::{state::NetworkingState, NetworkData},
+    state::ClientState,
+};
 
 #[derive(Bundle, Default)]
 struct PlayerBundle {
@@ -135,6 +138,10 @@ fn handle_quick_update_system(
     }
 }
 
+fn clear_players(mut players: ResMut<Players>) {
+    players.clear();
+}
+
 fn debug_players_system(player_query: Query<(&Player, &Class, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
         debug!(
@@ -148,22 +155,24 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Players>().add_systems(
-            FixedUpdate,
-            (
-                handle_player_join_system.run_if(in_state(NetworkingState::PlayerJoining)),
+        app.init_resource::<Players>()
+            .add_systems(
+                FixedUpdate,
                 (
-                    handle_player_change_team_system,
-                    handle_player_change_class_system,
-                    handle_quick_update_system,
-                    debug_players_system,
-                )
-                    .run_if(
-                        in_state(NetworkingState::InGame)
-                            .or_else(in_state(NetworkingState::PlayerJoining)),
+                    handle_player_join_system.run_if(in_state(NetworkingState::PlayerJoining)),
+                    (
+                        handle_player_change_team_system,
+                        handle_player_change_class_system,
+                        handle_quick_update_system,
+                        debug_players_system,
                     )
-                    .after(handle_player_join_system),
-            ),
-        );
+                        .run_if(
+                            in_state(NetworkingState::InGame)
+                                .or_else(in_state(NetworkingState::PlayerJoining)),
+                        )
+                        .after(handle_player_join_system),
+                ),
+            )
+            .add_systems(OnExit(ClientState::InGame), clear_players);
     }
 }

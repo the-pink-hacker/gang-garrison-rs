@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use elements::*;
 
-use crate::state::{ClientState, InGameVisualState};
+use crate::state::{ClientState, InGamePauseState};
 
 mod elements;
 
@@ -42,13 +42,13 @@ pub fn pause_system(
     mut contexts: EguiContexts,
     mut exit_event: EventWriter<AppExit>,
     mut client_state: ResMut<NextState<ClientState>>,
-    mut pause_state: ResMut<NextState<InGameVisualState>>,
+    mut pause_state: ResMut<NextState<InGamePauseState>>,
 ) {
     let ctx = contexts.ctx_mut();
 
     egui::CentralPanel::default().show(ctx, |ui| {
         if ui.button("Resume").clicked() {
-            pause_state.set(InGameVisualState::None);
+            pause_state.set(InGamePauseState::None);
         }
 
         if create_confirm_button(ui, "Leave Game", "Are you sure?", "Leave Game") {
@@ -67,7 +67,7 @@ impl Plugin for GuiMenuPlugin {
             Update,
             (
                 main_system.run_if(in_state(ClientState::Menus)),
-                pause_system.run_if(in_state(InGameVisualState::Paused)),
+                pause_system.run_if(in_state(InGamePauseState::Paused)),
             ),
         );
     }
