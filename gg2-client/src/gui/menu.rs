@@ -41,6 +41,7 @@ pub fn main_system(
 pub fn pause_system(
     mut contexts: EguiContexts,
     mut exit_event: EventWriter<AppExit>,
+    mut client_state: ResMut<NextState<ClientState>>,
     mut pause_state: ResMut<NextState<InGameVisualState>>,
 ) {
     let ctx = contexts.ctx_mut();
@@ -50,7 +51,9 @@ pub fn pause_system(
             pause_state.set(InGameVisualState::None);
         }
 
-        ui.add_enabled(false, egui::Button::new("Leave Game"));
+        if create_confirm_button(ui, "Leave Game", "Are you sure?", "Leave Game") {
+            client_state.set(ClientState::Menus);
+        }
 
         create_quit_button(ui, &mut exit_event);
     });

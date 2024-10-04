@@ -23,6 +23,11 @@ fn setup_networking_system(
     state.set(NetworkingState::AttemptingConnection);
 }
 
+fn disconnect_server_system(mut client: ResMut<NetworkClient>) {
+    println!("Attempting server disconnect.");
+    client.disconnect();
+}
+
 fn on_network_event_system(
     client: ResMut<NetworkClient>,
     mut connection_events: EventReader<ClientNetworkEvent>,
@@ -179,6 +184,7 @@ impl Plugin for NetworkingPlugin {
                         ),
                     handle_quick_update_system.run_if(in_state(NetworkingState::InGame)),
                 ),
-            );
+            )
+            .add_systems(OnExit(ClientState::InGame), disconnect_server_system);
     }
 }

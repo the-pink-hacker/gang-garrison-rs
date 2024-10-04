@@ -3,6 +3,7 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::{
     error::{Error, Result},
+    game::InGameOnly,
     networking::message::ServerPlayerJoin,
 };
 
@@ -19,7 +20,7 @@ impl Players {
         commands: &'a mut Commands,
         player: T,
     ) -> EntityCommands<'a> {
-        let player = commands.spawn((player, PlayerId::from(self.0.len() as u8)));
+        let player = commands.spawn((player, PlayerId::from(self.0.len() as u8), InGameOnly));
         self.0.push(player.id());
         player
     }

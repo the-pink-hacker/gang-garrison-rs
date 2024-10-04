@@ -3,7 +3,7 @@ use bevy_rapier2d::prelude::*;
 use collision::mesh::WalkMeshMask;
 use io::MapDataLoader;
 
-use crate::entity::entities::MapEntity;
+use crate::{entity::entities::MapEntity, game::InGameOnly};
 
 pub mod collision;
 pub mod io;
@@ -26,6 +26,7 @@ pub struct CommonMapBundle {
     pub global_transform: GlobalTransform,
     pub map_data: Handle<MapData>,
     current_map: CurrentMap,
+    in_game_only: InGameOnly,
 }
 
 impl CommonMapBundle {
@@ -36,6 +37,7 @@ impl CommonMapBundle {
             global_transform: default(),
             map_data,
             current_map: default(),
+            in_game_only: default(),
         }
     }
 }

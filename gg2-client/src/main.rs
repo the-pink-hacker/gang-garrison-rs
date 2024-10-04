@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 mod camera;
 mod config;
+mod game;
 mod gui;
 mod map;
 mod networking;
