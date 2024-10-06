@@ -31,6 +31,7 @@ fn main() {
             physics::ClientPhysicsPlugin,
             player::PlayerPlugin,
             state::ClientStatePlugin,
+            game::ClientGamePlugin,
         ))
         .insert_resource(ClearColor(Color::BLACK))
         .run();

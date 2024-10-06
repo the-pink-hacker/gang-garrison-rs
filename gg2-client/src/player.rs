@@ -1,11 +1,12 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
     error::Error,
     networking::message::{
         ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin, ServerPlayerLeave,
         ServerQuickUpdate,
     },
-    player::{Class, CommonPlayerPlugin, Player, Players, Team},
+    player::{class::ClassGeneric, team::Team, CommonPlayerPlugin, Player, Players, PositionShift},
 };
 
 use crate::{
@@ -17,7 +18,6 @@ use crate::{
 struct PlayerBundle {
     player: Player,
     team: Team,
-    class: Class,
     sprite: SpriteBundle,
 }
 
@@ -29,19 +29,21 @@ fn handle_player_join_system(
     for event in events.read() {
         println!("Player join of name: \"{}\"", event.player_name);
 
-        players
-            .add_player(
-                &mut commands,
-                PlayerBundle {
-                    player: (*event).clone().into(),
-                    sprite: SpriteBundle {
-                        visibility: Visibility::Hidden,
+        players.add_player(
+            &mut commands,
+            PlayerBundle {
+                player: (*event).clone().into(),
+                sprite: SpriteBundle {
+                    visibility: Visibility::Hidden,
+                    sprite: Sprite {
+                        anchor: bevy::sprite::Anchor::Center,
                         ..default()
                     },
                     ..default()
                 },
-            )
-            .insert((Team::default(), Class::default()));
+                ..default()
+            },
+        );
     }
 }
 
@@ -67,9 +69,13 @@ fn handle_player_change_team_system(
 
                 match event.player_team {
                     Team::Red | Team::Blu => {
-                        player.insert(Visibility::Visible);
+                        player
+                            .insert(Visibility::Visible)
+                            .remove::<(RigidBodyDisabled, ColliderDisabled)>();
                     }
-                    Team::Spectator => (),
+                    Team::Spectator => {
+                        player.insert((RigidBodyDisabled, ColliderDisabled, Visibility::Hidden));
+                    }
                 }
             });
 
@@ -99,7 +105,8 @@ fn handle_player_change_class_system(
                     event.player_index, event.player_class
                 );
                 let player_texture = asset_server.load::<Image>("sprites/character.png");
-                player.insert((event.player_class, player_texture));
+                event.player_class.add_class_components(&mut player);
+                player.insert(player_texture);
             });
 
         if let Err(error) = player_result {
@@ -110,22 +117,22 @@ fn handle_player_change_class_system(
 
 fn handle_quick_update_system(
     mut events: EventReader<NetworkData<ServerQuickUpdate>>,
-    mut commands: Commands,
     players: Res<Players>,
+    mut player_query: Query<(&mut Transform, &PositionShift), With<Player>>,
 ) {
     for event in events.read() {
         for (player_index, player) in players.as_ref().into_iter().enumerate() {
-            let player_result = commands
-                .get_entity(*player)
-                .ok_or(Error::PlayerLookup((player_index as u8).into()))
-                .map(|mut player| {
+            let player_result = player_query
+                .get_mut(*player)
+                .map_err(|_| Error::PlayerLookup((player_index as u8).into()))
+                .map(|(mut transform, position_shift)| {
                     if let Some((_input, player_info)) = event
                         .player_characters
                         .get(player_index)
                         .and_then(Option::as_ref)
                     {
-                        let new_position = player_info.position.extend(10.0);
-                        player.insert(Transform::from_translation(new_position));
+                        let new_position = player_info.position + **position_shift;
+                        transform.translation = new_position.extend(10.0);
                     }
                 });
 
@@ -153,7 +160,7 @@ fn clear_players(mut players: ResMut<Players>) {
     players.clear();
 }
 
-fn debug_players_system(player_query: Query<(&Player, &Class, &Team)>) {
+fn debug_players_system(player_query: Query<(&Player, &ClassGeneric, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
         println!(
             "[Player] name: \"{}\", class: {:?}, team: {:?}",

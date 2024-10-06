@@ -8,7 +8,9 @@ use crate::{
         error::{Error, Result},
         PacketKind,
     },
-    player::{Class, PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, Team},
+    player::{
+        class::ClassGeneric, team::Team, PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,
+    },
 };
 
 use super::{GGMessage, MessageReader};
@@ -213,7 +215,7 @@ impl GGMessage for ServerChangeMap {
 #[derive(Debug, Clone)]
 pub struct ServerPlayerChangeClass {
     pub player_index: PlayerId,
-    pub player_class: Class,
+    pub player_class: ClassGeneric,
 }
 
 impl GGMessage for ServerPlayerChangeClass {

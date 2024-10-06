@@ -8,10 +8,9 @@ use bevy::{
 use error::{Error, Result};
 use flate2::{bufread::ZlibDecoder, Crc, CrcReader};
 
-use crate::entity::entities::MapEntity;
-
 use super::{
     collision::{mesh::WalkQuadMask, WalkBitMask},
+    entity::entities::MapEntity,
     MapData,
 };
 
@@ -106,6 +105,8 @@ impl AssetLoader for MapDataLoader {
                     }
                 }
             };
+
+            println!("{}", map_data_buffer);
 
             parse_map_data(map_data_buffer)
         } else {

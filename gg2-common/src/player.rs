@@ -1,13 +1,15 @@
 use std::fmt::Display;
 
 use bevy::{ecs::system::EntityCommands, prelude::*};
-use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::{
     error::{Error, Result},
     game::InGameOnly,
     networking::message::ServerPlayerJoin,
 };
+
+pub mod class;
+pub mod team;
 
 #[derive(Component)]
 struct MarkedForRemoval;
@@ -77,6 +79,15 @@ impl From<ServerPlayerJoin> for Player {
     }
 }
 
+#[derive(Component, Default, Deref, DerefMut)]
+pub struct PositionShift(pub Vec2);
+
+impl From<Vec2> for PositionShift {
+    fn from(value: Vec2) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Debug, Component, Clone, Copy)]
 pub struct PlayerId(u8);
 
@@ -102,41 +113,6 @@ impl From<u8> for PlayerId {
     fn from(value: u8) -> Self {
         Self(value)
     }
-}
-
-#[derive(Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
-#[repr(u8)]
-pub enum Team {
-    Red,
-    Blu,
-    #[default]
-    Spectator,
-}
-
-#[derive(Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
-#[repr(u8)]
-pub enum TeamChoice {
-    Red,
-    Blu,
-    Spectator,
-    #[default]
-    Any,
-}
-
-#[derive(Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
-#[repr(u8)]
-pub enum Class {
-    #[default]
-    Scout,
-    Soldier,
-    Sniper,
-    Demoman,
-    Medic,
-    Engineer,
-    Heavy,
-    Spy,
-    Pyro,
-    Quote,
 }
 
 #[derive(Debug, Clone)]

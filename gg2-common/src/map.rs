@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use collision::mesh::WalkMeshMask;
+use entity::entities::MapEntity;
 use io::MapDataLoader;
 
-use crate::{entity::entities::MapEntity, game::InGameOnly};
+use crate::game::InGameOnly;
 
 pub mod collision;
+pub mod entity;
 pub mod io;
 
 const MAP_SCALE: f32 = 6.0;
