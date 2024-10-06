@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -65,10 +67,7 @@ pub struct Transform {
 #[serde(tag = "type")]
 pub enum MapEntity {
     #[serde(rename = "meta")]
-    Meta {
-        //    background: String,
-        //    void: String,
-    },
+    Meta(HashMap<String, serde_hjson::Value>),
     #[serde(rename = "spawnroom")]
     SpawnRoom(Transform),
     #[serde(rename = "redspawn")]
