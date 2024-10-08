@@ -2,28 +2,23 @@ use bevy::prelude::*;
 
 use crate::networking::error::Error;
 
-use super::{error::Result, NetworkPacket, PacketKind};
+use super::{error::Result, PacketKind};
 pub use client::*;
 pub use server::*;
 
 mod client;
 mod server;
 
-pub trait GGMessage: Sync + Send + Sized {
+pub trait GGMessage: Sync + Send {
     const KIND: PacketKind;
+}
 
+pub trait NetworkSerialize: Sized {
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()>;
+}
 
+pub trait NetworkDeserialize: Sized {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self>;
-
-    fn into_packet(self) -> Result<NetworkPacket> {
-        let mut data = Vec::new();
-        self.serialize(&mut data)?;
-        Ok(NetworkPacket {
-            kind: Self::KIND,
-            data,
-        })
-    }
 }
 
 pub trait MessageReader {

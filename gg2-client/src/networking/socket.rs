@@ -7,7 +7,7 @@ use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
 use gg2_common::networking::{
     error::{Error, Result},
-    message::GGMessage,
+    message::{GGMessage, NetworkDeserialize, NetworkSerialize},
     NetworkPacket, PacketKind,
 };
 use log::debug;
@@ -124,13 +124,13 @@ impl NetworkClient {
         }
     }
 
-    pub fn send_message<T: GGMessage>(&self, message: T) -> Result<()> {
+    pub fn send_message<T: NetworkSerialize + GGMessage>(&self, message: T) -> Result<()> {
         debug!("Sending message to server.");
         self.server_connection
             .as_ref()
             .ok_or(Error::NotConnected)?
             .send_message
-            .send(message.into_packet()?)
+            .send(NetworkPacket::from_message(message)?)
             .map_err(|_| Error::NotConnected)
     }
 }
@@ -267,12 +267,16 @@ pub struct NetworkData<T: Send + Sync> {
 }
 
 pub trait AppNetworkClientMessage {
-    fn listen_for_client_message<T: GGMessage + 'static>(&mut self) -> &mut Self;
+    fn listen_for_client_message<T: NetworkDeserialize + GGMessage + 'static>(
+        &mut self,
+    ) -> &mut Self;
 }
 
 impl AppNetworkClientMessage for App {
     // Registers message events for the client
-    fn listen_for_client_message<T: GGMessage + 'static>(&mut self) -> &mut Self {
+    fn listen_for_client_message<T: NetworkDeserialize + GGMessage + 'static>(
+        &mut self,
+    ) -> &mut Self {
         let client = self
             .world()
             .get_resource::<NetworkClient>()
@@ -294,7 +298,7 @@ impl AppNetworkClientMessage for App {
 }
 
 // Reads in network packets and passes messages to Bevy
-fn register_client_message_system<T: GGMessage + 'static>(
+fn register_client_message_system<T: NetworkDeserialize + GGMessage + 'static>(
     client: ResMut<NetworkClient>,
     mut events: EventWriter<NetworkData<T>>,
 ) {

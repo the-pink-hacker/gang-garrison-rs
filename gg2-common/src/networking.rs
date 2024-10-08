@@ -1,4 +1,5 @@
-use error::Error;
+use error::{Error, Result};
+use message::{GGMessage, NetworkSerialize};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use uuid::{uuid, Uuid};
 
@@ -13,6 +14,17 @@ pub struct NetworkPacket {
     pub data: Vec<u8>,
 }
 
+impl NetworkPacket {
+    pub fn from_message<T: GGMessage + NetworkSerialize>(message: T) -> Result<Self> {
+        let mut data = Vec::new();
+        message.serialize(&mut data)?;
+        Ok(Self {
+            kind: T::KIND,
+            data,
+        })
+    }
+}
+
 impl From<NetworkPacket> for Vec<u8> {
     fn from(value: NetworkPacket) -> Self {
         let mut output = value.data;
@@ -24,7 +36,7 @@ impl From<NetworkPacket> for Vec<u8> {
 impl TryFrom<&[u8]> for NetworkPacket {
     type Error = error::Error;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(value: &[u8]) -> Result<Self> {
         let mut stream = value.iter().cloned();
         let raw_kind = stream.next().ok_or(error::Error::PacketEmpty)?;
         let kind = raw_kind

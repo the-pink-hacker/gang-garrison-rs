@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::{GGMessage, MessageReader};
+use super::{GGMessage, MessageReader, NetworkDeserialize};
 
 #[derive(Debug, Clone)]
 pub struct ServerHello {
@@ -25,11 +25,9 @@ pub struct ServerHello {
 
 impl GGMessage for ServerHello {
     const KIND: PacketKind = PacketKind::Hello;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerHello {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let server_name = payload.read_utf8_short_string()?;
         let map_name = payload.read_utf8_short_string()?;
@@ -54,13 +52,11 @@ pub struct ServerReserveSlot;
 
 impl GGMessage for ServerReserveSlot {
     const KIND: PacketKind = PacketKind::ReserveSlot;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerReserveSlot {
     fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
-        Ok(ServerReserveSlot)
+        Ok(Self)
     }
 }
 
@@ -69,13 +65,11 @@ pub struct ServerServerFull;
 
 impl GGMessage for ServerServerFull {
     const KIND: PacketKind = PacketKind::ServerFull;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerServerFull {
     fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
-        Ok(ServerServerFull)
+        Ok(Self)
     }
 }
 
@@ -86,11 +80,9 @@ pub struct ServerInputState {
 
 impl GGMessage for ServerInputState {
     const KIND: PacketKind = PacketKind::InputState;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerInputState {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let character_length = payload.read_u8()?;
         let mut inputs = Vec::with_capacity(character_length as usize);
@@ -117,11 +109,9 @@ pub struct ServerQuickUpdate {
 
 impl GGMessage for ServerQuickUpdate {
     const KIND: PacketKind = PacketKind::QuickUpdate;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerQuickUpdate {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let player_length = payload.read_u8()?;
 
@@ -152,11 +142,9 @@ pub struct ServerPlayerJoin {
 
 impl GGMessage for ServerPlayerJoin {
     const KIND: PacketKind = PacketKind::PlayerJoin;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerPlayerJoin {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let player_name = payload.read_utf8_short_string()?;
 
@@ -172,11 +160,9 @@ pub struct ServerJoinUpdate {
 
 impl GGMessage for ServerJoinUpdate {
     const KIND: PacketKind = PacketKind::JoinUpdate;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerJoinUpdate {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let amount_of_players = payload.read_u8()?;
         let map_area = payload.read_u8()?;
@@ -195,11 +181,9 @@ pub struct ServerChangeMap {
 
 impl GGMessage for ServerChangeMap {
     const KIND: PacketKind = PacketKind::ChangeMap;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerChangeMap {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let map_name = payload.read_utf8_short_string()?;
         let map_md5 = payload.read_md5()?;
@@ -220,11 +204,9 @@ pub struct ServerPlayerChangeClass {
 
 impl GGMessage for ServerPlayerChangeClass {
     const KIND: PacketKind = PacketKind::PlayerChangeClass;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerPlayerChangeClass {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let player_index = payload.read_u8()?.into();
         let player_class = payload
@@ -247,11 +229,9 @@ pub struct ServerPlayerChangeTeam {
 
 impl GGMessage for ServerPlayerChangeTeam {
     const KIND: PacketKind = PacketKind::PlayerChangeTeam;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerPlayerChangeTeam {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let player_index = payload.read_u8()?.into();
         let player_team = payload
@@ -416,11 +396,9 @@ pub struct ServerFullUpdate {
 
 impl GGMessage for ServerFullUpdate {
     const KIND: PacketKind = PacketKind::FullUpdate;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerFullUpdate {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let team_death_match_invulnerability_ticks = payload.read_u16()?;
         let player_length = payload.read_u8()?;
@@ -500,11 +478,9 @@ pub struct ServerMessageString {
 
 impl GGMessage for ServerMessageString {
     const KIND: PacketKind = PacketKind::MessageString;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerMessageString {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let message = payload.read_utf8_short_string()?;
         Ok(Self { message })
@@ -518,11 +494,9 @@ pub struct ServerPlayerLeave {
 
 impl GGMessage for ServerPlayerLeave {
     const KIND: PacketKind = PacketKind::PlayerLeave;
+}
 
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        unimplemented!();
-    }
-
+impl NetworkDeserialize for ServerPlayerLeave {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let player_index = payload.read_u8()?.into();
         Ok(Self { player_index })
