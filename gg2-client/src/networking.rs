@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use gg2_common::{networking::message::*, player::PlayerId};
+use log::debug;
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 
 mod socket;
@@ -109,22 +110,15 @@ fn handle_full_update_system(mut events: EventReader<NetworkData<ServerFullUpdat
     }
 }
 
-fn handle_input_state_system(
-    mut events: EventReader<NetworkData<ServerInputState>>,
-    mut player_query: Query<(&PlayerId, &mut Transform)>,
-) {
+fn handle_input_state_system(mut events: EventReader<NetworkData<ServerInputState>>) {
     events.read().for_each(|event| {
-        player_query
-            .iter_mut()
-            .for_each(|(player_id, mut _player_transform)| {
-                match event.inputs.get(usize::from(*player_id)) {
-                    Some(input) => {
-                        if let Some(input) = input {
-                            debug!("Input on {:?}: {:#?}", player_id, input);
-                        }
-                    }
-                    None => eprintln!("Failed to lookup player: {:?}", player_id),
-                }
+        event
+            .inputs
+            .iter()
+            .enumerate()
+            .for_each(|(index, input)| match PlayerId::try_from(index) {
+                Ok(player_id) => debug!("Input on {:?}: {:#?}", player_id, input),
+                Err(error) => eprintln!("{}", error),
             })
     });
 }

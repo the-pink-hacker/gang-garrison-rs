@@ -6,4 +6,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("Failed to lookup player with index: {0}")]
     PlayerLookup(PlayerId),
+    #[error("Player id is too big {0}")]
+    PlayerIdOutOfBounds(std::num::TryFromIntError),
 }

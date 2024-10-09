@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
 use bevy::{ecs::system::EntityCommands, prelude::*};
+use class::ClassGeneric;
+use team::Team;
 
 use crate::{
     error::{Error, Result},
@@ -18,12 +20,16 @@ struct MarkedForRemoval;
 pub struct Players(Vec<Entity>);
 
 impl Players {
-    pub fn add_player<'a, T: Bundle>(
+    pub fn add_player<'a>(
         &mut self,
         commands: &'a mut Commands,
-        player: T,
+        player: impl Bundle,
     ) -> EntityCommands<'a> {
-        let player = commands.spawn((player, PlayerId::from(self.0.len() as u8), InGameOnly));
+        let mut player =
+            commands.spawn((player, Team::default(), ClassGeneric::default(), InGameOnly));
+
+        ClassGeneric::default().add_class_components(&mut player);
+
         self.0.push(player.id());
         player
     }
@@ -54,6 +60,24 @@ impl Players {
             .insert(MarkedForRemoval);
 
         Ok(())
+    }
+
+    pub fn len(&self) -> u8 {
+        self.0.len().try_into().unwrap()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn get_id(&self, player: Entity) -> Option<PlayerId> {
+        self.0.iter().enumerate().find_map(|(index, entity)| {
+            if *entity == player {
+                PlayerId::try_from(index).ok()
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -88,7 +112,7 @@ impl From<Vec2> for PositionShift {
     }
 }
 
-#[derive(Debug, Component, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PlayerId(u8);
 
 impl Display for PlayerId {
@@ -115,6 +139,17 @@ impl From<u8> for PlayerId {
     }
 }
 
+impl TryFrom<usize> for PlayerId {
+    type Error = Error;
+
+    fn try_from(value: usize) -> Result<Self> {
+        value
+            .try_into()
+            .map_err(Error::PlayerIdOutOfBounds)
+            .map(Self)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RawInput {
     // TODO: Add key state
@@ -138,22 +173,24 @@ pub struct RawAdditionalPlayerInfo {}
 
 fn remove_stale_players_system(
     mut commands: Commands,
-    query: Query<(Entity, &PlayerId), With<MarkedForRemoval>>,
+    query: Query<Entity, With<MarkedForRemoval>>,
     mut players: ResMut<Players>,
 ) {
     let mut remove_indices = Vec::new();
 
-    for (entity, player_index) in query.iter() {
-        commands.entity(entity).despawn();
+    for entity in query.iter() {
+        if let Some(player_index) = players.get_id(entity) {
+            commands.entity(entity).despawn();
 
-        remove_indices.push(u8::from(*player_index));
+            remove_indices.push(player_index);
+        }
     }
 
     // Sorted in reverse to prevent index shifting.
     remove_indices.sort_by(|a, b| b.cmp(a));
 
     for index in remove_indices {
-        if (index as usize) < players.0.len() {
+        if usize::from(index) < players.0.len() {
             players.0.remove(index.into());
         } else {
             eprintln!("Failed to remove player of index: {}", index);

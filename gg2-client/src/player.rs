@@ -17,7 +17,6 @@ use crate::{
 #[derive(Bundle, Default)]
 struct PlayerBundle {
     player: Player,
-    team: Team,
     sprite: SpriteBundle,
 }
 
@@ -41,7 +40,6 @@ fn handle_player_join_system(
                     },
                     ..default()
                 },
-                ..default()
             },
         );
     }
@@ -162,10 +160,10 @@ fn clear_players(mut players: ResMut<Players>) {
 
 fn debug_players_system(player_query: Query<(&Player, &ClassGeneric, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
-        println!(
+        debug!(
             "[Player] name: \"{}\", class: {:?}, team: {:?}",
             player.name, class, team
-        )
+        );
     });
 }
 

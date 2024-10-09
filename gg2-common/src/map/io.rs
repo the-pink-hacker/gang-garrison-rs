@@ -106,8 +106,6 @@ impl AssetLoader for MapDataLoader {
                 }
             };
 
-            println!("{}", map_data_buffer);
-
             parse_map_data(map_data_buffer)
         } else {
             Err(Error::IncorrectFormat)
