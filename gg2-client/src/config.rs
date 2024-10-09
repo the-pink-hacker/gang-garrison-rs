@@ -13,6 +13,7 @@ mod io;
 #[serde(default)]
 pub struct ClientConfig {
     pub networking: ClientConfigNetworking,
+    pub game: ClientConfigGame,
 
     #[serde(skip, default = "ClientConfig::default_path_wrapped")]
     path: PathBuf,
@@ -29,6 +30,21 @@ impl ClientConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ClientConfigGame {
+    pub player_name: String,
+}
+
+impl Default for ClientConfigGame {
+    fn default() -> Self {
+        Self {
+            player_name: "RustBevy".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ClientConfigNetworking {
     pub default_server_address: SocketAddr,
 }
@@ -36,7 +52,7 @@ pub struct ClientConfigNetworking {
 impl Default for ClientConfigNetworking {
     fn default() -> Self {
         Self {
-            default_server_address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 0)), 8190),
+            default_server_address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8190),
         }
     }
 }

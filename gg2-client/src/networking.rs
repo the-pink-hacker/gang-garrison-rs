@@ -56,11 +56,12 @@ fn handle_hello_system(
     mut hello_events: EventReader<NetworkData<ServerHello>>,
     client: ResMut<NetworkClient>,
     mut state: ResMut<NextState<NetworkingState>>,
+    config: Res<ClientConfig>,
 ) {
     for event in hello_events.read() {
         println!("{:#?}", **event);
         match client.send_message(ClientReserveSlot {
-            player_name: "PlayerName".to_string(),
+            player_name: config.game.player_name.clone(),
         }) {
             Ok(_) => state.set(NetworkingState::ReserveSlot),
             Err(error) => eprintln!("Failed to send message: {}", error),
