@@ -6,7 +6,7 @@ use crate::state::{ClientState, InGamePauseState};
 
 mod elements;
 
-pub fn main_system(
+fn main_system(
     mut contexts: EguiContexts,
     mut exit_event: EventWriter<AppExit>,
     mut client_state: ResMut<NextState<ClientState>>,
@@ -38,7 +38,7 @@ pub fn main_system(
     });
 }
 
-pub fn pause_system(
+fn pause_system(
     mut contexts: EguiContexts,
     mut exit_event: EventWriter<AppExit>,
     mut client_state: ResMut<NextState<ClientState>>,
@@ -59,6 +59,14 @@ pub fn pause_system(
     });
 }
 
+fn in_game_debug_sytem(mut contexts: EguiContexts) {
+    let ctx = contexts.ctx_mut();
+
+    egui::Window::new("In Game Debugging").show(ctx, |ui| {
+        ui.label("Test");
+    });
+}
+
 pub struct GuiMenuPlugin;
 
 impl Plugin for GuiMenuPlugin {
@@ -68,6 +76,7 @@ impl Plugin for GuiMenuPlugin {
             (
                 main_system.run_if(in_state(ClientState::Menus)),
                 pause_system.run_if(in_state(InGamePauseState::Paused)),
+                in_game_debug_sytem.run_if(in_state(InGamePauseState::None)),
             ),
         );
     }
