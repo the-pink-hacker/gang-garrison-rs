@@ -1,8 +1,14 @@
+use std::ops::DerefMut;
+
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use elements::*;
+use gg2_common::player::{class::ClassGeneric, team::Team};
 
-use crate::state::{ClientState, InGamePauseState};
+use crate::{
+    config::ClientConfig,
+    state::{ClientState, InGamePauseState},
+};
 
 mod elements;
 
@@ -59,11 +65,38 @@ fn pause_system(
     });
 }
 
-fn in_game_debug_sytem(mut contexts: EguiContexts) {
+fn in_game_debug_sytem(
+    mut contexts: EguiContexts,
+    config: Res<ClientConfig>,
+    // TODO: Get current team
+    mut team: Local<Team>,
+    // TODO: Get current class,
+    mut class: Local<ClassGeneric>,
+) {
     let ctx = contexts.ctx_mut();
 
     egui::Window::new("In Game Debugging").show(ctx, |ui| {
-        ui.label("Test");
+        ui.label(format!("Player Name: {}", config.game.player_name));
+
+        let current_team = team.deref_mut();
+
+        egui::containers::ComboBox::from_label("Player Team")
+            .selected_text(format!("{:?}", current_team))
+            .show_ui(ui, |ui| {
+                for team in enum_iterator::all::<Team>() {
+                    ui.selectable_value(current_team, team, format!("{:?}", team));
+                }
+            });
+
+        let current_class = class.deref_mut();
+
+        egui::containers::ComboBox::from_label("Player Class")
+            .selected_text(format!("{:?}", current_class))
+            .show_ui(ui, |ui| {
+                for class in enum_iterator::all::<ClassGeneric>() {
+                    ui.selectable_value(current_class, class, format!("{:?}", class));
+                }
+            });
     });
 }
 

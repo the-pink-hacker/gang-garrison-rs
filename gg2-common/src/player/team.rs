@@ -1,7 +1,10 @@
 use bevy::prelude::*;
+use enum_iterator::Sequence;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-#[derive(Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
+#[derive(
+    Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence,
+)]
 #[repr(u8)]
 pub enum Team {
     Red,
@@ -10,7 +13,7 @@ pub enum Team {
     Spectator,
 }
 
-#[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
+#[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
 #[repr(u8)]
 pub enum TeamChoice {
     Red,

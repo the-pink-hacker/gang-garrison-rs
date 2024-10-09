@@ -1,4 +1,5 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
+use enum_iterator::Sequence;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub use scout::ClassScout;
@@ -11,7 +12,9 @@ use super::PositionShift;
 mod scout;
 mod soldier;
 
-#[derive(Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
+#[derive(
+    Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence,
+)]
 #[repr(u8)]
 pub enum ClassGeneric {
     #[default]

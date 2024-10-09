@@ -16,6 +16,7 @@ bevy_rapier2d = "0.27.0"
 serde = { version = "1.0.210", features = ["derive"] }
 toml = "0.8.19"
 bevy_egui = "0.29.0"
+enum-iterator = "2.1.0"
 
 [dependencies.bevy]
 version = "0.14.1"
