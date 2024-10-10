@@ -20,5 +20,5 @@ enum-iterator = "2.1.0"
 
 [dependencies.bevy]
 version = "0.14.1"
-features = ["x11", "bevy_core_pipeline", "multi_threaded", "bevy_state", "bevy_sprite", "wayland", "png"]
+features = ["x11", "bevy_core_pipeline", "multi_threaded", "bevy_state", "bevy_sprite", "wayland", "png", "serialize"]
 default-features = false

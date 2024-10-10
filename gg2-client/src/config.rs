@@ -5,7 +5,6 @@ use std::{
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use toml::Table;
 
 mod io;
 
@@ -14,13 +13,14 @@ mod io;
 pub struct ClientConfig {
     pub networking: ClientConfigNetworking,
     pub game: ClientConfigGame,
+    pub controls: ClientConfigControls,
 
     #[serde(skip, default = "ClientConfig::default_path_wrapped")]
     path: PathBuf,
 
     /// Doesn't override unknown values
     #[serde(flatten)]
-    _extra: Table,
+    _extra: toml::Table,
 }
 
 impl ClientConfig {
@@ -53,6 +53,20 @@ impl Default for ClientConfigNetworking {
     fn default() -> Self {
         Self {
             default_server_address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8190),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ClientConfigControls {
+    pub debug_menu: KeyCode,
+}
+
+impl Default for ClientConfigControls {
+    fn default() -> Self {
+        Self {
+            debug_menu: KeyCode::F3,
         }
     }
 }

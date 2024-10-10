@@ -2,12 +2,13 @@ use std::ops::DerefMut;
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
+use bevy_rapier2d::render::DebugRenderContext;
 use elements::*;
 use gg2_common::player::{class::ClassGeneric, team::Team};
 
 use crate::{
     config::ClientConfig,
-    state::{ClientState, InGamePauseState},
+    state::{ClientState, InGameDebugState, InGamePauseState},
 };
 
 mod elements;
@@ -72,32 +73,49 @@ fn in_game_debug_sytem(
     mut team: Local<Team>,
     // TODO: Get current class,
     mut class: Local<ClassGeneric>,
+    mut debug_render_context: ResMut<DebugRenderContext>,
 ) {
     let ctx = contexts.ctx_mut();
 
-    egui::Window::new("In Game Debugging").show(ctx, |ui| {
-        ui.label(format!("Player Name: {}", config.game.player_name));
+    egui::SidePanel::left("In Game Debugging")
+        .default_width(250.0)
+        .show(ctx, |ui| {
+            egui::ScrollArea::both()
+                .auto_shrink([false; 2])
+                .show_viewport(ui, |ui, _viewport| {
+                    ui.collapsing("Player", |ui| {
+                        ui.label(format!("Player Name: {}", config.game.player_name));
 
-        let current_team = team.deref_mut();
+                        let current_team = team.deref_mut();
 
-        egui::containers::ComboBox::from_label("Player Team")
-            .selected_text(format!("{:?}", current_team))
-            .show_ui(ui, |ui| {
-                for team in enum_iterator::all::<Team>() {
-                    ui.selectable_value(current_team, team, format!("{:?}", team));
-                }
-            });
+                        egui::containers::ComboBox::from_label("Player Team")
+                            .selected_text(format!("{:?}", current_team))
+                            .show_ui(ui, |ui| {
+                                for team in enum_iterator::all::<Team>() {
+                                    ui.selectable_value(current_team, team, format!("{:?}", team));
+                                }
+                            });
 
-        let current_class = class.deref_mut();
+                        let current_class = class.deref_mut();
 
-        egui::containers::ComboBox::from_label("Player Class")
-            .selected_text(format!("{:?}", current_class))
-            .show_ui(ui, |ui| {
-                for class in enum_iterator::all::<ClassGeneric>() {
-                    ui.selectable_value(current_class, class, format!("{:?}", class));
-                }
-            });
-    });
+                        egui::containers::ComboBox::from_label("Player Class")
+                            .selected_text(format!("{:?}", current_class))
+                            .show_ui(ui, |ui| {
+                                for class in enum_iterator::all::<ClassGeneric>() {
+                                    ui.selectable_value(
+                                        current_class,
+                                        class,
+                                        format!("{:?}", class),
+                                    );
+                                }
+                            });
+                    });
+
+                    ui.collapsing("Physics", |ui| {
+                        ui.checkbox(&mut debug_render_context.enabled, "Debug Renderer");
+                    });
+                });
+        });
 }
 
 pub struct GuiMenuPlugin;
@@ -109,7 +127,9 @@ impl Plugin for GuiMenuPlugin {
             (
                 main_system.run_if(in_state(ClientState::Menus)),
                 pause_system.run_if(in_state(InGamePauseState::Paused)),
-                in_game_debug_sytem.run_if(in_state(InGamePauseState::None)),
+                in_game_debug_sytem.run_if(
+                    in_state(InGamePauseState::None).and_then(in_state(InGameDebugState::Enabled)),
+                ),
             ),
         );
     }
