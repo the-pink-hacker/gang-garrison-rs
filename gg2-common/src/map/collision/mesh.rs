@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 use crate::map::collision::BITMASK_BITS_PER_BYTE;
 
@@ -95,27 +96,14 @@ impl WalkQuadMask {
         }
     }
 
-    pub fn triangulate(self) -> WalkMeshMask {
-        let (vertices, indices) = self
+    pub fn collider(&self) -> Collider {
+        let shapes = self
             .quads
-            .into_iter()
-            .enumerate()
-            .map(|(quad_index, quad)| {
-                let quad_index = quad_index as u32 * 4;
-                (
-                    quad.vertices(self.height as f32),
-                    [
-                        [quad_index, quad_index + 1, quad_index + 2],
-                        [quad_index + 1, quad_index + 2, quad_index + 3],
-                    ],
-                )
-            })
-            .unzip::<_, _, Vec<_>, Vec<_>>();
+            .iter()
+            .map(|quad| quad.collider(self.height as f32))
+            .collect();
 
-        WalkMeshMask {
-            vertices: vertices.into_flattened(),
-            indices: indices.into_flattened(),
-        }
+        Collider::compound(shapes)
     }
 }
 
@@ -128,26 +116,16 @@ struct Quad {
 }
 
 impl Quad {
-    fn vertices(&self, y_shift: f32) -> [Vec2; 4] {
-        let (x, y, w, h) = self.into();
-        let (x, y, w, h) = (x as f32, y as f32 - y_shift, w as f32, h as f32);
-        [
-            Vec2::new(x, y),
-            Vec2::new(x + w, y),
-            Vec2::new(x, y - h),
-            Vec2::new(x + w, y - h),
-        ]
-    }
-}
+    fn collider(&self, y_shift: f32) -> (Vec2, f32, Collider) {
+        let half_width = self.width as f32 / 2.0;
+        let half_height = self.height as f32 / 2.0;
+        let collider = Collider::cuboid(half_width, half_height);
 
-impl From<&Quad> for (u16, u16, u16, u16) {
-    fn from(value: &Quad) -> Self {
-        (value.x, value.y, value.width, value.height)
-    }
-}
+        let position = Vec2::new(
+            (self.x as f32) + half_width,
+            (self.y as f32) - half_height - y_shift,
+        );
 
-#[derive(Debug)]
-pub struct WalkMeshMask {
-    pub vertices: Vec<Vec2>,
-    pub indices: Vec<[u32; 3]>,
+        (position, 0.0, collider)
+    }
 }

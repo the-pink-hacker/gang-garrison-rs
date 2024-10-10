@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use collision::mesh::WalkMeshMask;
+use collision::mesh::WalkQuadMask;
 use entity::entities::MapEntity;
 use io::MapDataLoader;
 
@@ -12,10 +12,10 @@ pub mod io;
 
 const MAP_SCALE: f32 = 6.0;
 
-#[derive(Debug, Asset, TypePath)]
+#[derive(Asset, TypePath)]
 pub struct MapData {
     pub entities: Vec<MapEntity>,
-    pub walk_mask: WalkMeshMask,
+    pub walk_mask: WalkQuadMask,
 }
 
 #[derive(Component, Default)]
@@ -50,11 +50,7 @@ fn setup_walk_collisions_system(
 ) {
     if let Ok((mut map_collider, map_data_handle)) = current_map_query.get_single_mut() {
         if let Some(map_data) = maps.get(map_data_handle) {
-            *map_collider = Collider::trimesh_with_flags(
-                map_data.walk_mask.vertices.clone(),
-                map_data.walk_mask.indices.clone(),
-                TriMeshFlags::MERGE_DUPLICATE_VERTICES,
-            );
+            *map_collider = map_data.walk_mask.collider();
         }
     }
 }
