@@ -1,13 +1,12 @@
 use bevy::prelude::*;
 
-mod camera;
 mod config;
 mod game;
-mod gui;
 mod map;
 mod networking;
 mod physics;
 mod player;
+mod render;
 mod state;
 
 fn main() {
@@ -23,15 +22,14 @@ fn main() {
                     }),
                     ..default()
                 }),
-            camera::CameraPlugin,
             config::ClientConfigPlugin,
-            gui::GuiPlugin,
             map::MapPlugin,
             networking::NetworkingPlugin,
             physics::ClientPhysicsPlugin,
             player::PlayerPlugin,
             state::ClientStatePlugin,
             game::ClientGamePlugin,
+            render::RenderPlugin,
         ))
         .insert_resource(ClearColor(Color::BLACK))
         .run();
