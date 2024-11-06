@@ -5,6 +5,7 @@ use std::{
 };
 
 use gg2_common::config::error::{LoadError, SaveError};
+use log::{error, info, warn};
 
 use super::ClientConfig;
 
@@ -24,7 +25,7 @@ impl ClientConfig {
                 toml::from_str(&config_raw).map_err(|error| LoadError::Toml(error, path))
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                println!("Config file not found; defaulting config.");
+                warn!("Config file not found; defaulting config.");
                 Ok(Self::from_path(path))
             }
             Err(error) => Err(LoadError::Io(error, path)),
@@ -33,8 +34,8 @@ impl ClientConfig {
 
     pub fn save_wrapped(&self) {
         match self.save() {
-            Ok(_) => println!("Config saved to: {}", self.path.display()),
-            Err(error) => eprintln!("{}", error),
+            Ok(_) => info!("Config saved to: {}", self.path.display()),
+            Err(error) => error!("{}", error),
         }
     }
 

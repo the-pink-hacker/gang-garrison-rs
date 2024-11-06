@@ -26,7 +26,7 @@ fn main_system(
         ui.add_enabled(false, egui::Button::new("Host Game"));
 
         if ui.button("Join").clicked() {
-            println!("Joining server...");
+            info!("Joining server...");
             client_state.set(ClientState::InGame);
         }
 
@@ -36,6 +36,7 @@ fn main_system(
         });
 
         if ui.button("Visit The Forums").clicked() {
+            info!("Opening forum url in browser: https://www.ganggarrison.com/forums/index.php");
             ctx.open_url(egui::OpenUrl::new_tab(
                 "https://www.ganggarrison.com/forums/index.php",
             ));

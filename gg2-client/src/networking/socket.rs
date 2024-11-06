@@ -125,7 +125,7 @@ impl NetworkClient {
     }
 
     pub fn send_message<T: NetworkSerialize + GGMessage>(&self, message: T) -> Result<()> {
-        debug!("Sending message to server.");
+        trace!("Sending message to server.");
         self.server_connection
             .as_ref()
             .ok_or(Error::NotConnected)?
@@ -228,7 +228,7 @@ async fn receive_task(
         let packet: NetworkPacket = match NetworkPacket::try_from(&buffer[..length]) {
             Ok(packet) => packet,
             Err(error) => {
-                println!(
+                error!(
                     "Failed to decode network packet from [{}]: {}",
                     peer_address, error
                 );
@@ -242,7 +242,7 @@ async fn receive_task(
         match receive_message_map.get_mut(&packet_kind) {
             Some(mut packets) => packets.push(packet.data),
             None => {
-                println!(
+                error!(
                     "Couldn't find existing entries for message kinds: {:?}",
                     packet_kind
                 );
@@ -316,10 +316,10 @@ fn register_client_message_system<T: NetworkDeserialize + GGMessage + 'static>(
                 if output.is_ok() && bytes.len() > 0 {
                     if let Some(kind) = bytes.next().and_then(|raw| PacketKind::try_from(raw).ok())
                     {
-                        println!("Another packet was found of type: {:?}", kind);
+                        debug!("Another packet was found of type: {:?}", kind);
                         match &mut client.receive_message_map.get_mut(&kind) {
                             Some(messages) => messages.push(bytes.collect()),
-                            None => println!(
+                            None => error!(
                                 "Couldn't find existing entries for message kinds: {:?}",
                                 kind
                             ),

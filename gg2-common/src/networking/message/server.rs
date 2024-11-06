@@ -36,7 +36,7 @@ impl NetworkDeserialize for ServerHello {
 
         let plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
         let plugins_raw = payload.read_utf8_long_string()?;
-        println!("Found {} plugins: [ {} ]", plugins_amounts, plugins_raw);
+        debug!("Found {} plugins: [ {} ]", plugins_amounts, plugins_raw);
 
         Ok(Self {
             server_name,

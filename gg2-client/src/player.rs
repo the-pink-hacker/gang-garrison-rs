@@ -37,7 +37,7 @@ fn handle_player_join_system(
     client_player_assign: Option<Res<ClientPlayerAssign>>,
 ) {
     for event in events.read() {
-        println!("Player join of name: \"{}\"", event.player_name);
+        debug!("Player join of name: \"{}\"", event.player_name);
 
         let (player_id, mut player) = players.add_player(
             &mut commands,
@@ -61,7 +61,7 @@ fn handle_player_join_system(
             // If it's the client player,
             // it marks it with the component.
             if client_player_id == player_id {
-                println!("Marking client player of id: {}", client_player_id);
+                debug!("Marking client player of id: {}", client_player_id);
                 player.insert(ClientPlayer);
                 commands.remove_resource::<ClientPlayerAssign>();
             }
@@ -83,7 +83,7 @@ fn handle_player_change_team_system(
                     .ok_or(Error::PlayerLookup(event.player_index))
             })
             .map(|mut player| {
-                println!(
+                debug!(
                     "Player of index {} is changing teams to: {:?}",
                     event.player_index, event.player_team
                 );
@@ -102,7 +102,7 @@ fn handle_player_change_team_system(
             });
 
         if let Err(error) = player_result {
-            eprintln!("Failed to change player's team: {}", error);
+            error!("Failed to change player's team: {}", error);
         }
     }
 }
@@ -122,7 +122,7 @@ fn handle_player_change_class_system(
                     .ok_or(Error::PlayerLookup(event.player_index))
             })
             .map(|mut player| {
-                println!(
+                debug!(
                     "Player of index {} is changing class to: {:?}",
                     event.player_index, event.player_class
                 );
@@ -132,7 +132,7 @@ fn handle_player_change_class_system(
             });
 
         if let Err(error) = player_result {
-            eprintln!("Failed to change player's class: {}", error);
+            error!("Failed to change player's class: {}", error);
         }
     }
 }
@@ -159,7 +159,7 @@ fn handle_quick_update_system(
                 });
 
             if let Err(error) = player_result {
-                eprintln!("Failed to update player: {}", error);
+                error!("Failed to update player: {}", error);
             }
         }
     }
@@ -171,9 +171,9 @@ fn handle_player_leave_system(
     players: Res<Players>,
 ) {
     for event in events.read() {
-        println!("Leaving: {}", event.player_index);
+        debug!("Player is leaving of index: {}", event.player_index);
         if let Err(error) = players.mark_remove(&mut commands, event.player_index) {
-            eprintln!("Failed to mark player for removal: {}", error);
+            error!("Failed to mark player for removal: {}", error);
         }
     }
 }
@@ -182,11 +182,14 @@ fn clear_players(mut players: ResMut<Players>) {
     players.clear();
 }
 
+#[allow(unused)]
 fn debug_players_system(player_query: Query<(&Player, &ClassGeneric, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
-        debug!(
+        trace!(
             "[Player] name: \"{}\", class: {:?}, team: {:?}",
-            player.name, class, team
+            player.name,
+            class,
+            team
         );
     });
 }
@@ -196,7 +199,7 @@ fn listen_for_client_player_id_system(
     mut commands: Commands,
 ) {
     for event in events.read() {
-        println!(
+        debug!(
             "Waiting for client player to join of id: {}",
             event.client_player_id
         );
@@ -221,7 +224,7 @@ impl Plugin for PlayerPlugin {
                         handle_player_change_team_system,
                         handle_player_change_class_system,
                         handle_quick_update_system,
-                        debug_players_system,
+                        //debug_players_system,
                         handle_player_leave_system,
                     )
                         .run_if(

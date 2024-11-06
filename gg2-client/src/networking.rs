@@ -25,7 +25,7 @@ fn setup_networking_system(
 }
 
 fn disconnect_server_system(mut client: ResMut<NetworkClient>) {
-    println!("Attempting server disconnect.");
+    info!("Attempting server disconnect.");
     client.disconnect();
 }
 
@@ -38,15 +38,15 @@ fn on_network_event_system(
         match event {
             ClientNetworkEvent::Connected => match client.send_message(ClientHello::default()) {
                 Ok(_) => state.set(NetworkingState::AwaitingHello),
-                Err(error) => eprintln!("Failed to send message: {}", error),
+                Err(error) => error!("Failed to send message: {}", error),
             },
             ClientNetworkEvent::Error(error) => {
                 state.set(NetworkingState::Disconnected);
-                eprintln!("Client network error: {}", error);
+                error!("Client network error: {}", error);
             }
             ClientNetworkEvent::Disconnected => {
                 state.set(NetworkingState::Disconnected);
-                println!("Disconnected from server.");
+                error!("Disconnected from server.");
             }
         }
     }
@@ -59,12 +59,12 @@ fn handle_hello_system(
     config: Res<ClientConfig>,
 ) {
     for event in hello_events.read() {
-        println!("{:#?}", **event);
+        debug!("{:#?}", **event);
         match client.send_message(ClientReserveSlot {
             player_name: config.game.player_name.clone(),
         }) {
             Ok(_) => state.set(NetworkingState::ReserveSlot),
-            Err(error) => eprintln!("Failed to send message: {}", error),
+            Err(error) => error!("Failed to send message: {}", error),
         }
     }
 }
@@ -75,10 +75,10 @@ fn handle_reserve_slot_system(
     mut state: ResMut<NextState<NetworkingState>>,
 ) {
     for _ in reserve_events.read() {
-        println!("Joining server.");
+        debug!("Joining server.");
         match client.send_message(ClientPlayerJoin) {
             Ok(_) => state.set(NetworkingState::PlayerJoining),
-            Err(error) => eprintln!("{}", error),
+            Err(error) => error!("{}", error),
         }
     }
 }
@@ -88,26 +88,26 @@ fn handle_server_full_system(
     mut client: ResMut<NetworkClient>,
 ) {
     for _ in server_full_events.read() {
-        println!("Server full.");
+        warn!("Server full.");
         client.disconnect();
     }
 }
 
 fn handle_join_update_system(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>) {
     for event in join_update_events.read() {
-        println!("{:#?}", **event);
+        debug!("{:#?}", **event);
     }
 }
 
 fn handle_change_map_system(mut change_map_events: EventReader<NetworkData<ServerChangeMap>>) {
     for event in change_map_events.read() {
-        println!("{:#?}", **event);
+        debug!("{:#?}", **event);
     }
 }
 
 fn handle_full_update_system(mut events: EventReader<NetworkData<ServerFullUpdate>>) {
     for event in events.read() {
-        println!("{:#?}", **event);
+        debug!("{:#?}", **event);
     }
 }
 
@@ -118,8 +118,8 @@ fn handle_input_state_system(mut events: EventReader<NetworkData<ServerInputStat
             .iter()
             .enumerate()
             .for_each(|(index, input)| match PlayerId::try_from(index) {
-                Ok(player_id) => debug!("Input on {:?}: {:#?}", player_id, input),
-                Err(error) => eprintln!("{}", error),
+                Ok(player_id) => trace!("Input on {:?}: {:#?}", player_id, input),
+                Err(error) => error!("{}", error),
             })
     });
 }
@@ -129,14 +129,14 @@ fn handle_message_string_system(
     mut state: ResMut<NextState<NetworkingState>>,
 ) {
     for event in events.read() {
-        println!("{:#?}", **event);
+        debug!("{:#?}", **event);
         state.set(NetworkingState::InGame);
     }
 }
 
 fn handle_quick_update_system(mut events: EventReader<NetworkData<ServerQuickUpdate>>) {
     for event in events.read() {
-        println!("{:#?}", **event);
+        trace!("{:#?}", **event);
     }
 }
 

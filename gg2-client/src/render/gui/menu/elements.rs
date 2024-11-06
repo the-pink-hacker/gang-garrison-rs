@@ -3,7 +3,7 @@ use bevy_egui::egui::{RichText, Ui, WidgetText};
 
 pub fn create_quit_button(ui: &mut Ui, event_writer: &mut EventWriter<AppExit>) {
     if create_confirm_button(ui, "Quit", "Are you sure?", "Quit") {
-        println!("User quiting game.");
+        info!("User quiting game.");
         event_writer.send(AppExit::Success);
     }
 }

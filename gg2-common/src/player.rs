@@ -194,7 +194,7 @@ fn remove_stale_players_system(
         if usize::from(index) < players.0.len() {
             players.0.remove(index.into());
         } else {
-            eprintln!("Failed to remove player of index: {}", index);
+            error!("Failed to remove player of index: {}", index);
         }
     }
 }
