@@ -24,14 +24,15 @@ impl Players {
         &mut self,
         commands: &'a mut Commands,
         player: impl Bundle,
-    ) -> EntityCommands<'a> {
+    ) -> (PlayerId, EntityCommands<'a>) {
         let mut player =
             commands.spawn((player, Team::default(), ClassGeneric::default(), InGameOnly));
 
         ClassGeneric::default().add_class_components(&mut player);
 
+        let new_player_id = self.len().into();
         self.0.push(player.id());
-        player
+        (new_player_id, player)
     }
 
     pub fn clear(&mut self) {

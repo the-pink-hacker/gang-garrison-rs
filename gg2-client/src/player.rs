@@ -3,16 +3,26 @@ use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
     error::Error,
     networking::message::{
-        ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin, ServerPlayerLeave,
-        ServerQuickUpdate,
+        ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin,
+        ServerPlayerLeave, ServerQuickUpdate,
     },
-    player::{class::ClassGeneric, team::Team, CommonPlayerPlugin, Player, Players, PositionShift},
+    player::{
+        class::ClassGeneric, team::Team, CommonPlayerPlugin, Player, PlayerId, Players,
+        PositionShift,
+    },
 };
 
 use crate::{
     networking::{state::NetworkingState, NetworkData},
     state::ClientState,
 };
+
+#[derive(Component)]
+pub struct ClientPlayer;
+
+/// Stores the current player id until the client player joins.
+#[derive(Resource, Deref)]
+pub struct ClientPlayerAssign(PlayerId);
 
 #[derive(Bundle, Default)]
 struct PlayerBundle {
@@ -24,11 +34,12 @@ fn handle_player_join_system(
     mut events: EventReader<NetworkData<ServerPlayerJoin>>,
     mut commands: Commands,
     mut players: ResMut<Players>,
+    client_player_assign: Option<Res<ClientPlayerAssign>>,
 ) {
     for event in events.read() {
         println!("Player join of name: \"{}\"", event.player_name);
 
-        players.add_player(
+        let (player_id, mut player) = players.add_player(
             &mut commands,
             PlayerBundle {
                 player: (*event).clone().into(),
@@ -42,6 +53,19 @@ fn handle_player_join_system(
                 },
             },
         );
+
+        if let Some(client_player_id) = client_player_assign
+            .as_ref()
+            .map(|client_player_assign| ***client_player_assign)
+        {
+            // If it's the client player,
+            // it marks it with the component.
+            if client_player_id == player_id {
+                println!("Marking client player of id: {}", client_player_id);
+                player.insert(ClientPlayer);
+                commands.remove_resource::<ClientPlayerAssign>();
+            }
+        }
     }
 }
 
@@ -167,6 +191,19 @@ fn debug_players_system(player_query: Query<(&Player, &ClassGeneric, &Team)>) {
     });
 }
 
+fn listen_for_client_player_id_system(
+    mut events: EventReader<NetworkData<ServerJoinUpdate>>,
+    mut commands: Commands,
+) {
+    for event in events.read() {
+        println!(
+            "Waiting for client player to join of id: {}",
+            event.client_player_id
+        );
+        commands.insert_resource(ClientPlayerAssign(event.client_player_id));
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -176,6 +213,9 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 FixedUpdate,
                 (
+                    listen_for_client_player_id_system
+                        .before(handle_player_join_system)
+                        .run_if(in_state(NetworkingState::PlayerJoining)),
                     handle_player_join_system,
                     (
                         handle_player_change_team_system,

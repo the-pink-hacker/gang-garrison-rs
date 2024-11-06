@@ -154,7 +154,7 @@ impl NetworkDeserialize for ServerPlayerJoin {
 
 #[derive(Debug, Clone)]
 pub struct ServerJoinUpdate {
-    pub amount_of_players: u8,
+    pub client_player_id: PlayerId,
     pub map_area: u8,
 }
 
@@ -164,10 +164,10 @@ impl GGMessage for ServerJoinUpdate {
 
 impl NetworkDeserialize for ServerJoinUpdate {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let amount_of_players = payload.read_u8()?;
+        let client_player_id = payload.read_u8()?.into();
         let map_area = payload.read_u8()?;
         Ok(ServerJoinUpdate {
-            amount_of_players,
+            client_player_id,
             map_area,
         })
     }

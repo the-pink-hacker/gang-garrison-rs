@@ -43,8 +43,8 @@ fn move_camera_right_system(mut query: Query<&mut Transform, With<MainCamera>>, 
 }
 
 fn crop_aspect_ratio(
-    ratio_width: u8,
-    ratio_height: u8,
+    ratio_width: u32,
+    ratio_height: u32,
     window_width: u32,
     window_height: u32,
 ) -> UVec2 {
