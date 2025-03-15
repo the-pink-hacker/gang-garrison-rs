@@ -4,10 +4,14 @@ use bevy::{core::FrameCount, prelude::*, time::common_conditions::on_real_timer}
 use bevy_egui::{egui, EguiContexts};
 use bevy_rapier2d::render::DebugRenderContext;
 use elements::*;
-use gg2_common::player::{class::ClassGeneric, team::Team};
+use gg2_common::{
+    networking::message::{ClientPlayerChangeClass, ClientPlayerChangeTeam},
+    player::{class::ClassGeneric, team::Team},
+};
 
 use crate::{
     config::ClientConfig,
+    networking::socket::NetworkClient,
     player::ClientPlayer,
     state::{ClientState, InGameDebugState, InGamePauseState},
 };
@@ -75,6 +79,7 @@ fn in_game_debug_sytem(
     client_player_query: Query<(Option<&Team>, Option<&ClassGeneric>), With<ClientPlayer>>,
     mut team_selection: Local<Team>,
     mut class_selection: Local<ClassGeneric>,
+    network_client: ResMut<NetworkClient>,
     mut debug_render_context: ResMut<DebugRenderContext>,
     time: Res<Time<Real>>,
     delta_time_one_percent: Res<DeltaTimeOnePercent>,
@@ -111,15 +116,19 @@ fn in_game_debug_sytem(
                             .selected_text(format!("{}", current_team))
                             .show_ui(ui, |ui| {
                                 for team in enum_iterator::all::<Team>() {
-                                    ui.selectable_value(
-                                        current_team,
-                                        team,
-                                        format!("{}", current_team),
-                                    );
+                                    ui.selectable_value(current_team, team, format!("{}", team));
                                 }
                             });
 
-                        if ui.button("Update Team").clicked() {}
+                        if ui.button("Update Team").clicked() {
+                            if let Err(error) =
+                                network_client.send_message(ClientPlayerChangeTeam {
+                                    team: *current_team,
+                                })
+                            {
+                                error!("Failed to send client player change team: {}", error);
+                            }
+                        }
 
                         let current_class = class_selection.deref_mut();
 
@@ -131,7 +140,15 @@ fn in_game_debug_sytem(
                                 }
                             });
 
-                        if ui.button("Update Class").clicked() {}
+                        if ui.button("Update Class").clicked() {
+                            if let Err(error) =
+                                network_client.send_message(ClientPlayerChangeClass {
+                                    class: *current_class,
+                                })
+                            {
+                                error!("Failed to send client player change class: {}", error);
+                            }
+                        }
                     });
 
                     ui.collapsing("Rendering", |ui| {

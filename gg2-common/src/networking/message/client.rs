@@ -1,6 +1,9 @@
 use uuid::Uuid;
 
-use crate::networking::{error::Result, PacketKind, PROTOCOL_UUID};
+use crate::{
+    networking::{error::Result, PacketKind, PROTOCOL_UUID},
+    player::{class::ClassGeneric, team::Team},
+};
 
 use super::{write_utf8_short_string, GGMessage, NetworkSerialize};
 
@@ -52,6 +55,40 @@ impl GGMessage for ClientPlayerJoin {
 
 impl NetworkSerialize for ClientPlayerJoin {
     fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct ClientPlayerChangeClass {
+    pub class: ClassGeneric,
+}
+
+impl GGMessage for ClientPlayerChangeClass {
+    const KIND: PacketKind = PacketKind::PlayerChangeClass;
+}
+
+impl NetworkSerialize for ClientPlayerChangeClass {
+    fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
+        buffer.push(self.class as u8);
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct ClientPlayerChangeTeam {
+    pub team: Team,
+}
+
+impl GGMessage for ClientPlayerChangeTeam {
+    const KIND: PacketKind = PacketKind::PlayerChangeTeam;
+}
+
+impl NetworkSerialize for ClientPlayerChangeTeam {
+    fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
+        buffer.push(self.team as u8);
+
         Ok(())
     }
 }
