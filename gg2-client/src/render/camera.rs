@@ -69,19 +69,7 @@ fn handle_window_resize_system(
 
         let window_width = resized_event.width as u32;
         let window_height = resized_event.height as u32;
-        println!(
-            "WINDOW: {}, {}, ({})",
-            window_width,
-            window_height,
-            window_width as f32 / window_height as f32
-        );
         let size = crop_aspect_ratio(4, 3, window_width, window_height);
-        println!(
-            "SIZE:   {}, {} ({})",
-            size.x,
-            size.y,
-            size.x as f32 / size.y as f32
-        );
 
         let window_size = UVec2::new(window_width, window_height);
 
