@@ -8,6 +8,7 @@ use gg2_common::player::{class::ClassGeneric, team::Team};
 
 use crate::{
     config::ClientConfig,
+    player::ClientPlayer,
     state::{ClientState, InGameDebugState, InGamePauseState},
 };
 
@@ -71,10 +72,9 @@ fn pause_system(
 fn in_game_debug_sytem(
     mut contexts: EguiContexts,
     config: Res<ClientConfig>,
-    // TODO: Get current team
-    mut team: Local<Team>,
-    // TODO: Get current class,
-    mut class: Local<ClassGeneric>,
+    client_player_query: Query<(Option<&Team>, Option<&ClassGeneric>), With<ClientPlayer>>,
+    mut team_selection: Local<Team>,
+    mut class_selection: Local<ClassGeneric>,
     mut debug_render_context: ResMut<DebugRenderContext>,
     time: Res<Time<Real>>,
     delta_time_one_percent: Res<DeltaTimeOnePercent>,
@@ -95,29 +95,43 @@ fn in_game_debug_sytem(
                     ui.collapsing("Player", |ui| {
                         ui.label(format!("Player Name: {}", config.game.player_name));
 
-                        let current_team = team.deref_mut();
+                        let (team, class) = client_player_query.get_single().unwrap_or_default();
+                        let team = team
+                            .map(Team::to_string)
+                            .unwrap_or_else(|| "UNKNOWN".to_string());
+                        let class = class
+                            .map(ClassGeneric::to_string)
+                            .unwrap_or_else(|| "UNKNOWN".to_string());
+                        ui.label(format!("Player Team: {}", team));
+                        ui.label(format!("Player Class: {}", class));
 
-                        egui::containers::ComboBox::from_label("Player Team")
-                            .selected_text(format!("{:?}", current_team))
+                        let current_team = team_selection.deref_mut();
+
+                        egui::containers::ComboBox::from_label("Select Player Team")
+                            .selected_text(format!("{}", current_team))
                             .show_ui(ui, |ui| {
                                 for team in enum_iterator::all::<Team>() {
-                                    ui.selectable_value(current_team, team, format!("{:?}", team));
-                                }
-                            });
-
-                        let current_class = class.deref_mut();
-
-                        egui::containers::ComboBox::from_label("Player Class")
-                            .selected_text(format!("{:?}", current_class))
-                            .show_ui(ui, |ui| {
-                                for class in enum_iterator::all::<ClassGeneric>() {
                                     ui.selectable_value(
-                                        current_class,
-                                        class,
-                                        format!("{:?}", class),
+                                        current_team,
+                                        team,
+                                        format!("{}", current_team),
                                     );
                                 }
                             });
+
+                        if ui.button("Update Team").clicked() {}
+
+                        let current_class = class_selection.deref_mut();
+
+                        egui::containers::ComboBox::from_label("Select Player Class")
+                            .selected_text(format!("{}", current_class))
+                            .show_ui(ui, |ui| {
+                                for class in enum_iterator::all::<ClassGeneric>() {
+                                    ui.selectable_value(current_class, class, format!("{}", class));
+                                }
+                            });
+
+                        if ui.button("Update Class").clicked() {}
                     });
 
                     ui.collapsing("Rendering", |ui| {

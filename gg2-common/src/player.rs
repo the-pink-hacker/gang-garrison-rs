@@ -80,6 +80,10 @@ impl Players {
             }
         })
     }
+
+    pub fn get_next_id(&self) -> PlayerId {
+        self.len().into()
+    }
 }
 
 impl<'a> IntoIterator for &'a Players {

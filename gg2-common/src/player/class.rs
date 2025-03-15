@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bevy::{ecs::system::EntityCommands, prelude::*};
 use enum_iterator::Sequence;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -44,6 +46,12 @@ impl ClassGeneric {
     pub fn change_class(class: ClassGeneric, commands: &mut EntityCommands) {
         let commands = commands.insert(class).remove::<ClassesBundle>();
         class.add_class_components(commands);
+    }
+}
+
+impl Display for ClassGeneric {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 

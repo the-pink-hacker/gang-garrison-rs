@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{ecs::system::EntityCommands, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
     error::Error,
@@ -13,6 +13,7 @@ use gg2_common::{
 };
 
 use crate::{
+    config::ClientConfig,
     networking::{state::NetworkingState, NetworkData},
     state::ClientState,
 };
@@ -34,39 +35,56 @@ fn handle_player_join_system(
     mut events: EventReader<NetworkData<ServerPlayerJoin>>,
     mut commands: Commands,
     mut players: ResMut<Players>,
-    client_player_assign: Option<Res<ClientPlayerAssign>>,
 ) {
     for event in events.read() {
         debug!("Player join of name: \"{}\"", event.player_name);
 
-        let (player_id, mut player) = players.add_player(
+        add_player(&mut commands, &mut players, (*event).clone());
+    }
+}
+
+fn add_client_player_system(
+    client_player_assign: Res<ClientPlayerAssign>,
+    mut players: ResMut<Players>,
+    mut commands: Commands,
+    config: Res<ClientConfig>,
+) {
+    let client_player_id = **client_player_assign.as_ref();
+    let next_player_id = players.get_next_id();
+
+    if client_player_id == next_player_id {
+        debug!("Marking client player of id: {}", client_player_id);
+        let (_, mut player) = add_player(
             &mut commands,
-            PlayerBundle {
-                player: (*event).clone().into(),
-                sprite: SpriteBundle {
-                    visibility: Visibility::Hidden,
-                    sprite: Sprite {
-                        anchor: bevy::sprite::Anchor::Center,
-                        ..default()
-                    },
-                    ..default()
-                },
+            &mut players,
+            Player {
+                name: config.game.player_name.clone(),
             },
         );
-
-        if let Some(client_player_id) = client_player_assign
-            .as_ref()
-            .map(|client_player_assign| ***client_player_assign)
-        {
-            // If it's the client player,
-            // it marks it with the component.
-            if client_player_id == player_id {
-                debug!("Marking client player of id: {}", client_player_id);
-                player.insert(ClientPlayer);
-                commands.remove_resource::<ClientPlayerAssign>();
-            }
-        }
+        player.insert(ClientPlayer);
+        commands.remove_resource::<ClientPlayerAssign>();
     }
+}
+
+fn add_player<'a>(
+    commands: &'a mut Commands,
+    players: &mut Players,
+    player: impl Into<Player>,
+) -> (PlayerId, EntityCommands<'a>) {
+    players.add_player(
+        commands,
+        PlayerBundle {
+            player: player.into(),
+            sprite: SpriteBundle {
+                visibility: Visibility::Hidden,
+                sprite: Sprite {
+                    anchor: bevy::sprite::Anchor::Center,
+                    ..default()
+                },
+                ..default()
+            },
+        },
+    )
 }
 
 fn handle_player_change_team_system(
@@ -217,8 +235,11 @@ impl Plugin for PlayerPlugin {
                 FixedUpdate,
                 (
                     listen_for_client_player_id_system
-                        .before(handle_player_join_system)
+                        .before(add_client_player_system)
                         .run_if(in_state(NetworkingState::PlayerJoining)),
+                    add_client_player_system
+                        .before(handle_player_join_system)
+                        .run_if(resource_exists::<ClientPlayerAssign>),
                     handle_player_join_system,
                     (
                         handle_player_change_team_system,

@@ -46,10 +46,14 @@ fn on_network_event_system(
             }
             ClientNetworkEvent::Disconnected => {
                 state.set(NetworkingState::Disconnected);
-                error!("Disconnected from server.");
+                info!("Disconnected from server.");
             }
         }
     }
+}
+
+fn debug_networking_state_system(state: Res<State<NetworkingState>>) {
+    debug!("Networking State: {:?}", **state);
 }
 
 fn handle_hello_system(
@@ -179,6 +183,7 @@ impl Plugin for NetworkingPlugin {
                                 .or_else(in_state(NetworkingState::InGame)),
                         ),
                     handle_quick_update_system.run_if(in_state(NetworkingState::InGame)),
+                    debug_networking_state_system.run_if(state_changed::<NetworkingState>),
                 ),
             )
             .add_systems(OnExit(ClientState::InGame), disconnect_server_system);
