@@ -74,7 +74,9 @@ fn handle_window_resize_system(
         let size = crop_aspect_ratio(4, 3, window_width, window_height);
 
         let window_size = UVec2::new(window_width, window_height);
-        let gap = (window_size - size) / 2;
+
+        // Saturating to prevent crash when rescaling window
+        let gap = window_size.saturating_sub(size) / 2;
 
         viewport.physical_size = size;
         viewport.physical_position = gap;
