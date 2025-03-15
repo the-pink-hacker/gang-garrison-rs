@@ -42,23 +42,21 @@ fn move_camera_right_system(mut query: Query<&mut Transform, With<MainCamera>>, 
     }
 }
 
+// Somehow the most mind numbing thing I've written
 fn crop_aspect_ratio(
     ratio_width: u32,
     ratio_height: u32,
     window_width: u32,
     window_height: u32,
 ) -> UVec2 {
-    let (width, height) = if window_width > window_height {
-        let ratio = ratio_width as f32 / ratio_height as f32;
-        let width = (window_height as f32 * ratio) as u32;
-        (width, window_height)
-    } else {
-        let ratio = ratio_height as f32 / ratio_width as f32;
-        let height = (window_width as f32 * ratio) as u32;
-        (window_width, height)
-    };
+    let width = ((window_height as f32 / ratio_height as f32) * ratio_width as f32).trunc() as u32;
 
-    UVec2::new(width, height)
+    if width > window_width {
+        let height = (window_width as f32 / ratio_width as f32) * ratio_height as f32;
+        UVec2::new(window_width, height.trunc() as u32)
+    } else {
+        UVec2::new(width, window_height)
+    }
 }
 
 fn handle_window_resize_system(
@@ -71,12 +69,23 @@ fn handle_window_resize_system(
 
         let window_width = resized_event.width as u32;
         let window_height = resized_event.height as u32;
+        println!(
+            "WINDOW: {}, {}, ({})",
+            window_width,
+            window_height,
+            window_width as f32 / window_height as f32
+        );
         let size = crop_aspect_ratio(4, 3, window_width, window_height);
+        println!(
+            "SIZE:   {}, {} ({})",
+            size.x,
+            size.y,
+            size.x as f32 / size.y as f32
+        );
 
         let window_size = UVec2::new(window_width, window_height);
 
-        // Saturating to prevent crash when rescaling window
-        let gap = window_size.saturating_sub(size) / 2;
+        let gap = (window_size - size) / 2;
 
         viewport.physical_size = size;
         viewport.physical_position = gap;
@@ -138,5 +147,11 @@ mod tests {
     fn crop_9x16_to_3x4() {
         let output = crop_aspect_ratio(3, 4, 1080, 1920);
         assert_eq!(output, UVec2::new(1080, 1440));
+    }
+
+    #[test]
+    fn crop_transitional() {
+        let output = crop_aspect_ratio(4, 3, 780, 594);
+        assert_eq!(output, UVec2::new(780, 585));
     }
 }
