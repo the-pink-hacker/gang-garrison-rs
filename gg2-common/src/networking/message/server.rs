@@ -164,3 +164,14 @@ pub struct ServerPlayerLeave {
 impl GGMessage for ServerPlayerLeave {
     const KIND: PacketKind = PacketKind::PlayerLeave;
 }
+
+#[derive(Debug, Clone)]
+pub struct ServerPlayerSpawn {
+    pub player_index: PlayerId,
+    pub spawn_index: u8,
+    pub spawn_group: u8,
+}
+
+impl GGMessage for ServerPlayerSpawn {
+    const KIND: PacketKind = PacketKind::PlayerSpawn;
+}

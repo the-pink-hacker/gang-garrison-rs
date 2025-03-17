@@ -2,10 +2,7 @@ use bevy::{ecs::system::EntityCommands, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
     error::Error,
-    networking::message::{
-        ServerJoinUpdate, ServerPlayerChangeClass, ServerPlayerChangeTeam, ServerPlayerJoin,
-        ServerPlayerLeave, ServerQuickUpdate,
-    },
+    networking::message::*,
     player::{
         class::ClassGeneric, team::Team, CommonPlayerPlugin, Player, PlayerId, Players,
         PositionShift,
@@ -225,6 +222,12 @@ fn listen_for_client_player_id_system(
     }
 }
 
+fn handle_player_spawn(mut events: EventReader<NetworkData<ServerPlayerSpawn>>) {
+    for event in events.read() {
+        debug!("{:?}", **event);
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -247,6 +250,7 @@ impl Plugin for PlayerPlugin {
                         handle_quick_update_system,
                         //debug_players_system,
                         handle_player_leave_system,
+                        handle_player_spawn,
                     )
                         .run_if(
                             in_state(NetworkingState::InGame)

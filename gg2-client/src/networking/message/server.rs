@@ -349,3 +349,17 @@ impl ClientNetworkDeserialize for ServerPlayerLeave {
         Ok(Self { player_index })
     }
 }
+
+impl ClientNetworkDeserialize for ServerPlayerSpawn {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_index = payload.read_u8()?.into();
+        let spawn_index = payload.read_u8()?;
+        let spawn_group = payload.read_u8()?;
+
+        Ok(Self {
+            player_index,
+            spawn_index,
+            spawn_group,
+        })
+    }
+}
