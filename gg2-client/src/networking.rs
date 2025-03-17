@@ -3,6 +3,7 @@ use gg2_common::{networking::message::*, player::PlayerId};
 use log::debug;
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 
+pub mod message;
 pub mod socket;
 pub mod state;
 

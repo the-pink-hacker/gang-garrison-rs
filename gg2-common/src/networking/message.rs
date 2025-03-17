@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::math::Vec2;
 
 use crate::networking::error::Error;
 
@@ -11,14 +11,6 @@ mod server;
 
 pub trait GGMessage: Sync + Send {
     const KIND: PacketKind;
-}
-
-pub trait NetworkSerialize: Sized {
-    fn serialize(self, buffer: &mut Vec<u8>) -> Result<()>;
-}
-
-pub trait NetworkDeserialize: Sized {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self>;
 }
 
 pub trait MessageReader {
@@ -115,12 +107,18 @@ where
     }
 }
 
-fn write_utf8_short_string(text: String, buffer: &mut Vec<u8>) -> Result<()> {
-    let bytes = text.bytes();
-    let length = bytes.len().try_into().map_err(Error::StringLength)?;
-    buffer.push(length);
-    buffer.extend(bytes);
-    Ok(())
+pub trait MessageWriter {
+    fn write_utf8_short_string(&mut self, text: &str) -> Result<()>;
+}
+
+impl MessageWriter for Vec<u8> {
+    fn write_utf8_short_string(&mut self, text: &str) -> Result<()> {
+        let bytes = text.bytes();
+        let length = bytes.len().try_into().map_err(Error::StringLength)?;
+        self.push(length);
+        self.extend(bytes);
+        Ok(())
+    }
 }
 
 #[cfg(test)]

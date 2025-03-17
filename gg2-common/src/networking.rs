@@ -1,5 +1,5 @@
 use error::{Error, Result};
-use message::{GGMessage, NetworkSerialize};
+use message::GGMessage;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use uuid::{uuid, Uuid};
 
@@ -12,17 +12,6 @@ pub const PROTOCOL_UUID: Uuid = uuid!("b31c2209-4256-9a19-d0ef-c71c5373bd75");
 pub struct NetworkPacket {
     pub kind: PacketKind,
     pub data: Vec<u8>,
-}
-
-impl NetworkPacket {
-    pub fn from_message<T: GGMessage + NetworkSerialize>(message: T) -> Result<Self> {
-        let mut data = Vec::new();
-        message.serialize(&mut data)?;
-        Ok(Self {
-            kind: T::KIND,
-            data,
-        })
-    }
 }
 
 impl From<NetworkPacket> for Vec<u8> {

@@ -7,7 +7,7 @@ use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
 use gg2_common::networking::{
     error::{Error, Result},
-    message::{GGMessage, NetworkDeserialize, NetworkSerialize},
+    message::GGMessage,
     NetworkPacket, PacketKind,
 };
 use log::debug;
@@ -20,6 +20,8 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
 };
+
+use super::message::{ClientNetworkDeserialize, ClientNetworkSerialize};
 
 #[derive(Debug)]
 pub struct SyncChannel<T> {
@@ -66,6 +68,24 @@ impl ServerConnection {
     fn stop(self) {
         self.receive_task.abort();
         self.send_task.abort();
+    }
+}
+
+trait FromMessage {
+    fn from_message<T: GGMessage + ClientNetworkSerialize>(message: T) -> Result<Self>
+    where
+        Self: Sized;
+}
+
+impl FromMessage for NetworkPacket {
+    fn from_message<T: GGMessage + ClientNetworkSerialize>(message: T) -> Result<Self> {
+        let mut data = Vec::new();
+        message.serialize(&mut data)?;
+
+        Ok(Self {
+            kind: T::KIND,
+            data,
+        })
     }
 }
 
@@ -124,7 +144,7 @@ impl NetworkClient {
         }
     }
 
-    pub fn send_message<T: NetworkSerialize + GGMessage>(&self, message: T) -> Result<()> {
+    pub fn send_message<T: ClientNetworkSerialize + GGMessage>(&self, message: T) -> Result<()> {
         trace!("Sending message to server.");
         self.server_connection
             .as_ref()
@@ -267,14 +287,14 @@ pub struct NetworkData<T: Send + Sync> {
 }
 
 pub trait AppNetworkClientMessage {
-    fn listen_for_client_message<T: NetworkDeserialize + GGMessage + 'static>(
+    fn listen_for_client_message<T: ClientNetworkDeserialize + GGMessage + 'static>(
         &mut self,
     ) -> &mut Self;
 }
 
 impl AppNetworkClientMessage for App {
     // Registers message events for the client
-    fn listen_for_client_message<T: NetworkDeserialize + GGMessage + 'static>(
+    fn listen_for_client_message<T: ClientNetworkDeserialize + GGMessage + 'static>(
         &mut self,
     ) -> &mut Self {
         let client = self
@@ -298,7 +318,7 @@ impl AppNetworkClientMessage for App {
 }
 
 // Reads in network packets and passes messages to Bevy
-fn register_client_message_system<T: NetworkDeserialize + GGMessage + 'static>(
+fn register_client_message_system<T: ClientNetworkDeserialize + GGMessage + 'static>(
     client: ResMut<NetworkClient>,
     mut events: EventWriter<NetworkData<T>>,
 ) {
