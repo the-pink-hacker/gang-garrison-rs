@@ -1,10 +1,13 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use collision::mesh::WalkQuadMask;
-use entity::entities::MapEntity;
 use io::MapDataLoader;
 
-use crate::game::InGameOnly;
+use crate::{
+    error::{Error, Result},
+    game::InGameOnly,
+    player::team::TeamSpawnable,
+};
 
 pub mod collision;
 pub mod entity;
@@ -14,8 +17,20 @@ const MAP_SCALE: f32 = 6.0;
 
 #[derive(Asset, TypePath)]
 pub struct MapData {
-    pub entities: Vec<MapEntity>,
     pub walk_mask: WalkQuadMask,
+    pub blu_spawns: Vec<Vec2>,
+    pub red_spawns: Vec<Vec2>,
+}
+
+impl MapData {
+    pub fn get_spawn_position(&self, team: &TeamSpawnable, index: u8) -> Result<&Vec2> {
+        match team {
+            TeamSpawnable::Blu => &self.blu_spawns,
+            TeamSpawnable::Red => &self.red_spawns,
+        }
+        .get(index as usize)
+        .ok_or(Error::SpawnLookup(index))
+    }
 }
 
 #[derive(Component, Default)]

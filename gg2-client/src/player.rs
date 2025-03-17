@@ -2,6 +2,7 @@ use bevy::{ecs::system::EntityCommands, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
     error::Error,
+    map::{CurrentMap, MapData},
     networking::message::*,
     player::{
         class::ClassGeneric, team::Team, CommonPlayerPlugin, Player, PlayerId, Players,
@@ -222,9 +223,46 @@ fn listen_for_client_player_id_system(
     }
 }
 
-fn handle_player_spawn(mut events: EventReader<NetworkData<ServerPlayerSpawn>>) {
+fn handle_player_spawn(
+    mut events: EventReader<NetworkData<ServerPlayerSpawn>>,
+    map_data_query: Query<&Handle<MapData>, With<CurrentMap>>,
+    map_data_assets: Res<Assets<MapData>>,
+    players: Res<Players>,
+    mut player_query: Query<(&mut Transform, &Team)>,
+) {
     for event in events.read() {
-        debug!("{:?}", **event);
+        debug!("{:#?}", **event);
+
+        if let Some((mut player_transform, player_team)) = players
+            .get_entity(event.player_index)
+            .ok()
+            .and_then(|entity| player_query.get_mut(entity).ok())
+        {
+            if let Some(map_data) = map_data_query
+                .get_single()
+                .ok()
+                .and_then(|handle| map_data_assets.get(handle))
+            {
+                match player_team
+                    .try_into()
+                    .and_then(|team| map_data.get_spawn_position(&team, event.spawn_index))
+                {
+                    Ok(spawn_position) => {
+                        player_transform.translation.x = spawn_position.x;
+                        player_transform.translation.y = spawn_position.y;
+                        debug!(
+                            "Spawned player {} at {}, {}",
+                            event.player_index, spawn_position.x, spawn_position.y
+                        );
+                    }
+                    Err(error) => error!("Failed to spawn player: {}", error),
+                }
+            } else {
+                error!("Failed to query map data.");
+            }
+        } else {
+            error!("Failed to find player of id: {}", event.player_index);
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use bevy::math::Vec2;
+
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -45,6 +47,12 @@ impl MoveBox {
 pub struct Position {
     pub x: u32,
     pub y: u32,
+}
+
+impl From<Position> for Vec2 {
+    fn from(value: Position) -> Self {
+        Vec2::new(value.x as f32, value.y as f32)
+    }
 }
 
 #[derive(Debug, Deserialize)]

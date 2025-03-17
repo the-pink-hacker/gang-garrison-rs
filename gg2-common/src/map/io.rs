@@ -205,9 +205,23 @@ fn parse_map_data(raw: String) -> Result<MapData> {
     let walk_bit_mask = walk_mask.ok_or(Error::DataTagMissing(MapDataTag::WalkMask))?;
     let walk_mask = WalkQuadMask::from_bits(walk_bit_mask);
 
+    let entities = entities.ok_or(Error::DataTagMissing(MapDataTag::Entities))?;
+
+    let mut blu_spawns = Vec::new();
+    let mut red_spawns = Vec::new();
+
+    for entity in entities {
+        match entity {
+            MapEntity::BluSpawn(position) => blu_spawns.push(position.into()),
+            MapEntity::RedSpawn(position) => red_spawns.push(position.into()),
+            _ => (),
+        }
+    }
+
     Ok(MapData {
-        entities: entities.ok_or(Error::DataTagMissing(MapDataTag::Entities))?,
         walk_mask,
+        blu_spawns,
+        red_spawns,
     })
 }
 
