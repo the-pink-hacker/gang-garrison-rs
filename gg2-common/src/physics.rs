@@ -20,4 +20,5 @@ pub fn collider_rectangle(bounds: impl Into<(f32, f32, f32, f32)>) -> Collider {
         ],
         vec![[0, 1, 2], [1, 2, 3]],
     )
+    .expect("Failed to generate rectangle collider")
 }

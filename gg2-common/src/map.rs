@@ -33,6 +33,11 @@ impl MapData {
     }
 }
 
+#[derive(Component)]
+pub struct MapDataHandle {
+    pub handle: Handle<MapData>,
+}
+
 #[derive(Component, Default)]
 pub struct CurrentMap;
 
@@ -41,7 +46,7 @@ pub struct CommonMapBundle {
     pub collider: Collider,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
-    pub map_data: Handle<MapData>,
+    pub map_data: MapDataHandle,
     current_map: CurrentMap,
     in_game_only: InGameOnly,
 }
@@ -52,7 +57,7 @@ impl CommonMapBundle {
             collider: default(),
             transform: Transform::from_scale(Vec3::splat(MAP_SCALE)),
             global_transform: default(),
-            map_data,
+            map_data: MapDataHandle { handle: map_data },
             current_map: default(),
             in_game_only: default(),
         }
@@ -60,11 +65,11 @@ impl CommonMapBundle {
 }
 
 fn setup_walk_collisions_system(
-    mut current_map_query: Query<(&mut Collider, &Handle<MapData>), With<CurrentMap>>,
+    mut current_map_query: Query<(&mut Collider, &MapDataHandle), With<CurrentMap>>,
     maps: Res<Assets<MapData>>,
 ) {
     if let Ok((mut map_collider, map_data_handle)) = current_map_query.get_single_mut() {
-        if let Some(map_data) = maps.get(map_data_handle) {
+        if let Some(map_data) = maps.get(&map_data_handle.handle) {
             *map_collider = map_data.walk_mask.collider();
         }
     }
@@ -76,12 +81,12 @@ fn leave_construction_system(mut load_state: ResMut<NextState<MapLoadState>>) {
 
 /// When the map data asset is finished loading the state is changed to construction
 fn map_check_load_system(
-    current_map_query: Query<&Handle<MapData>, With<CurrentMap>>,
+    current_map_query: Query<&MapDataHandle, With<CurrentMap>>,
     maps: Res<Assets<MapData>>,
     mut load_state: ResMut<NextState<MapLoadState>>,
 ) {
     if let Ok(map_handle) = current_map_query.get_single() {
-        if maps.get(map_handle).is_some() {
+        if maps.get(&map_handle.handle).is_some() {
             load_state.set(MapLoadState::Constructing);
         }
     }

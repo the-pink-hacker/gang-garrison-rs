@@ -1,8 +1,8 @@
 use std::{fmt::Display, io::Read, str::FromStr};
 
-use bevy::{
-    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
-    tasks::futures_lite::AsyncSeekExt,
+use bevy::asset::{
+    io::{AsyncSeekForwardExt, Reader},
+    AssetLoader, AsyncReadExt, LoadContext,
 };
 
 use error::{Error, Result};
@@ -80,11 +80,11 @@ impl AssetLoader for MapDataLoader {
     type Settings = ();
     type Error = Error;
 
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a Self::Settings,
-        _load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<MapData> {
         if is_png(reader).await? {
             let map_data_buffer = loop {
@@ -97,9 +97,7 @@ impl AssetLoader for MapDataLoader {
                     }
                     _ => {
                         reader
-                            .seek(std::io::SeekFrom::Current(
-                                chunk_length as i64 + CRC_LENGTH as i64,
-                            ))
+                            .seek_forward(chunk_length as u64 + CRC_LENGTH as u64)
                             .await
                             .map_err(Error::ReadIO)?;
                     }
@@ -113,7 +111,7 @@ impl AssetLoader for MapDataLoader {
     }
 }
 
-async fn is_png<'a>(reader: &'a mut Reader<'a>) -> Result<bool> {
+async fn is_png(reader: &mut dyn Reader) -> Result<bool> {
     let mut signature = [0; 8];
     reader
         .read_exact(&mut signature)
@@ -122,7 +120,7 @@ async fn is_png<'a>(reader: &'a mut Reader<'a>) -> Result<bool> {
     Ok(signature == PNG_SIGNATURE)
 }
 
-async fn get_png_chunk_header<'a>(reader: &'a mut Reader<'a>) -> Result<(u32, String)> {
+async fn get_png_chunk_header(reader: &mut dyn Reader) -> Result<(u32, String)> {
     let mut raw_header = [0; 8];
     reader
         .read_exact(&mut raw_header)
@@ -135,7 +133,7 @@ async fn get_png_chunk_header<'a>(reader: &'a mut Reader<'a>) -> Result<(u32, St
     Ok((chunk_length, chunk_name))
 }
 
-async fn read_map_data_chunk<'a>(reader: &'a mut Reader<'a>, length: u32) -> Result<String> {
+async fn read_map_data_chunk(reader: &mut dyn Reader, length: u32) -> Result<String> {
     let mut buffer = vec![0; length as usize];
 
     reader

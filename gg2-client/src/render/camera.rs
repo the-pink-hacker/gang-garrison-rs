@@ -8,37 +8,35 @@ pub struct MainCamera;
 fn setup_system(mut commands: Commands) {
     commands.spawn((
         MainCamera,
-        Camera2dBundle {
-            camera: Camera {
-                viewport: Some(default()),
-                ..default()
-            },
+        Camera {
+            viewport: Some(default()),
             ..default()
         },
+        Camera2d,
     ));
 }
 
 fn move_camera_down_system(mut query: Query<&mut Transform, With<MainCamera>>, time: Res<Time>) {
     if let Ok(mut camera_transform) = query.get_single_mut() {
-        camera_transform.translation += Vec3::NEG_Y * MOVE_SPEED * time.delta_seconds();
+        camera_transform.translation += Vec3::NEG_Y * MOVE_SPEED * time.delta_secs();
     }
 }
 
 fn move_camera_up_system(mut query: Query<&mut Transform, With<MainCamera>>, time: Res<Time>) {
     if let Ok(mut camera_transform) = query.get_single_mut() {
-        camera_transform.translation += Vec3::Y * MOVE_SPEED * time.delta_seconds();
+        camera_transform.translation += Vec3::Y * MOVE_SPEED * time.delta_secs();
     }
 }
 
 fn move_camera_left_system(mut query: Query<&mut Transform, With<MainCamera>>, time: Res<Time>) {
     if let Ok(mut camera_transform) = query.get_single_mut() {
-        camera_transform.translation += Vec3::NEG_X * MOVE_SPEED * time.delta_seconds();
+        camera_transform.translation += Vec3::NEG_X * MOVE_SPEED * time.delta_secs();
     }
 }
 
 fn move_camera_right_system(mut query: Query<&mut Transform, With<MainCamera>>, time: Res<Time>) {
     if let Ok(mut camera_transform) = query.get_single_mut() {
-        camera_transform.translation += Vec3::X * MOVE_SPEED * time.delta_seconds();
+        camera_transform.translation += Vec3::X * MOVE_SPEED * time.delta_secs();
     }
 }
 

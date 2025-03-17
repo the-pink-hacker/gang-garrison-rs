@@ -182,7 +182,7 @@ impl Plugin for NetworkingPlugin {
                     )
                         .run_if(
                             in_state(NetworkingState::PlayerJoining)
-                                .or_else(in_state(NetworkingState::InGame)),
+                                .or(in_state(NetworkingState::InGame)),
                         ),
                     handle_quick_update_system.run_if(in_state(NetworkingState::InGame)),
                     debug_networking_state_system.run_if(state_changed::<NetworkingState>),

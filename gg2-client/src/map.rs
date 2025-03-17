@@ -20,12 +20,9 @@ fn load_map_system(
             CommonMapBundle::from_handle(map_data_handle),
             Sprite {
                 anchor: bevy::sprite::Anchor::TopLeft,
+                image: map_image_handle,
                 ..default()
             },
-            Visibility::default(),
-            InheritedVisibility::default(),
-            ViewVisibility::default(),
-            map_image_handle,
         ));
 
         load_state.set(MapLoadState::Loading);
@@ -39,8 +36,8 @@ impl Plugin for MapPlugin {
         app.add_plugins(CommonMapPlugin).add_systems(
             FixedUpdate,
             load_map_system
-                .run_if(in_state(MapLoadState::Unloaded).or_else(in_state(MapLoadState::Loaded)))
-                .run_if(on_event::<NetworkData<ServerChangeMap>>()),
+                .run_if(in_state(MapLoadState::Unloaded).or(in_state(MapLoadState::Loaded)))
+                .run_if(on_event::<NetworkData<ServerChangeMap>>),
         );
     }
 }

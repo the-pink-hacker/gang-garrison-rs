@@ -2,7 +2,7 @@ use bevy::{ecs::system::EntityCommands, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
     error::Error,
-    map::{CurrentMap, MapData},
+    map::{CurrentMap, MapData, MapDataHandle},
     networking::message::*,
     player::{
         class::ClassGeneric, team::Team, CommonPlayerPlugin, Player, PlayerId, Players,
@@ -26,7 +26,8 @@ pub struct ClientPlayerAssign(PlayerId);
 #[derive(Bundle, Default)]
 struct PlayerBundle {
     player: Player,
-    sprite: SpriteBundle,
+    sprite: Sprite,
+    visibility: Visibility,
 }
 
 fn handle_player_join_system(
@@ -73,12 +74,9 @@ fn add_player<'a>(
         commands,
         PlayerBundle {
             player: player.into(),
-            sprite: SpriteBundle {
-                visibility: Visibility::Hidden,
-                sprite: Sprite {
-                    anchor: bevy::sprite::Anchor::Center,
-                    ..default()
-                },
+            visibility: Visibility::Hidden,
+            sprite: Sprite {
+                anchor: bevy::sprite::Anchor::Center,
                 ..default()
             },
         },
@@ -127,24 +125,34 @@ fn handle_player_change_class_system(
     mut events: EventReader<NetworkData<ServerPlayerChangeClass>>,
     mut commands: Commands,
     players: Res<Players>,
+    mut sprite_query: Query<&mut Sprite>,
     asset_server: Res<AssetServer>,
 ) {
     for event in events.read() {
         let player_result = players
             .get_entity(event.player_index)
             .and_then(|player| {
-                commands
-                    .get_entity(player)
+                sprite_query
+                    .get_mut(player)
+                    .ok()
+                    .and_then(|player_sprite| {
+                        commands
+                            .get_entity(player)
+                            .map(|player_commands| (player_commands, player_sprite))
+                    })
                     .ok_or(Error::PlayerLookup(event.player_index))
             })
-            .map(|mut player| {
+            .map(|(mut player_commands, mut player_sprite)| {
                 debug!(
                     "Player of index {} is changing class to: {:?}",
                     event.player_index, event.player_class
                 );
                 let player_texture = asset_server.load::<Image>("sprites/character.png");
-                event.player_class.add_class_components(&mut player);
-                player.insert(player_texture);
+                // TODO: Look into required components
+                event
+                    .player_class
+                    .add_class_components(&mut player_commands);
+                player_sprite.image = player_texture;
             });
 
         if let Err(error) = player_result {
@@ -225,7 +233,7 @@ fn listen_for_client_player_id_system(
 
 fn handle_player_spawn(
     mut events: EventReader<NetworkData<ServerPlayerSpawn>>,
-    map_data_query: Query<&Handle<MapData>, With<CurrentMap>>,
+    map_data_query: Query<&MapDataHandle, With<CurrentMap>>,
     map_data_assets: Res<Assets<MapData>>,
     players: Res<Players>,
     mut player_query: Query<(&mut Transform, &Team)>,
@@ -239,7 +247,7 @@ fn handle_player_spawn(
             if let Some(map_data) = map_data_query
                 .get_single()
                 .ok()
-                .and_then(|handle| map_data_assets.get(handle))
+                .and_then(|handle| map_data_assets.get(&handle.handle))
             {
                 match player_team
                     .try_into()
@@ -290,7 +298,7 @@ impl Plugin for PlayerPlugin {
                     )
                         .run_if(
                             in_state(NetworkingState::InGame)
-                                .or_else(in_state(NetworkingState::PlayerJoining)),
+                                .or(in_state(NetworkingState::PlayerJoining)),
                         )
                         .after(handle_player_join_system),
                 ),

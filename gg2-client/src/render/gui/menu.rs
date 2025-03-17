@@ -152,7 +152,7 @@ fn in_game_debug_sytem(
                     });
 
                     ui.collapsing("Rendering", |ui| {
-                        let delta_time_seconds = time.delta_seconds();
+                        let delta_time_seconds = time.delta_secs();
                         let delta_time_one_percent = delta_time_one_percent.last_frame;
                         let delta_time_average = delta_time_average.last_delta;
 
@@ -204,7 +204,7 @@ fn update_delta_one_percent_system(
         delta_time.last_frame = delta_time.current_frame;
         delta_time.current_frame = 0.0;
     } else {
-        let current_frame = time.delta_seconds();
+        let current_frame = time.delta_secs();
 
         // Higher means slower
         if current_frame > delta_time.current_frame {
@@ -223,7 +223,7 @@ struct DeltaTimeAverage {
 fn update_delta_average_system(mut delta_time: ResMut<DeltaTimeAverage>, time: Res<Time<Real>>) {
     let total_delta = delta_time.current_delta * delta_time.current_frames as f32;
     delta_time.current_frames += 1;
-    let average_delta = (total_delta + time.delta_seconds()) / delta_time.current_frames as f32;
+    let average_delta = (total_delta + time.delta_secs()) / delta_time.current_frames as f32;
     delta_time.current_delta = average_delta;
 }
 
@@ -257,7 +257,7 @@ impl Plugin for GuiMenuPlugin {
                     )
                         .run_if(
                             in_state(InGamePauseState::None)
-                                .and_then(in_state(InGameDebugState::Enabled)),
+                                .and(in_state(InGameDebugState::Enabled)),
                         ),
                 ),
             );
