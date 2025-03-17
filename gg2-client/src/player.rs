@@ -231,8 +231,6 @@ fn handle_player_spawn(
     mut player_query: Query<(&mut Transform, &Team)>,
 ) {
     for event in events.read() {
-        debug!("{:#?}", **event);
-
         if let Some((mut player_transform, player_team)) = players
             .get_entity(event.player_index)
             .ok()

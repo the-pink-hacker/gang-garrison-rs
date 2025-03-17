@@ -239,7 +239,7 @@ async fn receive_task(
     let mut buffer = vec![0; network_settings.max_packet_length];
     loop {
         let length = read_socket.read(&mut buffer).await.unwrap();
-        debug!(
+        trace!(
             "Received {} bytes: {}",
             length,
             buffer[0..length].escape_ascii()
@@ -257,7 +257,7 @@ async fn receive_task(
         };
 
         let packet_kind = packet.kind;
-        debug!("Packet kind: {:?}", packet_kind);
+        trace!("Packet kind: {:?}", packet_kind);
 
         match receive_message_map.get_mut(&packet_kind) {
             Some(mut packets) => packets.push(packet.data),
