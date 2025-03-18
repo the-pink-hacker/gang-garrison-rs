@@ -7,6 +7,8 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 )]
 #[repr(u8)]
 pub enum DamageSource {
+    // TODO: Figure out if there's an index 0 damage source
+    None,
     Needlegun,
     Rifle,
     RifleCharged,
