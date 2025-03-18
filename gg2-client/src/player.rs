@@ -304,8 +304,11 @@ impl Plugin for PlayerPlugin {
                         .run_if(resource_exists::<ClientPlayerAssign>),
                     handle_player_join_system,
                     (
-                        handle_player_change_team_system,
-                        handle_player_change_class_system,
+                        (
+                            handle_player_change_team_system,
+                            handle_player_change_class_system,
+                        )
+                            .before(handle_player_spawn),
                         handle_quick_update_system,
                         debug_players_system,
                         handle_player_leave_system,
