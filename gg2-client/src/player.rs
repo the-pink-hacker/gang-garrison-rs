@@ -292,7 +292,7 @@ impl Plugin for PlayerPlugin {
                         handle_player_change_team_system,
                         handle_player_change_class_system,
                         handle_quick_update_system,
-                        //debug_players_system,
+                        debug_players_system,
                         handle_player_leave_system,
                         handle_player_spawn,
                     )

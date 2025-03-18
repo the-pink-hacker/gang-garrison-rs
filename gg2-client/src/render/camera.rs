@@ -3,6 +3,7 @@ use bevy::{input::common_conditions::input_pressed, prelude::*, window::WindowRe
 const MOVE_SPEED: f32 = 400.0;
 
 #[derive(Component)]
+#[require(Camera2d)]
 pub struct MainCamera;
 
 fn setup_system(mut commands: Commands) {
@@ -12,7 +13,6 @@ fn setup_system(mut commands: Commands) {
             viewport: Some(default()),
             ..default()
         },
-        Camera2d,
     ));
 }
 
