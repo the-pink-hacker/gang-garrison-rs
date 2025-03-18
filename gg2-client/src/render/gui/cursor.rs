@@ -1,11 +1,14 @@
 use bevy::{
     prelude::*,
     render::view::RenderLayers,
-    window::{PrimaryWindow, WindowCreated},
+    window::{CursorGrabMode, PrimaryWindow, WindowCreated},
     winit::cursor::{CursorIcon, CustomCursor},
 };
 
-use crate::render::camera::MainCamera;
+use crate::{
+    render::camera::MainCamera,
+    state::{ClientState, InGamePauseState},
+};
 
 const CURSOR_SIZE: u16 = 16;
 
@@ -38,18 +41,8 @@ pub struct Crosshair;
 #[require(Crosshair)]
 pub struct MainCrosshair;
 
-fn setup_cursor_workaround_system(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-) {
+fn setup_cursor_workaround_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     let cursor_texture = asset_server.load("sprites/gui/crosshair.png");
-
-    if let Ok(mut window) = window_query.get_single_mut() {
-        window.cursor_options.visible = false;
-    } else {
-        error!("Failed to lookup primary window.");
-    }
 
     commands.spawn((
         MainCrosshair,
@@ -87,12 +80,38 @@ fn update_cursor_position_system(
     }
 }
 
+fn lock_cursor_system(mut window_query: Query<&mut Window, With<PrimaryWindow>>) {
+    if let Ok(mut window) = window_query.get_single_mut() {
+        window.cursor_options.grab_mode = CursorGrabMode::Confined;
+        // Make cursor invisible for workaround
+        window.cursor_options.visible = false;
+        debug!("Locking cursor");
+    } else {
+        error!("Failed to lookup primary window.");
+    }
+}
+
+fn unlock_cursor_system(mut window_query: Query<&mut Window, With<PrimaryWindow>>) {
+    if let Ok(mut window) = window_query.get_single_mut() {
+        window.cursor_options.grab_mode = CursorGrabMode::None;
+        // Make cursor visible for workaround
+        window.cursor_options.visible = true;
+        debug!("Unlocking cursor");
+    } else {
+        error!("Failed to lookup primary window.");
+    }
+}
+
 pub struct CursorPlugin;
 
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_cursor_workaround_system)
             //.add_systems(PreUpdate, setup_cursor_system)
-            .add_systems(PostUpdate, update_cursor_position_system);
+            .add_systems(PostUpdate, update_cursor_position_system)
+            .add_systems(OnEnter(ClientState::Menus), unlock_cursor_system)
+            .add_systems(OnEnter(ClientState::InGame), lock_cursor_system)
+            .add_systems(OnEnter(InGamePauseState::Paused), unlock_cursor_system)
+            .add_systems(OnEnter(InGamePauseState::None), lock_cursor_system);
     }
 }
