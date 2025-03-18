@@ -13,7 +13,7 @@ impl Plugin for GuiPlugin {
             EguiPlugin,
             menu::GuiMenuPlugin,
             input::GuiInputPlugin,
-            cursor::CursorPlugin,
+            //cursor::CursorPlugin,
         ));
     }
 }
