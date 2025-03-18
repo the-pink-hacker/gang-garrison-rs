@@ -24,15 +24,15 @@ impl Players {
         &mut self,
         commands: &'a mut Commands,
         player: impl Bundle,
-    ) -> (PlayerId, EntityCommands<'a>) {
+    ) -> Result<(PlayerId, EntityCommands<'a>)> {
         let mut player =
             commands.spawn((player, Team::default(), ClassGeneric::default(), InGameOnly));
 
         ClassGeneric::default().add_class_components(&mut player);
 
-        let new_player_id = self.len().into();
+        let new_player_id = self.get_next_id().ok_or(Error::PlayerIdTooMany)?;
         self.0.push(player.id());
-        (new_player_id, player)
+        Ok((new_player_id, player))
     }
 
     pub fn clear(&mut self) {
@@ -81,8 +81,8 @@ impl Players {
         })
     }
 
-    pub fn get_next_id(&self) -> PlayerId {
-        self.len().into()
+    pub fn get_next_id(&self) -> Option<PlayerId> {
+        self.len().try_into().ok()
     }
 }
 
@@ -120,6 +120,15 @@ impl From<Vec2> for PositionShift {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PlayerId(u8);
 
+impl PlayerId {
+    pub fn from_u8(value: u8) -> Option<PlayerId> {
+        match value {
+            0..255 => Some(Self(value)),
+            255 => None,
+        }
+    }
+}
+
 impl Display for PlayerId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         u8::from(*self).fmt(f)
@@ -138,9 +147,11 @@ impl From<PlayerId> for usize {
     }
 }
 
-impl From<u8> for PlayerId {
-    fn from(value: u8) -> Self {
-        Self(value)
+impl TryFrom<u8> for PlayerId {
+    type Error = Error;
+
+    fn try_from(value: u8) -> Result<Self> {
+        Self::from_u8(value).ok_or(Error::PlayerIdInvalid)
     }
 }
 
@@ -148,10 +159,9 @@ impl TryFrom<usize> for PlayerId {
     type Error = Error;
 
     fn try_from(value: usize) -> Result<Self> {
-        value
-            .try_into()
+        u8::try_from(value)
             .map_err(Error::PlayerIdOutOfBounds)
-            .map(Self)
+            .and_then(Self::try_from)
     }
 }
 

@@ -1,4 +1,5 @@
 pub mod config;
+pub mod damage;
 pub mod error;
 pub mod game;
 pub mod intel;

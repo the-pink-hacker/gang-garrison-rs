@@ -165,6 +165,7 @@ impl Plugin for NetworkingPlugin {
             .listen_for_client_message::<ServerMessageString>()
             .listen_for_client_message::<ServerPlayerLeave>()
             .listen_for_client_message::<ServerPlayerSpawn>()
+            .listen_for_client_message::<ServerPlayerDeath>()
             .add_systems(OnEnter(ClientState::InGame), setup_networking_system)
             .add_systems(
                 FixedUpdate,

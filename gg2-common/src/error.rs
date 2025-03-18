@@ -8,6 +8,10 @@ pub enum Error {
     PlayerLookup(PlayerId),
     #[error("Player id is too big {0}")]
     PlayerIdOutOfBounds(std::num::TryFromIntError),
+    #[error("Player id is none.")]
+    PlayerIdInvalid,
+    #[error("Too many players; can't allocate another")]
+    PlayerIdTooMany,
     #[error("Spectators can't spawn")]
     SpawnSpectator,
     #[error("Failed to locate spawn of index: {0}")]

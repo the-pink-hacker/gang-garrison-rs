@@ -7,7 +7,7 @@ use gg2_common::{
         error::{Error, Result},
         message::*,
     },
-    player::{RawAdditionalPlayerInfo, RawInput, RawPlayerInfo},
+    player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo},
 };
 
 use super::ClientNetworkDeserialize;
@@ -98,7 +98,7 @@ impl ClientNetworkDeserialize for ServerPlayerJoin {
 
 impl ClientNetworkDeserialize for ServerJoinUpdate {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let client_player_id = payload.read_u8()?.into();
+        let client_player_id = payload.read_u8()?.try_into()?;
         let map_area = payload.read_u8()?;
         Ok(ServerJoinUpdate {
             client_player_id,
@@ -122,7 +122,7 @@ impl ClientNetworkDeserialize for ServerChangeMap {
 
 impl ClientNetworkDeserialize for ServerPlayerChangeClass {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.into();
+        let player_index = payload.read_u8()?.try_into()?;
         let player_class = payload
             .read_u8()?
             .try_into()
@@ -137,7 +137,7 @@ impl ClientNetworkDeserialize for ServerPlayerChangeClass {
 
 impl ClientNetworkDeserialize for ServerPlayerChangeTeam {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.into();
+        let player_index = payload.read_u8()?.try_into()?;
         let player_team = payload
             .read_u8()?
             .try_into()
@@ -345,14 +345,14 @@ impl ClientNetworkDeserialize for ServerMessageString {
 
 impl ClientNetworkDeserialize for ServerPlayerLeave {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.into();
+        let player_index = payload.read_u8()?.try_into()?;
         Ok(Self { player_index })
     }
 }
 
 impl ClientNetworkDeserialize for ServerPlayerSpawn {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.into();
+        let player_index = payload.read_u8()?.try_into()?;
         let spawn_index = payload.read_u8()?;
         let spawn_group = payload.read_u8()?;
 
@@ -360,6 +360,25 @@ impl ClientNetworkDeserialize for ServerPlayerSpawn {
             player_index,
             spawn_index,
             spawn_group,
+        })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerPlayerDeath {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let target = payload.read_u8()?.try_into()?;
+        let attacker = PlayerId::from_u8(payload.read_u8()?);
+        let assist = PlayerId::from_u8(payload.read_u8()?);
+        let damage_source = payload
+            .read_u8()?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
+
+        Ok(Self {
+            target,
+            attacker,
+            assist,
+            damage_source,
         })
     }
 }

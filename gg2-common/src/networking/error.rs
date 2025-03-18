@@ -26,4 +26,6 @@ pub enum Error {
     StringLength(std::num::TryFromIntError),
     #[error("Unsanitized string")]
     UnsanitizedString,
+    #[error("{0}")]
+    CommonError(#[from] crate::error::Error),
 }

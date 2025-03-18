@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use crate::{
+    damage::source::DamageSource,
     intel::RawIntel,
     networking::PacketKind,
     player::{
@@ -174,4 +175,16 @@ pub struct ServerPlayerSpawn {
 
 impl GGMessage for ServerPlayerSpawn {
     const KIND: PacketKind = PacketKind::PlayerSpawn;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerPlayerDeath {
+    pub target: PlayerId,
+    pub attacker: Option<PlayerId>,
+    pub assist: Option<PlayerId>,
+    pub damage_source: DamageSource,
+}
+
+impl GGMessage for ServerPlayerDeath {
+    const KIND: PacketKind = PacketKind::PlayerDeath;
 }

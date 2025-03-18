@@ -1,7 +1,7 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
-    error::Error,
+    error::{Error, Result},
     map::{CurrentMap, MapData, MapDataHandle},
     networking::message::*,
     player::{
@@ -38,7 +38,9 @@ fn handle_player_join_system(
     for event in events.read() {
         debug!("Player join of name: \"{}\"", event.player_name);
 
-        add_player(&mut commands, &mut players, (*event).clone());
+        if let Err(error) = add_player(&mut commands, &mut players, (*event).clone()) {
+            error!("{}", error);
+        }
     }
 }
 
@@ -49,19 +51,26 @@ fn add_client_player_system(
     config: Res<ClientConfig>,
 ) {
     let client_player_id = **client_player_assign.as_ref();
-    let next_player_id = players.get_next_id();
+    if let Some(next_player_id) = players.get_next_id() {
+        if client_player_id == next_player_id {
+            debug!("Marking client player of id: {}", client_player_id);
 
-    if client_player_id == next_player_id {
-        debug!("Marking client player of id: {}", client_player_id);
-        let (_, mut player) = add_player(
-            &mut commands,
-            &mut players,
-            Player {
-                name: config.game.player_name.clone(),
-            },
-        );
-        player.insert(ClientPlayer);
-        commands.remove_resource::<ClientPlayerAssign>();
+            match add_player(
+                &mut commands,
+                &mut players,
+                Player {
+                    name: config.game.player_name.clone(),
+                },
+            ) {
+                Ok((_, mut player)) => {
+                    player.insert(ClientPlayer);
+                    commands.remove_resource::<ClientPlayerAssign>();
+                }
+                Err(error) => error!("{}", error),
+            }
+        }
+    } else {
+        error!("Can't allocate another player");
     }
 }
 
@@ -69,7 +78,7 @@ fn add_player<'a>(
     commands: &'a mut Commands,
     players: &mut Players,
     player: impl Into<Player>,
-) -> (PlayerId, EntityCommands<'a>) {
+) -> Result<(PlayerId, EntityCommands<'a>)> {
     players.add_player(
         commands,
         PlayerBundle {
@@ -170,7 +179,7 @@ fn handle_quick_update_system(
         for (player_index, player) in players.as_ref().into_iter().enumerate() {
             let player_result = player_query
                 .get_mut(*player)
-                .map_err(|_| Error::PlayerLookup((player_index as u8).into()))
+                .map_err(|_| Error::PlayerLookup(player_index.try_into().unwrap()))
                 .map(|(mut transform, position_shift)| {
                     if let Some((_input, player_info)) = event
                         .player_characters
@@ -272,6 +281,12 @@ fn handle_player_spawn(
     }
 }
 
+fn handle_player_death_system(mut events: EventReader<NetworkData<ServerPlayerDeath>>) {
+    for event in events.read() {
+        debug!("{:#?}", **event);
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -295,6 +310,7 @@ impl Plugin for PlayerPlugin {
                         debug_players_system,
                         handle_player_leave_system,
                         handle_player_spawn,
+                        handle_player_death_system,
                     )
                         .run_if(
                             in_state(NetworkingState::InGame)
