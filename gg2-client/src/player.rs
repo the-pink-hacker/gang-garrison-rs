@@ -310,7 +310,7 @@ impl Plugin for PlayerPlugin {
                         )
                             .before(handle_player_spawn),
                         handle_quick_update_system,
-                        debug_players_system,
+                        //debug_players_system,
                         handle_player_leave_system,
                         handle_player_spawn,
                         handle_player_death_system,

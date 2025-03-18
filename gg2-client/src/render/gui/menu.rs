@@ -140,7 +140,7 @@ fn in_game_debug_sytem(
                                 }
                             });
 
-                        if ui.button("Update Class").clicked() {
+                        if ui.button("Update Class").hovered() {
                             if let Err(error) =
                                 network_client.send_message(ClientPlayerChangeClass {
                                     class: *current_class,

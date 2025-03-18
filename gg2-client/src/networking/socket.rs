@@ -216,13 +216,13 @@ async fn send_task(
     while let Some(message) = receive_message.recv().await {
         let message_kind = message.kind;
         let encoded_message = Vec::from(message);
-        debug!("Sending: {}", encoded_message.escape_ascii());
+        trace!("Sending: {}", encoded_message.escape_ascii());
 
         if let Err(error) = send_socket.write_all(&encoded_message).await {
             error!("Couldn't send packet: {:?}: {}", message_kind, error);
         }
 
-        debug!("Succesfully written all!");
+        trace!("Succesfully written all!");
     }
 
     let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);
@@ -324,39 +324,51 @@ fn register_client_message_system<T: ClientNetworkDeserialize + GGMessage + 'sta
 ) {
     let mut messages = match client.receive_message_map.get_mut(&T::KIND) {
         Some(message) => message,
-        None => return,
+        None => {
+            error!("Failed to get receive message map for {:?} kind", T::KIND);
+            return;
+        }
     };
 
-    events.send_batch(
-        messages
-            .drain(..)
-            .map(|bytes| {
-                let mut bytes = bytes.into_iter();
-                let output = T::deserialize(&mut bytes);
-                if output.is_ok() && bytes.len() > 0 {
-                    if let Some(kind) = bytes.next().and_then(|raw| PacketKind::try_from(raw).ok())
-                    {
-                        debug!("Another packet was found of type: {:?}", kind);
-                        match &mut client.receive_message_map.get_mut(&kind) {
-                            Some(messages) => messages.push(bytes.collect()),
-                            None => error!(
-                                "Couldn't find existing entries for message kinds: {:?}",
-                                kind
-                            ),
+    if messages.is_empty() {
+        return;
+    }
+
+    let mut messages_to_send = messages.drain(..).rev().collect::<Vec<_>>();
+    let mut parsed_messages = Vec::with_capacity(messages_to_send.len());
+
+    while !messages_to_send.is_empty() {
+        let mut bytes = messages_to_send
+            .pop()
+            .expect("Failed to get next message.")
+            .into_iter();
+        let output = T::deserialize(&mut bytes);
+
+        if output.is_ok() && bytes.len() > 0 {
+            if let Some(kind) = bytes.next().and_then(|raw| PacketKind::try_from(raw).ok()) {
+                // Prevent deadlock
+                if kind == T::KIND {
+                    messages_to_send.push(bytes.collect());
+                } else {
+                    match &mut client.receive_message_map.get_mut(&kind) {
+                        Some(messages) => {
+                            messages.push(bytes.collect());
+                        }
+                        None => {
+                            error!("Coudn't find existing entries for message kind: {:?}", kind)
                         }
                     }
                 }
-                output
-            })
-            .filter_map(|message| match message {
-                Ok(message) => Some(message),
-                Err(error) => {
-                    error!("Failed to deserialize message: {}", error);
-                    None
-                }
-            })
-            .map(|msg| NetworkData { inner: msg }),
-    );
+            }
+        }
+
+        match output {
+            Ok(message) => parsed_messages.push(NetworkData { inner: message }),
+            Err(error) => error!("Failed to deserialize message: {}", error),
+        }
+    }
+
+    events.send_batch(parsed_messages);
 }
 
 pub struct ClientPlugin;
