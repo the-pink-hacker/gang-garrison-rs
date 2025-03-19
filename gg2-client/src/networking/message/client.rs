@@ -10,18 +10,6 @@ impl ClientNetworkSerialize for ClientHello {
     }
 }
 
-impl ClientNetworkSerialize for ClientReserveSlot {
-    fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
-        buffer.write_utf8_short_string(&self.player_name)
-    }
-}
-
-impl ClientNetworkSerialize for ClientPlayerJoin {
-    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
-        Ok(())
-    }
-}
-
 impl ClientNetworkSerialize for ClientPlayerChangeClass {
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
         buffer.push(self.class as u8);
@@ -35,5 +23,17 @@ impl ClientNetworkSerialize for ClientPlayerChangeTeam {
         buffer.push(self.team as u8);
 
         Ok(())
+    }
+}
+
+impl ClientNetworkSerialize for ClientPlayerJoin {
+    fn serialize(self, _buffer: &mut Vec<u8>) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl ClientNetworkSerialize for ClientReserveSlot {
+    fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
+        buffer.write_utf8_short_string(&self.player_name)
     }
 }

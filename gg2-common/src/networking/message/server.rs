@@ -12,69 +12,6 @@ use crate::{
 use super::GGMessage;
 
 #[derive(Debug, Clone)]
-pub struct ServerHello {
-    pub server_name: String,
-    pub map_name: String,
-    pub map_md5: Option<u128>,
-    pub plugins: Vec<()>,
-}
-
-impl GGMessage for ServerHello {
-    const KIND: PacketKind = PacketKind::Hello;
-}
-
-#[derive(Debug, Clone)]
-pub struct ServerReserveSlot;
-
-impl GGMessage for ServerReserveSlot {
-    const KIND: PacketKind = PacketKind::ReserveSlot;
-}
-
-#[derive(Debug, Clone)]
-pub struct ServerServerFull;
-
-impl GGMessage for ServerServerFull {
-    const KIND: PacketKind = PacketKind::ServerFull;
-}
-
-#[derive(Debug, Clone)]
-pub struct ServerInputState {
-    pub inputs: Vec<Option<RawInput>>,
-}
-
-impl GGMessage for ServerInputState {
-    const KIND: PacketKind = PacketKind::InputState;
-}
-
-#[derive(Debug, Clone)]
-pub struct ServerQuickUpdate {
-    pub player_characters: Vec<Option<(RawInput, RawPlayerInfo)>>,
-}
-
-impl GGMessage for ServerQuickUpdate {
-    const KIND: PacketKind = PacketKind::QuickUpdate;
-}
-
-#[derive(Debug, Clone)]
-pub struct ServerPlayerJoin {
-    pub player_name: String,
-}
-
-impl GGMessage for ServerPlayerJoin {
-    const KIND: PacketKind = PacketKind::PlayerJoin;
-}
-
-#[derive(Debug, Clone)]
-pub struct ServerJoinUpdate {
-    pub client_player_id: PlayerId,
-    pub map_area: u8,
-}
-
-impl GGMessage for ServerJoinUpdate {
-    const KIND: PacketKind = PacketKind::JoinUpdate;
-}
-
-#[derive(Debug, Clone)]
 pub struct ServerChangeMap {
     pub map_name: String,
     pub map_md5: Option<u128>,
@@ -85,23 +22,15 @@ impl GGMessage for ServerChangeMap {
 }
 
 #[derive(Debug, Clone)]
-pub struct ServerPlayerChangeClass {
-    pub player_index: PlayerId,
-    pub player_class: ClassGeneric,
+pub struct ServerPlayerDeath {
+    pub target: PlayerId,
+    pub attacker: Option<PlayerId>,
+    pub assist: Option<PlayerId>,
+    pub damage_source: DamageSource,
 }
 
-impl GGMessage for ServerPlayerChangeClass {
-    const KIND: PacketKind = PacketKind::PlayerChangeClass;
-}
-
-#[derive(Debug, Clone)]
-pub struct ServerPlayerChangeTeam {
-    pub player_index: PlayerId,
-    pub player_team: Team,
-}
-
-impl GGMessage for ServerPlayerChangeTeam {
-    const KIND: PacketKind = PacketKind::PlayerChangeTeam;
+impl GGMessage for ServerPlayerDeath {
+    const KIND: PacketKind = PacketKind::PlayerDeath;
 }
 
 #[derive(Debug, Clone)]
@@ -122,6 +51,7 @@ pub struct PlayerUpdateInfo {
     pub dominations: Vec<u8>,
     pub character: Option<(RawInput, RawPlayerInfo, RawAdditionalPlayerInfo)>,
 }
+
 #[derive(Debug, Clone)]
 pub struct ServerFullUpdate {
     pub team_death_match_invulnerability_ticks: u16,
@@ -149,12 +79,72 @@ impl GGMessage for ServerFullUpdate {
 }
 
 #[derive(Debug, Clone)]
+pub struct ServerHello {
+    pub server_name: String,
+    pub map_name: String,
+    pub map_md5: Option<u128>,
+    pub plugins: Vec<()>,
+}
+
+impl GGMessage for ServerHello {
+    const KIND: PacketKind = PacketKind::Hello;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerInputState {
+    pub inputs: Vec<Option<RawInput>>,
+}
+
+impl GGMessage for ServerInputState {
+    const KIND: PacketKind = PacketKind::InputState;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerJoinUpdate {
+    pub client_player_id: PlayerId,
+    pub map_area: u8,
+}
+
+impl GGMessage for ServerJoinUpdate {
+    const KIND: PacketKind = PacketKind::JoinUpdate;
+}
+
+#[derive(Debug, Clone)]
 pub struct ServerMessageString {
     pub message: String,
 }
 
 impl GGMessage for ServerMessageString {
     const KIND: PacketKind = PacketKind::MessageString;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerPlayerChangeClass {
+    pub player_index: PlayerId,
+    pub player_class: ClassGeneric,
+}
+
+impl GGMessage for ServerPlayerChangeClass {
+    const KIND: PacketKind = PacketKind::PlayerChangeClass;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerPlayerChangeTeam {
+    pub player_index: PlayerId,
+    pub player_team: Team,
+}
+
+impl GGMessage for ServerPlayerChangeTeam {
+    const KIND: PacketKind = PacketKind::PlayerChangeTeam;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerPlayerJoin {
+    pub player_name: String,
+}
+
+impl GGMessage for ServerPlayerJoin {
+    const KIND: PacketKind = PacketKind::PlayerJoin;
 }
 
 #[derive(Debug, Clone)]
@@ -178,13 +168,24 @@ impl GGMessage for ServerPlayerSpawn {
 }
 
 #[derive(Debug, Clone)]
-pub struct ServerPlayerDeath {
-    pub target: PlayerId,
-    pub attacker: Option<PlayerId>,
-    pub assist: Option<PlayerId>,
-    pub damage_source: DamageSource,
+pub struct ServerQuickUpdate {
+    pub player_characters: Vec<Option<(RawInput, RawPlayerInfo)>>,
 }
 
-impl GGMessage for ServerPlayerDeath {
-    const KIND: PacketKind = PacketKind::PlayerDeath;
+impl GGMessage for ServerQuickUpdate {
+    const KIND: PacketKind = PacketKind::QuickUpdate;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerReserveSlot;
+
+impl GGMessage for ServerReserveSlot {
+    const KIND: PacketKind = PacketKind::ReserveSlot;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerServerFull;
+
+impl GGMessage for ServerServerFull {
+    const KIND: PacketKind = PacketKind::ServerFull;
 }

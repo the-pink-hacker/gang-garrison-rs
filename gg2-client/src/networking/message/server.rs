@@ -12,101 +12,6 @@ use gg2_common::{
 
 use super::ClientNetworkDeserialize;
 
-impl ClientNetworkDeserialize for ServerHello {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let server_name = payload.read_utf8_short_string()?;
-        let map_name = payload.read_utf8_short_string()?;
-
-        let map_md5 = payload.read_md5()?;
-
-        let plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
-        let plugins_raw = payload.read_utf8_long_string()?;
-        debug!("Found {} plugins: [ {} ]", plugins_amounts, plugins_raw);
-
-        Ok(Self {
-            server_name,
-            map_name,
-            map_md5,
-            plugins: Vec::new(),
-        })
-    }
-}
-
-impl ClientNetworkDeserialize for ServerReserveSlot {
-    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
-        Ok(Self)
-    }
-}
-
-impl ClientNetworkDeserialize for ServerServerFull {
-    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
-        Ok(Self)
-    }
-}
-
-impl ClientNetworkDeserialize for ServerInputState {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let character_length = payload.read_u8()?;
-        let mut inputs = Vec::with_capacity(character_length as usize);
-
-        for _ in 0..character_length {
-            let has_character = payload.read_bool()?;
-            let input = if has_character {
-                Some(RawInput::deserialize(payload)?)
-            } else {
-                None
-            };
-
-            inputs.push(input);
-        }
-
-        Ok(Self { inputs })
-    }
-}
-
-impl ClientNetworkDeserialize for ServerQuickUpdate {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_length = payload.read_u8()?;
-
-        let mut player_characters = Vec::with_capacity(player_length.into());
-
-        for _ in 0..player_length {
-            let character_present = payload.read_bool()?;
-            let character = if character_present {
-                let input = RawInput::deserialize(payload)?;
-                let player_info = RawPlayerInfo::deserialize(payload)?;
-
-                Some((input, player_info))
-            } else {
-                None
-            };
-
-            player_characters.push(character);
-        }
-
-        Ok(Self { player_characters })
-    }
-}
-
-impl ClientNetworkDeserialize for ServerPlayerJoin {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_name = payload.read_utf8_short_string()?;
-
-        Ok(ServerPlayerJoin { player_name })
-    }
-}
-
-impl ClientNetworkDeserialize for ServerJoinUpdate {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let client_player_id = payload.read_u8()?.try_into()?;
-        let map_area = payload.read_u8()?;
-        Ok(ServerJoinUpdate {
-            client_player_id,
-            map_area,
-        })
-    }
-}
-
 impl ClientNetworkDeserialize for ServerChangeMap {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let map_name = payload.read_utf8_short_string()?;
@@ -117,36 +22,6 @@ impl ClientNetworkDeserialize for ServerChangeMap {
         } else {
             Ok(Self { map_name, map_md5 })
         }
-    }
-}
-
-impl ClientNetworkDeserialize for ServerPlayerChangeClass {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.try_into()?;
-        let player_class = payload
-            .read_u8()?
-            .try_into()
-            .map_err(|_| Error::PacketPayload)?;
-
-        Ok(Self {
-            player_index,
-            player_class,
-        })
-    }
-}
-
-impl ClientNetworkDeserialize for ServerPlayerChangeTeam {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.try_into()?;
-        let player_team = payload
-            .read_u8()?
-            .try_into()
-            .map_err(|_| Error::PacketPayload)?;
-
-        Ok(Self {
-            player_index,
-            player_team,
-        })
     }
 }
 
@@ -336,10 +211,118 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
     }
 }
 
+impl ClientNetworkDeserialize for ServerHello {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let server_name = payload.read_utf8_short_string()?;
+        let map_name = payload.read_utf8_short_string()?;
+
+        let map_md5 = payload.read_md5()?;
+
+        let plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let plugins_raw = payload.read_utf8_long_string()?;
+        debug!("Found {} plugins: [ {} ]", plugins_amounts, plugins_raw);
+
+        Ok(Self {
+            server_name,
+            map_name,
+            map_md5,
+            plugins: Vec::new(),
+        })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerInputState {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let character_length = payload.read_u8()?;
+        let mut inputs = Vec::with_capacity(character_length as usize);
+
+        for _ in 0..character_length {
+            let has_character = payload.read_bool()?;
+            let input = if has_character {
+                Some(RawInput::deserialize(payload)?)
+            } else {
+                None
+            };
+
+            inputs.push(input);
+        }
+
+        Ok(Self { inputs })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerJoinUpdate {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let client_player_id = payload.read_u8()?.try_into()?;
+        let map_area = payload.read_u8()?;
+        Ok(ServerJoinUpdate {
+            client_player_id,
+            map_area,
+        })
+    }
+}
+
 impl ClientNetworkDeserialize for ServerMessageString {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let message = payload.read_utf8_short_string()?;
         Ok(Self { message })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerPlayerChangeClass {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_index = payload.read_u8()?.try_into()?;
+        let player_class = payload
+            .read_u8()?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
+
+        Ok(Self {
+            player_index,
+            player_class,
+        })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerPlayerChangeTeam {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_index = payload.read_u8()?.try_into()?;
+        let player_team = payload
+            .read_u8()?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
+
+        Ok(Self {
+            player_index,
+            player_team,
+        })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerPlayerDeath {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let target = payload.read_u8()?.try_into()?;
+        let attacker = PlayerId::from_u8(payload.read_u8()?);
+        let assist = PlayerId::from_u8(payload.read_u8()?);
+        let damage_source = payload
+            .read_u8()?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
+
+        Ok(Self {
+            target,
+            attacker,
+            assist,
+            damage_source,
+        })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerPlayerJoin {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_name = payload.read_utf8_short_string()?;
+
+        Ok(ServerPlayerJoin { player_name })
     }
 }
 
@@ -364,21 +347,38 @@ impl ClientNetworkDeserialize for ServerPlayerSpawn {
     }
 }
 
-impl ClientNetworkDeserialize for ServerPlayerDeath {
+impl ClientNetworkDeserialize for ServerQuickUpdate {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let target = payload.read_u8()?.try_into()?;
-        let attacker = PlayerId::from_u8(payload.read_u8()?);
-        let assist = PlayerId::from_u8(payload.read_u8()?);
-        let damage_source = payload
-            .read_u8()?
-            .try_into()
-            .map_err(|_| Error::PacketPayload)?;
+        let player_length = payload.read_u8()?;
 
-        Ok(Self {
-            target,
-            attacker,
-            assist,
-            damage_source,
-        })
+        let mut player_characters = Vec::with_capacity(player_length.into());
+
+        for _ in 0..player_length {
+            let character_present = payload.read_bool()?;
+            let character = if character_present {
+                let input = RawInput::deserialize(payload)?;
+                let player_info = RawPlayerInfo::deserialize(payload)?;
+
+                Some((input, player_info))
+            } else {
+                None
+            };
+
+            player_characters.push(character);
+        }
+
+        Ok(Self { player_characters })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerReserveSlot {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
+        Ok(Self)
+    }
+}
+
+impl ClientNetworkDeserialize for ServerServerFull {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
+        Ok(Self)
     }
 }

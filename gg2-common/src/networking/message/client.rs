@@ -22,22 +22,6 @@ impl Default for ClientHello {
 }
 
 #[derive(Debug)]
-pub struct ClientReserveSlot {
-    pub player_name: String,
-}
-
-impl GGMessage for ClientReserveSlot {
-    const KIND: PacketKind = PacketKind::ReserveSlot;
-}
-
-#[derive(Debug)]
-pub struct ClientPlayerJoin;
-
-impl GGMessage for ClientPlayerJoin {
-    const KIND: PacketKind = PacketKind::PlayerJoin;
-}
-
-#[derive(Debug)]
 pub struct ClientPlayerChangeClass {
     pub class: ClassGeneric,
 }
@@ -53,4 +37,20 @@ pub struct ClientPlayerChangeTeam {
 
 impl GGMessage for ClientPlayerChangeTeam {
     const KIND: PacketKind = PacketKind::PlayerChangeTeam;
+}
+
+#[derive(Debug)]
+pub struct ClientPlayerJoin;
+
+impl GGMessage for ClientPlayerJoin {
+    const KIND: PacketKind = PacketKind::PlayerJoin;
+}
+
+#[derive(Debug)]
+pub struct ClientReserveSlot {
+    pub player_name: String,
+}
+
+impl GGMessage for ClientReserveSlot {
+    const KIND: PacketKind = PacketKind::ReserveSlot;
 }
