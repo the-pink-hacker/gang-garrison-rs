@@ -346,6 +346,7 @@ fn register_client_message_system<T: ClientNetworkDeserialize + GGMessage + 'sta
 
         if output.is_ok() && bytes.len() > 0 {
             if let Some(kind) = bytes.next().and_then(|raw| PacketKind::try_from(raw).ok()) {
+                trace!("Found another packet of kind: {:?}", kind);
                 // Prevent deadlock
                 if kind == T::KIND {
                     messages_to_send.push(bytes.collect());

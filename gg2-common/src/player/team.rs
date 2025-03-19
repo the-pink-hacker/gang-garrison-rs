@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, time::Duration};
 
 use bevy::prelude::*;
 use enum_iterator::Sequence;
@@ -52,4 +52,11 @@ pub enum TeamChoice {
     Spectator,
     #[default]
     Any,
+}
+
+#[derive(Debug, Clone)]
+pub struct Caps {
+    pub red_cap: u8,
+    pub blu_cap: u8,
+    pub respawn_time: Duration,
 }

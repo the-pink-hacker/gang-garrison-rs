@@ -7,10 +7,45 @@ use gg2_common::{
         error::{Error, Result},
         message::*,
     },
-    player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo},
+    player::{team::Caps, PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo},
 };
 
 use super::ClientNetworkDeserialize;
+
+impl ClientNetworkDeserialize for Caps {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let red_cap = payload.read_u8()?;
+        let blu_cap = payload.read_u8()?;
+
+        let raw_respawn_time = payload.read_u8()?;
+        let respawn_time = Duration::from_secs(raw_respawn_time as u64);
+
+        Ok(Self {
+            red_cap,
+            blu_cap,
+            respawn_time,
+        })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerCapsUpdate {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_amount = payload.read_u8()?;
+        let caps = Caps::deserialize(payload)?;
+
+        // TODO: HUD
+        payload.next();
+        payload.next();
+        payload.next();
+        payload.next();
+        payload.next();
+
+        Ok(Self {
+            player_amount,
+            caps,
+        })
+    }
+}
 
 impl ClientNetworkDeserialize for ServerChangeMap {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
@@ -164,11 +199,7 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
         }
 
         let cap_limit = payload.read_u8()?;
-        let red_cap = payload.read_u8()?;
-        let blu_cap = payload.read_u8()?;
-
-        let raw_respawn_time = payload.read_u8()?;
-        let respawn_time = Duration::from_secs(raw_respawn_time as u64);
+        let caps = Caps::deserialize(payload)?;
 
         // TODO: HUD
         payload.next();
@@ -194,9 +225,7 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
             red_intel,
             blu_intel,
             cap_limit,
-            red_cap,
-            blu_cap,
-            respawn_time,
+            caps,
             scout_limit,
             soldier_limit,
             sniper_limit,

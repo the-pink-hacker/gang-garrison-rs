@@ -145,27 +145,34 @@ fn handle_quick_update_system(mut events: EventReader<NetworkData<ServerQuickUpd
     }
 }
 
+fn handle_caps_update_system(mut events: EventReader<NetworkData<ServerCapsUpdate>>) {
+    for event in events.read() {
+        debug!("{:#?}", **event);
+    }
+}
+
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(socket::ClientPlugin)
             .init_state::<NetworkingState>()
-            .listen_for_client_message::<ServerHello>()
-            .listen_for_client_message::<ServerReserveSlot>()
-            .listen_for_client_message::<ServerServerFull>()
-            .listen_for_client_message::<ServerInputState>()
-            .listen_for_client_message::<ServerQuickUpdate>()
-            .listen_for_client_message::<ServerPlayerJoin>()
-            .listen_for_client_message::<ServerJoinUpdate>()
+            .listen_for_client_message::<ServerCapsUpdate>()
             .listen_for_client_message::<ServerChangeMap>()
+            .listen_for_client_message::<ServerFullUpdate>()
+            .listen_for_client_message::<ServerHello>()
+            .listen_for_client_message::<ServerInputState>()
+            .listen_for_client_message::<ServerJoinUpdate>()
+            .listen_for_client_message::<ServerMessageString>()
             .listen_for_client_message::<ServerPlayerChangeClass>()
             .listen_for_client_message::<ServerPlayerChangeTeam>()
-            .listen_for_client_message::<ServerFullUpdate>()
-            .listen_for_client_message::<ServerMessageString>()
+            .listen_for_client_message::<ServerPlayerDeath>()
+            .listen_for_client_message::<ServerPlayerJoin>()
             .listen_for_client_message::<ServerPlayerLeave>()
             .listen_for_client_message::<ServerPlayerSpawn>()
-            .listen_for_client_message::<ServerPlayerDeath>()
+            .listen_for_client_message::<ServerQuickUpdate>()
+            .listen_for_client_message::<ServerReserveSlot>()
+            .listen_for_client_message::<ServerServerFull>()
             .add_systems(OnEnter(ClientState::InGame), setup_networking_system)
             .add_systems(
                 FixedUpdate,
@@ -180,6 +187,7 @@ impl Plugin for NetworkingPlugin {
                         handle_change_map_system,
                         handle_full_update_system,
                         handle_input_state_system,
+                        handle_caps_update_system,
                     )
                         .run_if(
                             in_state(NetworkingState::PlayerJoining)

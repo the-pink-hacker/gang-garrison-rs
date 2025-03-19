@@ -5,11 +5,23 @@ use crate::{
     intel::RawIntel,
     networking::PacketKind,
     player::{
-        class::ClassGeneric, team::Team, PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,
+        class::ClassGeneric,
+        team::{Caps, Team},
+        PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,
     },
 };
 
 use super::GGMessage;
+
+#[derive(Debug, Clone)]
+pub struct ServerCapsUpdate {
+    pub player_amount: u8,
+    pub caps: Caps,
+}
+
+impl GGMessage for ServerCapsUpdate {
+    const KIND: PacketKind = PacketKind::CapsUpdate;
+}
 
 #[derive(Debug, Clone)]
 pub struct ServerChangeMap {
@@ -59,9 +71,7 @@ pub struct ServerFullUpdate {
     pub red_intel: Vec<RawIntel>,
     pub blu_intel: Vec<RawIntel>,
     pub cap_limit: u8,
-    pub red_cap: u8,
-    pub blu_cap: u8,
-    pub respawn_time: Duration,
+    pub caps: Caps,
     pub scout_limit: u8,
     pub soldier_limit: u8,
     pub sniper_limit: u8,
