@@ -60,21 +60,29 @@ fn crop_aspect_ratio(
 fn handle_window_resize_system(
     mut camera_query: Query<&mut Camera, With<MainCamera>>,
     mut resized_events: EventReader<WindowResized>,
+    window_query: Query<&Window>,
 ) {
     for resized_event in resized_events.read() {
-        let mut camera = camera_query.single_mut();
-        let viewport = camera.viewport.as_mut().unwrap();
+        if let Ok(window) = window_query.get(resized_event.window) {
+            let mut camera = camera_query.single_mut();
+            let viewport = camera.viewport.as_mut().unwrap();
 
-        let window_width = resized_event.width as u32;
-        let window_height = resized_event.height as u32;
-        let size = crop_aspect_ratio(4, 3, window_width, window_height);
+            // Ignore event's resolution
+            // The window physical size will ignore the OS's scaling
+            let window_width = window.resolution.physical_width();
+            let window_height = window.resolution.physical_height();
 
-        let window_size = UVec2::new(window_width, window_height);
+            let size = crop_aspect_ratio(4, 3, window_width, window_height);
 
-        let gap = (window_size - size) / 2;
+            let window_size = UVec2::new(window_width, window_height);
 
-        viewport.physical_size = size;
-        viewport.physical_position = gap;
+            let gap = (window_size - size) / 2;
+
+            viewport.physical_size = size;
+            viewport.physical_position = gap;
+        } else {
+            error!("Failed to get window.");
+        }
     }
 }
 
