@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::{
     damage::source::DamageSource,
     intel::RawIntel,
