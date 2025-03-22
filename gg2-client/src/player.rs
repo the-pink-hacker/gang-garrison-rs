@@ -156,7 +156,8 @@ fn handle_player_change_class_system(
                     "Player of index {} is changing class to: {:?}",
                     event.player_index, event.player_class
                 );
-                let player_texture = asset_server.load::<Image>("sprites/character.png");
+                let player_texture =
+                    asset_server.load::<Image>("sprites/characters/scout/red/stand/0.png");
                 // TODO: Look into required components
                 event
                     .player_class
