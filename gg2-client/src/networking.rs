@@ -98,9 +98,13 @@ fn handle_server_full_system(
     }
 }
 
-fn handle_join_update_system(mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>) {
+fn handle_join_update_system(
+    mut join_update_events: EventReader<NetworkData<ServerJoinUpdate>>,
+    mut state: ResMut<NextState<NetworkingState>>,
+) {
     for event in join_update_events.read() {
         debug!("{:#?}", **event);
+        state.set(NetworkingState::InGame);
     }
 }
 
@@ -129,13 +133,9 @@ fn handle_input_state_system(mut events: EventReader<NetworkData<ServerInputStat
     });
 }
 
-fn handle_message_string_system(
-    mut events: EventReader<NetworkData<ServerMessageString>>,
-    mut state: ResMut<NextState<NetworkingState>>,
-) {
+fn handle_message_string_system(mut events: EventReader<NetworkData<ServerMessageString>>) {
     for event in events.read() {
         debug!("{:#?}", **event);
-        state.set(NetworkingState::InGame);
     }
 }
 

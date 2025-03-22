@@ -1,14 +1,18 @@
 use bevy::{input::common_conditions::input_pressed, prelude::*, window::WindowResized};
 
+use crate::{networking::state::NetworkingState, player::ClientPlayer};
+
 const MOVE_SPEED: f32 = 400.0;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 #[require(Camera2d)]
-pub struct MainCamera;
+pub struct MainCamera {
+    pub freecam: bool,
+}
 
 fn setup_system(mut commands: Commands) {
     commands.spawn((
-        MainCamera,
+        MainCamera::default(),
         Camera {
             viewport: Some(default()),
             ..default()
@@ -38,6 +42,13 @@ fn move_camera_right_system(mut query: Query<&mut Transform, With<MainCamera>>, 
     if let Ok(mut camera_transform) = query.get_single_mut() {
         camera_transform.translation += Vec3::X * MOVE_SPEED * time.delta_secs();
     }
+}
+
+fn freecam_enabled(camera_query: Query<&MainCamera>) -> bool {
+    camera_query
+        .get_single()
+        .map(|camera| camera.freecam)
+        .unwrap_or_default()
 }
 
 // Somehow the most mind numbing thing I've written
@@ -86,20 +97,45 @@ fn handle_window_resize_system(
     }
 }
 
+fn follow_client_player(
+    mut camera_query: Query<&mut Transform, With<MainCamera>>,
+    player_query: Query<&Transform, (With<ClientPlayer>, Without<MainCamera>)>,
+) {
+    if let Ok(player_transform) = player_query.get_single() {
+        if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+            camera_transform.translation.x = player_transform.translation.x;
+            camera_transform.translation.y = player_transform.translation.y;
+        } else {
+            error!("Failed to lookup main camera transform");
+        }
+    } else {
+        error!("Failed to lookup client player transform");
+    }
+}
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_system).add_systems(
-            Update,
-            (
-                handle_window_resize_system,
-                move_camera_down_system.run_if(input_pressed(KeyCode::KeyS)),
-                move_camera_up_system.run_if(input_pressed(KeyCode::KeyW)),
-                move_camera_left_system.run_if(input_pressed(KeyCode::KeyA)),
-                move_camera_right_system.run_if(input_pressed(KeyCode::KeyD)),
-            ),
-        );
+        app.add_systems(Startup, setup_system)
+            .add_systems(
+                Update,
+                (
+                    handle_window_resize_system,
+                    (
+                        move_camera_down_system.run_if(input_pressed(KeyCode::KeyS)),
+                        move_camera_up_system.run_if(input_pressed(KeyCode::KeyW)),
+                        move_camera_left_system.run_if(input_pressed(KeyCode::KeyA)),
+                        move_camera_right_system.run_if(input_pressed(KeyCode::KeyD)),
+                    )
+                        .run_if(in_state(NetworkingState::InGame).and(freecam_enabled)),
+                ),
+            )
+            .add_systems(
+                FixedPostUpdate,
+                follow_client_player
+                    .run_if(in_state(NetworkingState::InGame).and(not(freecam_enabled))),
+            );
     }
 }
 

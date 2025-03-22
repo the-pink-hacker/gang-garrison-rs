@@ -13,6 +13,7 @@ use crate::{
     config::ClientConfig,
     networking::socket::NetworkClient,
     player::ClientPlayer,
+    render::camera::MainCamera,
     state::{ClientState, InGameDebugState, InGamePauseState},
 };
 
@@ -84,6 +85,7 @@ fn in_game_debug_sytem(
     time: Res<Time<Real>>,
     delta_time_one_percent: Res<DeltaTimeOnePercent>,
     delta_time_average: Res<DeltaTimeAverage>,
+    mut camera_query: Query<&mut MainCamera>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -183,6 +185,10 @@ fn in_game_debug_sytem(
                                 },
                             );
                         });
+
+                        if let Ok(mut camera) = camera_query.get_single_mut() {
+                            ui.checkbox(&mut camera.freecam, "Freecam");
+                        }
                     });
                 });
         });
