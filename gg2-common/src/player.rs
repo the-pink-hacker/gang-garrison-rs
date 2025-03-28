@@ -208,10 +208,61 @@ impl TryFrom<usize> for PlayerId {
     }
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct KeyState {
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool,
+}
+
+impl KeyState {
+    const UP_MASK: u8 = 1 << 7;
+    const DOWN_MASK: u8 = 1 << 1;
+    const LEFT_MASK: u8 = 1 << 6;
+    const RIGHT_MASK: u8 = 1 << 5;
+}
+
+impl From<u8> for KeyState {
+    fn from(value: u8) -> Self {
+        let up = value & Self::UP_MASK != 0;
+        let down = value & Self::DOWN_MASK != 0;
+        let left = value & Self::LEFT_MASK != 0;
+        let right = value & Self::RIGHT_MASK != 0;
+
+        Self {
+            up,
+            down,
+            left,
+            right,
+        }
+    }
+}
+
+impl From<KeyState> for u8 {
+    fn from(value: KeyState) -> Self {
+        let mut output = 0;
+
+        if value.up {
+            output |= KeyState::UP_MASK;
+        }
+        if value.down {
+            output |= KeyState::DOWN_MASK;
+        }
+        if value.left {
+            output |= KeyState::LEFT_MASK;
+        }
+        if value.right {
+            output |= KeyState::RIGHT_MASK;
+        }
+
+        output
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RawInput {
-    // TODO: Add key state
-    pub key_state: u8,
+    pub key_state: KeyState,
     pub net_aim_direction: u16,
     pub aim_distance: f32,
 }
@@ -261,5 +312,134 @@ pub struct CommonPlayerPlugin;
 impl Plugin for CommonPlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(FixedPostUpdate, remove_stale_players_system);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn u8_to_key_state_up() {
+        let raw = 0b1000_0000u8;
+
+        assert_eq!(
+            KeyState::from(raw),
+            KeyState {
+                up: true,
+                ..default()
+            }
+        );
+    }
+
+    #[test]
+    fn u8_to_key_state_down() {
+        let raw = 0b0000_0010u8;
+
+        assert_eq!(
+            KeyState::from(raw),
+            KeyState {
+                down: true,
+                ..default()
+            }
+        );
+    }
+
+    #[test]
+    fn u8_to_key_state_left() {
+        let raw = 0b0100_0000u8;
+
+        assert_eq!(
+            KeyState::from(raw),
+            KeyState {
+                left: true,
+                ..default()
+            }
+        );
+    }
+
+    #[test]
+    fn u8_to_key_state_right() {
+        let raw = 0b0010_0000u8;
+
+        assert_eq!(
+            KeyState::from(raw),
+            KeyState {
+                right: true,
+                ..default()
+            }
+        );
+    }
+
+    #[test]
+    fn u8_to_key_state_multiple() {
+        let raw = 0b1110_0000u8;
+
+        assert_eq!(
+            KeyState::from(raw),
+            KeyState {
+                up: true,
+                down: false,
+                left: true,
+                right: true,
+            }
+        );
+    }
+
+    #[test]
+    fn key_state_to_u8_up() {
+        assert_eq!(
+            u8::from(KeyState {
+                up: true,
+                ..default()
+            }),
+            0b1000_0000u8
+        );
+    }
+
+    #[test]
+    fn key_state_to_u8_down() {
+        assert_eq!(
+            u8::from(KeyState {
+                down: true,
+                ..default()
+            }),
+            0b0000_0010u8
+        );
+    }
+
+    #[test]
+    fn key_state_to_u8_left() {
+        assert_eq!(
+            u8::from(KeyState {
+                left: true,
+                ..default()
+            }),
+            0b0100_0000u8
+        );
+    }
+
+    #[test]
+    fn key_state_to_u8_right() {
+        assert_eq!(
+            u8::from(KeyState {
+                right: true,
+                ..default()
+            }),
+            0b0010_0000u8
+        );
+    }
+
+    #[test]
+    fn key_state_to_u8_multiple() {
+        assert_eq!(
+            u8::from(KeyState {
+                up: true,
+                down: true,
+                left: false,
+                right: true,
+            }),
+            0b1010_0010u8
+        );
     }
 }

@@ -62,7 +62,7 @@ impl ClientNetworkDeserialize for ServerChangeMap {
 
 impl ClientNetworkDeserialize for RawInput {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let key_state = payload.read_u8()?;
+        let key_state = payload.read_u8()?.into();
         let net_aim_direction = payload.read_u16()?;
         let aim_distance = payload.read_fixed_point_u8(0.5)?;
 
