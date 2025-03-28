@@ -1,4 +1,4 @@
-use crate::player::PlayerId;
+use crate::player::{team::TeamSpawnable, PlayerId};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -14,8 +14,8 @@ pub enum Error {
     PlayerIdTooMany,
     #[error("Spectators can't spawn")]
     SpawnSpectator,
-    #[error("Failed to locate spawn of index: {0}")]
-    SpawnLookup(u8),
+    #[error("Failed to locate {0:?} spawn at group {1} with index {2}")]
+    SpawnLookup(TeamSpawnable, u8, u8),
     #[error("Failed to lookup map data")]
     MapDataLookup,
 }

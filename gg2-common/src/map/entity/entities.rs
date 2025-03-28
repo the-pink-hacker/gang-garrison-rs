@@ -79,7 +79,7 @@ pub enum MapEntity {
     #[serde(rename = "spawnroom")]
     SpawnRoom(Transform),
     #[serde(rename = "redspawn")]
-    RedSpawn(Position),
+    RedSpawn0(Position),
     #[serde(rename = "redspawn1")]
     RedSpawn1(Position),
     #[serde(rename = "readspawn2")]
@@ -89,7 +89,7 @@ pub enum MapEntity {
     #[serde(rename = "readspawn4")]
     RedSpawn4(Position),
     #[serde(rename = "bluespawn")]
-    BluSpawn(Position),
+    BluSpawn0(Position),
     #[serde(rename = "bluespawn1")]
     BluSpawn1(Position),
     #[serde(rename = "bluespawn2")]
@@ -103,9 +103,9 @@ pub enum MapEntity {
     #[serde(rename = "blueintel")]
     BluIntel(Position),
     #[serde(rename = "redteamgate")]
-    RedTeamGate(Transform),
+    RedTeamGate1(Transform),
     #[serde(rename = "blueteamgate")]
-    BluTeamGate(Transform),
+    BluTeamGate1(Transform),
     #[serde(rename = "redteamgate2")]
     RedTeamGate2(Transform),
     #[serde(rename = "blueteamgate2")]

@@ -1,12 +1,17 @@
 use std::{fmt::Display, io::Read, str::FromStr};
 
-use bevy::asset::{
-    io::{AsyncSeekForwardExt, Reader},
-    AssetLoader, AsyncReadExt, LoadContext,
+use bevy::{
+    asset::{
+        io::{AsyncSeekForwardExt, Reader},
+        AssetLoader, AsyncReadExt, LoadContext,
+    },
+    prelude::*,
 };
 
 use error::{Error, Result};
 use flate2::{bufread::ZlibDecoder, Crc, CrcReader};
+
+use crate::player::team::TeamSpawnable;
 
 use super::{
     collision::{mesh::WalkQuadMask, WalkBitMask},
@@ -205,15 +210,30 @@ fn parse_map_data(raw: String) -> Result<MapData> {
 
     let entities = entities.ok_or(Error::DataTagMissing(MapDataTag::Entities))?;
 
-    let mut blu_spawns = Vec::new();
-    let mut red_spawns = Vec::new();
+    let mut blu_spawns = <[Vec<Vec2>; 5]>::default();
+    let mut red_spawns = <[Vec<Vec2>; 5]>::default();
 
     for entity in entities {
-        match entity {
-            MapEntity::BluSpawn(position) => blu_spawns.push(position.into()),
-            MapEntity::RedSpawn(position) => red_spawns.push(position.into()),
-            _ => (),
-        }
+        let (group, position, team) = match entity {
+            MapEntity::BluSpawn0(position) => (0, position, TeamSpawnable::Blu),
+            MapEntity::BluSpawn1(position) => (1, position, TeamSpawnable::Blu),
+            MapEntity::BluSpawn2(position) => (2, position, TeamSpawnable::Blu),
+            MapEntity::BluSpawn3(position) => (3, position, TeamSpawnable::Blu),
+            MapEntity::BluSpawn4(position) => (4, position, TeamSpawnable::Blu),
+            MapEntity::RedSpawn0(position) => (0, position, TeamSpawnable::Red),
+            MapEntity::RedSpawn1(position) => (1, position, TeamSpawnable::Red),
+            MapEntity::RedSpawn2(position) => (2, position, TeamSpawnable::Red),
+            MapEntity::RedSpawn3(position) => (3, position, TeamSpawnable::Red),
+            MapEntity::RedSpawn4(position) => (4, position, TeamSpawnable::Red),
+            _ => continue,
+        };
+
+        let spawns = match team {
+            TeamSpawnable::Red => &mut red_spawns,
+            TeamSpawnable::Blu => &mut blu_spawns,
+        };
+
+        spawns[group].push(position.into());
     }
 
     Ok(MapData {

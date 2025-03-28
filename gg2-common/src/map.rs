@@ -18,18 +18,25 @@ const MAP_SCALE: f32 = 6.0;
 #[derive(Asset, TypePath)]
 pub struct MapData {
     pub walk_mask: WalkQuadMask,
-    pub blu_spawns: Vec<Vec2>,
-    pub red_spawns: Vec<Vec2>,
+    pub blu_spawns: [Vec<Vec2>; 5],
+    pub red_spawns: [Vec<Vec2>; 5],
 }
 
 impl MapData {
-    pub fn get_spawn_position(&self, team: &TeamSpawnable, index: u8) -> Result<&Vec2> {
+    pub fn get_spawn_position(
+        &self,
+        team: &TeamSpawnable,
+        spawn_group: u8,
+        index: u8,
+    ) -> Result<&Vec2> {
         match team {
             TeamSpawnable::Blu => &self.blu_spawns,
             TeamSpawnable::Red => &self.red_spawns,
         }
+        .get(spawn_group as usize)
+        .ok_or(Error::SpawnLookup(*team, spawn_group, index))?
         .get(index as usize)
-        .ok_or(Error::SpawnLookup(index))
+        .ok_or(Error::SpawnLookup(*team, spawn_group, index))
     }
 }
 

@@ -239,6 +239,7 @@ fn handle_player_spawn_system(
     for event in events.read() {
         let spawn_result = spawn_player(
             event.player_index,
+            event.spawn_group,
             event.spawn_index,
             &mut player_query,
             &players,
@@ -247,7 +248,10 @@ fn handle_player_spawn_system(
         );
 
         match spawn_result {
-            Ok(position) => debug!("Spawned player {} at {}, {}", event.player_index, position),
+            Ok(position) => debug!(
+                "Spawned player {} at {}, {}",
+                event.player_index, position.x, position.y
+            ),
             Err(error) => error!("{}", error),
         }
     }
@@ -255,6 +259,7 @@ fn handle_player_spawn_system(
 
 fn spawn_player(
     player_id: impl Into<PlayerId>,
+    spawn_group: u8,
     spawn_index: u8,
     player_query: &mut Query<(&Player, &ClassGeneric, &Team, &mut Transform)>,
     players: &Res<Players>,
@@ -272,7 +277,7 @@ fn spawn_player(
         .and_then(|handle| map_data_assets.get(&handle.handle))
         .ok_or(Error::MapDataLookup)?;
 
-    let spawn_position = map_data.get_spawn_position(&spawnable_team, spawn_index)?;
+    let spawn_position = map_data.get_spawn_position(&spawnable_team, spawn_group, spawn_index)?;
 
     player_transform.translation.x = spawn_position.x;
     player_transform.translation.y = spawn_position.y;
@@ -307,7 +312,7 @@ impl Plugin for PlayerPlugin {
                             handle_player_change_team_system,
                             handle_player_change_class_system,
                         )
-                            .before(handle_player_spawn),
+                            .before(handle_player_spawn_system),
                         handle_quick_update_system,
                         //debug_players_system,
                         handle_player_leave_system,
