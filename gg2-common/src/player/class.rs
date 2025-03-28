@@ -75,7 +75,6 @@ trait Class: Component {
                 Self::SIZE.y,
             )),
         ));
-        Self::add_additional_components(commands);
     }
 
     fn add_additional_components(commands: &mut EntityCommands);

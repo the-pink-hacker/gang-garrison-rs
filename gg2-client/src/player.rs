@@ -1,4 +1,4 @@
-use bevy::{ecs::system::EntityCommands, prelude::*};
+use bevy::{ecs::system::EntityCommands, hierarchy::prelude::*, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_common::{
     error::{Error, Result},
@@ -60,6 +60,7 @@ fn add_client_player_system(
                 &mut players,
                 Player {
                     name: config.game.player_name.clone(),
+                    ..default()
                 },
             ) {
                 Ok((_, mut player)) => {
@@ -134,35 +135,21 @@ fn handle_player_change_class_system(
     mut events: EventReader<NetworkData<ServerPlayerChangeClass>>,
     mut commands: Commands,
     players: Res<Players>,
-    mut sprite_query: Query<&mut Sprite>,
-    asset_server: Res<AssetServer>,
 ) {
     for event in events.read() {
         let player_result = players
             .get_entity(event.player_index)
             .and_then(|player| {
-                sprite_query
-                    .get_mut(player)
-                    .ok()
-                    .and_then(|player_sprite| {
-                        commands
-                            .get_entity(player)
-                            .map(|player_commands| (player_commands, player_sprite))
-                    })
+                commands
+                    .get_entity(player)
                     .ok_or(Error::PlayerLookup(event.player_index))
             })
-            .map(|(mut player_commands, mut player_sprite)| {
+            .map(|mut player_commands| {
                 debug!(
                     "Player of index {} is changing class to: {:?}",
                     event.player_index, event.player_class
                 );
-                let player_texture =
-                    asset_server.load::<Image>("sprites/characters/scout/red/stand/0.png");
-                // TODO: Look into required components
-                event
-                    .player_class
-                    .add_class_components(&mut player_commands);
-                player_sprite.image = player_texture;
+                player_commands.insert(event.player_class);
             });
 
         if let Err(error) = player_result {
@@ -241,45 +228,56 @@ fn listen_for_client_player_id_system(
     }
 }
 
-fn handle_player_spawn(
+fn handle_player_spawn_system(
     mut events: EventReader<NetworkData<ServerPlayerSpawn>>,
     map_data_query: Query<&MapDataHandle, With<CurrentMap>>,
     map_data_assets: Res<Assets<MapData>>,
     players: Res<Players>,
-    mut player_query: Query<(&mut Transform, &Team)>,
+    mut player_query: Query<(&Player, &ClassGeneric, &Team, &mut Transform)>,
+    mut commands: Commands,
 ) {
     for event in events.read() {
-        if let Some((mut player_transform, player_team)) = players
-            .get_entity(event.player_index)
-            .ok()
-            .and_then(|entity| player_query.get_mut(entity).ok())
-        {
-            if let Some(map_data) = map_data_query
-                .get_single()
-                .ok()
-                .and_then(|handle| map_data_assets.get(&handle.handle))
-            {
-                match player_team
-                    .try_into()
-                    .and_then(|team| map_data.get_spawn_position(&team, event.spawn_index))
-                {
-                    Ok(spawn_position) => {
-                        player_transform.translation.x = spawn_position.x;
-                        player_transform.translation.y = spawn_position.y;
-                        debug!(
-                            "Spawned player {} at {}, {}",
-                            event.player_index, spawn_position.x, spawn_position.y
-                        );
-                    }
-                    Err(error) => error!("Failed to spawn player: {}", error),
-                }
-            } else {
-                error!("Failed to query map data.");
-            }
-        } else {
-            error!("Failed to find player of id: {}", event.player_index);
+        let spawn_result = spawn_player(
+            event.player_index,
+            event.spawn_index,
+            &mut player_query,
+            &players,
+            &map_data_query,
+            &map_data_assets,
+        );
+
+        match spawn_result {
+            Ok(position) => debug!("Spawned player {} at {}, {}", event.player_index, position),
+            Err(error) => error!("{}", error),
         }
     }
+}
+
+fn spawn_player(
+    player_id: impl Into<PlayerId>,
+    spawn_index: u8,
+    player_query: &mut Query<(&Player, &ClassGeneric, &Team, &mut Transform)>,
+    players: &Res<Players>,
+    map_data_query: &Query<&MapDataHandle, With<CurrentMap>>,
+    map_data_assets: &Res<Assets<MapData>>,
+) -> Result<Vec2> {
+    let (_, (player, player_class, player_team, mut player_transform)) =
+        players.query_mut_entity(player_id, player_query)?;
+
+    let spawnable_team = player_team.try_into()?;
+
+    let map_data = map_data_query
+        .get_single()
+        .ok()
+        .and_then(|handle| map_data_assets.get(&handle.handle))
+        .ok_or(Error::MapDataLookup)?;
+
+    let spawn_position = map_data.get_spawn_position(&spawnable_team, spawn_index)?;
+
+    player_transform.translation.x = spawn_position.x;
+    player_transform.translation.y = spawn_position.y;
+
+    Ok(*spawn_position)
 }
 
 fn handle_player_death_system(mut events: EventReader<NetworkData<ServerPlayerDeath>>) {
@@ -313,7 +311,7 @@ impl Plugin for PlayerPlugin {
                         handle_quick_update_system,
                         //debug_players_system,
                         handle_player_leave_system,
-                        handle_player_spawn,
+                        handle_player_spawn_system,
                         handle_player_death_system,
                     )
                         .run_if(

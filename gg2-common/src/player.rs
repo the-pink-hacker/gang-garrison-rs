@@ -1,6 +1,12 @@
 use std::fmt::Display;
 
-use bevy::{ecs::system::EntityCommands, prelude::*};
+use bevy::{
+    ecs::{
+        query::{QueryData, WorldQuery},
+        system::EntityCommands,
+    },
+    prelude::*,
+};
 use class::ClassGeneric;
 use team::Team;
 
@@ -10,6 +16,7 @@ use crate::{
     networking::message::ServerPlayerJoin,
 };
 
+pub mod character;
 pub mod class;
 pub mod team;
 
@@ -45,6 +52,40 @@ impl Players {
             .get(usize::from(player_index))
             .cloned()
             .ok_or(Error::PlayerLookup(player_index))
+    }
+
+    pub fn query_entity<'q, 'w, 's, D>(
+        &self,
+        player_index: impl Into<PlayerId>,
+        query: &'q Query<'w, 's, D>,
+    ) -> Result<(Entity, <D as WorldQuery>::Item<'q>)>
+    where
+        D: QueryData<ReadOnly = D>,
+    {
+        let player_index = player_index.into();
+        let player_entity = self.get_entity(player_index)?;
+
+        query
+            .get(player_entity)
+            .map_err(|_| Error::PlayerLookup(player_index))
+            .map(|query_result| (player_entity, query_result))
+    }
+
+    pub fn query_mut_entity<'q, 'w, 's, D>(
+        &self,
+        player_index: impl Into<PlayerId>,
+        query: &'q mut Query<'w, 's, D>,
+    ) -> Result<(Entity, <D as WorldQuery>::Item<'q>)>
+    where
+        D: QueryData,
+    {
+        let player_index = player_index.into();
+        let player_entity = self.get_entity(player_index)?;
+
+        query
+            .get_mut(player_entity)
+            .map_err(|_| Error::PlayerLookup(player_index))
+            .map(move |query_result| (player_entity, query_result))
     }
 
     pub fn mark_remove(
@@ -98,12 +139,14 @@ impl<'a> IntoIterator for &'a Players {
 #[derive(Debug, Component, Default)]
 pub struct Player {
     pub name: String,
+    pub character: Option<Entity>,
 }
 
 impl From<ServerPlayerJoin> for Player {
     fn from(value: ServerPlayerJoin) -> Self {
         Self {
             name: value.player_name,
+            ..default()
         }
     }
 }

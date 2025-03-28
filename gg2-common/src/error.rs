@@ -16,4 +16,6 @@ pub enum Error {
     SpawnSpectator,
     #[error("Failed to locate spawn of index: {0}")]
     SpawnLookup(u8),
+    #[error("Failed to lookup map data")]
+    MapDataLookup,
 }
