@@ -1,0 +1,14 @@
+[package]
+name = "gg2-custom-client"
+edition = "2024"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+env_logger = "0.11.8"
+log = "0.4.27"
+thiserror = "2.0.12"
+wgpu = "25.0.0"
+winit = "0.30.9"
