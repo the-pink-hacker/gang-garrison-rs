@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use gg2_common::game::*;
+use gg2_bevy_common::game::*;
 
 use crate::state::ClientState;
 

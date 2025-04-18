@@ -1,4 +1,4 @@
-use gg2_common::networking::{error::Result, message::*};
+use gg2_bevy_common::networking::{error::Result, message::*};
 
 use super::ClientNetworkSerialize;
 

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use gg2_common::{
+use gg2_bevy_common::{
     intel::RawIntel,
     networking::{
         error::{Error, Result},

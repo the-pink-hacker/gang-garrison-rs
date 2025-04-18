@@ -1,5 +1,5 @@
 [package]
-name = "gg2-common"
+name = "gg2-bevy-common"
 edition = "2021"
 version.workspace = true
 authors.workspace = true

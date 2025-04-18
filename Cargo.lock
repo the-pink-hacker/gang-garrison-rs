@@ -2334,7 +2334,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gg2-client"
+name = "gg2-bevy-client"
 version = "0.1.0"
 dependencies = [
  "bevy",
@@ -2343,7 +2343,7 @@ dependencies = [
  "crossbeam-channel",
  "dashmap",
  "enum-iterator",
- "gg2-common",
+ "gg2-bevy-common",
  "log",
  "serde",
  "tokio",
@@ -2351,7 +2351,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gg2-common"
+name = "gg2-bevy-common"
 version = "0.1.0"
 dependencies = [
  "bevy",

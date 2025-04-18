@@ -1,6 +1,6 @@
 use bevy::{ecs::system::EntityCommands, hierarchy::prelude::*, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
-use gg2_common::{
+use gg2_bevy_common::{
     error::{Error, Result},
     map::{CurrentMap, MapData, MapDataHandle},
     networking::message::*,

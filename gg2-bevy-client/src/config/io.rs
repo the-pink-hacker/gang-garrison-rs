@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use gg2_common::config::error::{LoadError, SaveError};
+use gg2_bevy_common::config::error::{LoadError, SaveError};
 use log::{error, info, warn};
 
 use super::ClientConfig;

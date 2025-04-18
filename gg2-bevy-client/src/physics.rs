@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use gg2_common::physics::*;
+use gg2_bevy_common::physics::*;
 
 pub struct ClientPhysicsPlugin;
 

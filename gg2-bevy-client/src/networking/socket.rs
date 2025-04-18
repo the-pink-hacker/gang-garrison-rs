@@ -5,7 +5,7 @@ use std::{net::SocketAddr, sync::Arc};
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
-use gg2_common::networking::{
+use gg2_bevy_common::networking::{
     error::{Error, Result},
     message::GGMessage,
     NetworkPacket, PacketKind,
@@ -54,7 +54,7 @@ impl Default for NetworkSettings {
 pub enum ClientNetworkEvent {
     Connected,
     Disconnected,
-    Error(gg2_common::networking::error::Error),
+    Error(gg2_bevy_common::networking::error::Error),
 }
 
 #[derive(Debug)]

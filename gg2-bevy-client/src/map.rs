@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use bevy::prelude::*;
-use gg2_common::{map::*, networking::message::ServerChangeMap};
+use gg2_bevy_common::{map::*, networking::message::ServerChangeMap};
 
 use crate::networking::NetworkData;
 
