@@ -5,6 +5,7 @@ use std::{net::SocketAddr, sync::Arc};
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
+use gg2_client::networking::message::{ClientNetworkDeserialize, ClientNetworkSerialize};
 use gg2_common::networking::{NetworkPacket, PacketKind, error::*, message::GGMessage};
 use log::debug;
 use tokio::{
@@ -16,8 +17,6 @@ use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     task::JoinHandle,
 };
-
-use super::message::{ClientNetworkDeserialize, ClientNetworkSerialize};
 
 #[derive(Debug)]
 pub struct SyncChannel<T> {

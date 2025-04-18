@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "gg2-bevy-client", "gg2-bevy-common", "gg2-common", "gg2-custom-client",
+    "gg2-bevy-client", "gg2-bevy-common", "gg2-client", "gg2-common", "gg2-custom-client",
 ]
 
 [workspace.package]

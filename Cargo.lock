@@ -2344,6 +2344,7 @@ dependencies = [
  "dashmap",
  "enum-iterator",
  "gg2-bevy-common",
+ "gg2-client",
  "gg2-common",
  "log",
  "serde",
@@ -2363,6 +2364,14 @@ dependencies = [
  "serde-hjson",
  "thiserror 2.0.12",
  "toml",
+]
+
+[[package]]
+name = "gg2-client"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "gg2-common",
 ]
 
 [[package]]

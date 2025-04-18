@@ -1,6 +1,7 @@
 use bevy::{input::common_conditions::input_pressed, prelude::*, window::WindowResized};
+use gg2_client::networking::state::NetworkingState;
 
-use crate::{networking::state::NetworkingState, player::ClientPlayer};
+use crate::player::ClientPlayer;
 
 const MOVE_SPEED: f32 = 400.0;
 

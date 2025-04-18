@@ -1,14 +1,12 @@
 use bevy::prelude::*;
+use gg2_client::networking::state::NetworkingState;
 use gg2_common::{networking::message::*, player::PlayerId};
 use log::debug;
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 
-pub mod message;
 pub mod socket;
-pub mod state;
 
 pub use socket::NetworkData;
-use state::NetworkingState;
 
 use crate::{config::ClientConfig, state::ClientState};
 

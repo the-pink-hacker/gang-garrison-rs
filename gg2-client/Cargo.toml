@@ -1,0 +1,11 @@
+[package]
+name = "gg2-client"
+edition = "2024"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+bevy = { version = "0.15.3", default-features = false, features = ["bevy_core_pipeline"], optional = true }
+gg2-common = { path = "../gg2-common", features = ["bevy"] }

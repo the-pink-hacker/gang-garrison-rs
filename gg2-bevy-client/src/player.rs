@@ -4,17 +4,14 @@ use gg2_bevy_common::{
     map::{CurrentMap, MapData, MapDataHandle},
     player::{CommonPlayerPlugin, Players, PositionShift},
 };
+use gg2_client::networking::state::NetworkingState;
 use gg2_common::{
     error::*,
     networking::message::*,
     player::{Player, PlayerId, class::ClassGeneric, team::Team},
 };
 
-use crate::{
-    config::ClientConfig,
-    networking::{NetworkData, state::NetworkingState},
-    state::ClientState,
-};
+use crate::{config::ClientConfig, networking::NetworkData, state::ClientState};
 
 #[derive(Component)]
 pub struct ClientPlayer;
