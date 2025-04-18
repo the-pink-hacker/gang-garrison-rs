@@ -1,13 +1,13 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use gg2_bevy_common::{
+use gg2_common::{
     intel::RawIntel,
     networking::{
         error::{Error, Result},
         message::*,
     },
-    player::{team::Caps, PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo},
+    player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, team::Caps},
 };
 
 use super::ClientNetworkDeserialize;

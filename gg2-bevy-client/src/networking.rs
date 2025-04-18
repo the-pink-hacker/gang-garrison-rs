@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use gg2_bevy_common::{networking::message::*, player::PlayerId};
+use gg2_common::{networking::message::*, player::PlayerId};
 use log::debug;
 use socket::{AppNetworkClientMessage, ClientNetworkEvent, NetworkClient, NetworkSettings};
 

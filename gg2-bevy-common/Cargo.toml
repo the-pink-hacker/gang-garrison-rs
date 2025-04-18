@@ -1,6 +1,6 @@
 [package]
 name = "gg2-bevy-common"
-edition = "2021"
+edition = "2024"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -9,12 +9,9 @@ repository.workspace = true
 [dependencies]
 bevy = { version = "0.15.3", default-features = false, features = ["bevy_core_pipeline"] }
 bevy_rapier2d = "0.29.0"
-enum-iterator = "2.1.0"
 flate2 = "1.0.33"
-hex = "0.4.3"
-num_enum = "0.7.3"
+gg2-common = { path = "../gg2-common", features = ["bevy"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde-hjson = { version = "1.0.0", default-features = false }
 thiserror = "2.0.12"
 toml = "0.8.19"
-uuid = "1.10.0"

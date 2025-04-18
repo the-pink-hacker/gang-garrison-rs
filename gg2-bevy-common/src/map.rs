@@ -1,13 +1,10 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use collision::mesh::WalkQuadMask;
+use gg2_common::{error::*, player::team::TeamSpawnable};
 use io::MapDataLoader;
 
-use crate::{
-    error::{Error, Result},
-    game::InGameOnly,
-    player::team::TeamSpawnable,
-};
+use crate::game::InGameOnly;
 
 pub mod collision;
 pub mod entity;

@@ -5,19 +5,15 @@ use std::{net::SocketAddr, sync::Arc};
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
-use gg2_bevy_common::networking::{
-    error::{Error, Result},
-    message::GGMessage,
-    NetworkPacket, PacketKind,
-};
+use gg2_common::networking::{NetworkPacket, PacketKind, error::*, message::GGMessage};
 use log::debug;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
-        tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream,
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
     },
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     task::JoinHandle,
 };
 
@@ -54,7 +50,7 @@ impl Default for NetworkSettings {
 pub enum ClientNetworkEvent {
     Connected,
     Disconnected,
-    Error(gg2_bevy_common::networking::error::Error),
+    Error(Error),
 }
 
 #[derive(Debug)]

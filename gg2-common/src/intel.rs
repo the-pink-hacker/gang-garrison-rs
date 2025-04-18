@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
+use glam::Vec2;
 
 #[derive(Debug, Clone)]
 pub struct RawIntel {

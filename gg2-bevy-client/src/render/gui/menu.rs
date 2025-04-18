@@ -1,10 +1,10 @@
 use std::{ops::DerefMut, time::Duration};
 
 use bevy::{core::FrameCount, prelude::*, time::common_conditions::on_real_timer};
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{EguiContexts, egui};
 use bevy_rapier2d::render::DebugRenderContext;
 use elements::*;
-use gg2_bevy_common::{
+use gg2_common::{
     networking::message::{ClientPlayerChangeClass, ClientPlayerChangeTeam},
     player::{class::ClassGeneric, team::Team},
 };

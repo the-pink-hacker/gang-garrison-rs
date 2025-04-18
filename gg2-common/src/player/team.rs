@@ -1,14 +1,12 @@
 use std::{fmt::Display, time::Duration};
 
-use bevy::prelude::*;
 use enum_iterator::Sequence;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::error::{Error, Result};
 
-#[derive(
-    Debug, Default, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence,
-)]
+#[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
+#[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 #[repr(u8)]
 pub enum Team {
     Red,
@@ -23,9 +21,8 @@ impl Display for Team {
     }
 }
 
-#[derive(
-    Debug, Component, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence,
-)]
+#[derive(Debug, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
+#[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 #[repr(u8)]
 pub enum TeamSpawnable {
     Red,

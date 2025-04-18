@@ -13,6 +13,7 @@ use crate::{
 const CURSOR_SIZE: u16 = 16;
 
 // TODO: Seems to not work on Linux (maybe not at all)
+#[allow(unused)]
 fn setup_cursor_system(
     mut commands: Commands,
     mut window_created_events: EventReader<WindowCreated>,

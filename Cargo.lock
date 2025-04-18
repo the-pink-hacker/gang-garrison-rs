@@ -2344,6 +2344,7 @@ dependencies = [
  "dashmap",
  "enum-iterator",
  "gg2-bevy-common",
+ "gg2-common",
  "log",
  "serde",
  "tokio",
@@ -2356,14 +2357,24 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_rapier2d",
- "enum-iterator",
  "flate2",
- "hex",
- "num_enum",
+ "gg2-common",
  "serde",
  "serde-hjson",
  "thiserror 2.0.12",
  "toml",
+]
+
+[[package]]
+name = "gg2-common"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "enum-iterator",
+ "glam",
+ "hex",
+ "num_enum",
+ "thiserror 2.0.12",
  "uuid",
 ]
 

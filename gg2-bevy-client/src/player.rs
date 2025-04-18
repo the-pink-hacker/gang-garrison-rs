@@ -1,18 +1,18 @@
-use bevy::{ecs::system::EntityCommands, hierarchy::prelude::*, prelude::*};
+use bevy::{ecs::system::EntityCommands, prelude::*};
 use bevy_rapier2d::prelude::{ColliderDisabled, RigidBodyDisabled};
 use gg2_bevy_common::{
-    error::{Error, Result},
     map::{CurrentMap, MapData, MapDataHandle},
+    player::{CommonPlayerPlugin, Players, PositionShift},
+};
+use gg2_common::{
+    error::*,
     networking::message::*,
-    player::{
-        class::ClassGeneric, team::Team, CommonPlayerPlugin, Player, PlayerId, Players,
-        PositionShift,
-    },
+    player::{Player, PlayerId, class::ClassGeneric, team::Team},
 };
 
 use crate::{
     config::ClientConfig,
-    networking::{state::NetworkingState, NetworkData},
+    networking::{NetworkData, state::NetworkingState},
     state::ClientState,
 };
 
@@ -208,9 +208,7 @@ fn debug_players_system(player_query: Query<(&Player, &ClassGeneric, &Team)>) {
     player_query.iter().for_each(|(player, class, team)| {
         trace!(
             "[Player] name: \"{}\", class: {:?}, team: {:?}",
-            player.name,
-            class,
-            team
+            player.name, class, team
         );
     });
 }
@@ -234,7 +232,6 @@ fn handle_player_spawn_system(
     map_data_assets: Res<Assets<MapData>>,
     players: Res<Players>,
     mut player_query: Query<(&Player, &ClassGeneric, &Team, &mut Transform)>,
-    mut commands: Commands,
 ) {
     for event in events.read() {
         let spawn_result = spawn_player(
@@ -266,7 +263,7 @@ fn spawn_player(
     map_data_query: &Query<&MapDataHandle, With<CurrentMap>>,
     map_data_assets: &Res<Assets<MapData>>,
 ) -> Result<Vec2> {
-    let (_, (player, player_class, player_team, mut player_transform)) =
+    let (_, (_player, _player_class, player_team, mut player_transform)) =
         players.query_mut_entity(player_id, player_query)?;
 
     let spawnable_team = player_team.try_into()?;

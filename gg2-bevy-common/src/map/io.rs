@@ -2,22 +2,20 @@ use std::{fmt::Display, io::Read, str::FromStr};
 
 use bevy::{
     asset::{
-        io::{AsyncSeekForwardExt, Reader},
         AssetLoader, AsyncReadExt, LoadContext,
+        io::{AsyncSeekForwardExt, Reader},
     },
     prelude::*,
 };
-
-use error::{Error, Result};
-use flate2::{bufread::ZlibDecoder, Crc, CrcReader};
-
-use crate::player::team::TeamSpawnable;
+use flate2::{Crc, CrcReader, bufread::ZlibDecoder};
+use gg2_common::player::team::TeamSpawnable;
 
 use super::{
-    collision::{mesh::WalkQuadMask, WalkBitMask},
-    entity::entities::MapEntity,
     MapData,
+    collision::{WalkBitMask, mesh::WalkQuadMask},
+    entity::entities::MapEntity,
 };
+use error::{Error, Result};
 
 pub mod error;
 

@@ -1,8 +1,8 @@
-use bevy::math::Vec2;
+use glam::Vec2;
 
 use crate::networking::error::Error;
 
-use super::{error::Result, PacketKind};
+use super::{PacketKind, error::Result};
 pub use client::*;
 pub use server::*;
 
