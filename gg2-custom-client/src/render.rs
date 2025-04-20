@@ -5,12 +5,14 @@ use winit::{
     event::*,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
+    platform::run_on_demand::EventLoopExtRunOnDemand,
     window::{Window, WindowId},
 };
 
-use crate::init::App;
+use crate::init::{App, World};
 use crate::prelude::*;
 
+/// Holds all rendering structs such as the window
 pub struct State {
     window: Arc<Window>,
     device: wgpu::Device,
@@ -113,19 +115,33 @@ impl State {
 
 impl App {
     /// Initializes render loop
-    pub fn init_render(&mut self) -> Result<()> {
-        let event_loop = EventLoop::new()?;
+    pub fn init_render(&self) -> Result<()> {
+        let mut event_loop = EventLoop::new()?;
 
         // For now, render as fast as possible
         event_loop.set_control_flow(ControlFlow::Poll);
 
-        event_loop.run_app(self)?;
+        let world = Arc::clone(&self.world);
+        event_loop
+            .run_app_on_demand(&mut RenderApp::new(world))
+            .unwrap();
 
         Ok(())
     }
 }
 
-impl ApplicationHandler for App {
+pub struct RenderApp {
+    world: Arc<World>,
+    state: Option<State>,
+}
+
+impl RenderApp {
+    fn new(world: Arc<World>) -> Self {
+        Self { world, state: None }
+    }
+}
+
+impl ApplicationHandler for RenderApp {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         // Create window
         let window = Arc::new(
@@ -137,7 +153,7 @@ impl ApplicationHandler for App {
         let state = pollster::block_on(async { State::new(Arc::clone(&window)).await })
             .expect("Failed to create render state");
 
-        self.render_state = Some(state);
+        self.state = Some(state);
         window.request_redraw();
     }
 
@@ -147,10 +163,7 @@ impl ApplicationHandler for App {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        let state = self
-            .render_state
-            .as_mut()
-            .expect("Render state is uninitialized");
+        let state = self.state.as_mut().expect("Render state is uninitialized");
         match event {
             WindowEvent::CloseRequested => {
                 info!("User closed window; stopping");

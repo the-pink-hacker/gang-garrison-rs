@@ -1,16 +1,51 @@
-use crate::prelude::*;
+use std::sync::Arc;
 
-#[derive(Default)]
+use tokio::sync::RwLock;
+
+use crate::{networking::io::NetworkClient, prelude::*};
+
 pub struct App {
-    pub render_state: Option<crate::render::State>,
+    pub world: Arc<World>,
 }
 
 impl App {
     /// Initializes the client and begins the game loop
-    pub fn run_client(mut self) -> Result<()> {
+    pub fn new() -> Self {
         env_logger::init();
+
+        let network_client = NetworkClient::default();
+
+        Self {
+            world: Arc::new(World {
+                network_client: RwLock::new(network_client),
+            }),
+        }
+    }
+
+    pub async fn start(self) -> Result<()> {
+        let world = Arc::clone(&self.world);
+
+        tokio::spawn(async move {
+            loop {
+                // TODO: Make update loop fixed
+                Self::update(&world).await;
+            }
+        });
+
         self.init_render()?;
 
         Ok(())
     }
+
+    async fn update(world: &World) {
+        {
+            let mut networking_client = world.network_client.write().await;
+            networking_client.handle_connection_event();
+        }
+    }
+}
+
+/// The world is used to pass data between threads
+pub struct World {
+    pub network_client: RwLock<NetworkClient>,
 }
