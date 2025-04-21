@@ -4,7 +4,6 @@ use crossbeam_channel::{Receiver, Sender};
 use dashmap::DashMap;
 use gg2_client::networking::message::{ClientNetworkDeserialize, ClientNetworkSerialize};
 use gg2_common::networking::{NetworkPacket, PacketKind, error::*, message::GGMessage};
-use log::{debug, error, trace};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -15,7 +14,10 @@ use tokio::{
     task::JoinHandle,
 };
 
-const MAX_PACKET_LENGTH: usize = 1024;
+use crate::prelude::{UpdateMutRunnable, World, debug, error, info, trace};
+
+pub const MAX_PACKET_LENGTH: usize = 1024;
+pub const DEFAULT_PORT: u16 = 8190;
 
 #[derive(Debug)]
 pub struct SyncChannel<T> {
@@ -72,6 +74,7 @@ impl FromMessage for NetworkPacket {
 
 #[derive(Debug, Default)]
 pub struct NetworkClient {
+    tried_connect: bool, // TODO: REMOVE; IS FOR DEBUG
     server_connection: Option<ServerConnection>,
     receive_message_map: Arc<DashMap<PacketKind, Vec<Vec<u8>>>>,
     network_events: SyncChannel<ClientNetworkEvent>,
@@ -132,32 +135,68 @@ impl NetworkClient {
             .map_err(|_| Error::NotConnected)
     }
 
-    /// Sets up send and receive threads
-    pub fn handle_connection_event(&mut self) {
-        let (connection, peer_address) = match self.connection_events.receiver.try_recv() {
-            Ok(event) => event,
-            Err(err) => {
-                return;
-            }
+    pub fn is_connected(&self) -> bool {
+        self.server_connection.is_some()
+    }
+
+    /// Sets up send and receive threads when connecting
+    fn handle_connection_event(&mut self) {
+        if let Ok((connection, peer_address)) = self.connection_events.receiver.try_recv() {
+            let (read_socket, send_socket) = connection.into_split();
+            let (send_message, receive_message) = unbounded_channel();
+
+            self.server_connection = Some(ServerConnection {
+                send_task: tokio::spawn(send_task(
+                    receive_message,
+                    send_socket,
+                    self.network_events.sender.clone(),
+                )),
+                receive_task: tokio::spawn(receive_task(
+                    read_socket,
+                    self.receive_message_map.clone(),
+                    peer_address,
+                    self.network_events.sender.clone(),
+                )),
+                send_message,
+            });
+
+            info!("Connected to server {}", peer_address);
         };
+    }
 
-        let (read_socket, send_socket) = connection.into_split();
-        let (send_message, receive_message) = unbounded_channel();
+    fn handle_network_events(&mut self) {
+        self.network_events
+            .receiver
+            .try_iter()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .for_each(|event| match event {
+                ClientNetworkEvent::Connected => debug!("Network Event: Connected to server"),
+                ClientNetworkEvent::Disconnected => {
+                    debug!("Network Event: Disconnected from server");
+                    self.tried_connect = false;
+                }
+                ClientNetworkEvent::Error(error) => error!("Network Event: {}", error),
+            });
+    }
+}
 
-        self.server_connection = Some(ServerConnection {
-            send_task: tokio::spawn(send_task(
-                receive_message,
-                send_socket,
-                self.network_events.sender.clone(),
-            )),
-            receive_task: tokio::spawn(receive_task(
-                read_socket,
-                self.receive_message_map.clone(),
-                peer_address,
-                self.network_events.sender.clone(),
-            )),
-            send_message,
-        });
+impl UpdateMutRunnable for NetworkClient {
+    async fn update_mut(&mut self, world: &World) {
+        self.handle_connection_event();
+        self.handle_network_events();
+
+        if self.is_connected() {
+            info!("Connected");
+        } else if !self.tried_connect {
+            info!("Trying connection");
+            self.connect(std::net::SocketAddr::V4(std::net::SocketAddrV4::new(
+                std::net::Ipv4Addr::LOCALHOST,
+                crate::networking::io::DEFAULT_PORT,
+            )))
+            .await;
+            self.tried_connect = true;
+        }
     }
 }
 

@@ -13,7 +13,7 @@ impl App {
     pub fn new() -> Self {
         env_logger::init();
 
-        let network_client = NetworkClient::default();
+        let mut network_client = NetworkClient::default();
 
         Self {
             world: Arc::new(World {
@@ -40,7 +40,7 @@ impl App {
     async fn update(world: &World) {
         {
             let mut networking_client = world.network_client.write().await;
-            networking_client.handle_connection_event();
+            networking_client.update_mut(world).await;
         }
     }
 }
@@ -48,4 +48,12 @@ impl App {
 /// The world is used to pass data between threads
 pub struct World {
     pub network_client: RwLock<NetworkClient>,
+}
+
+pub trait UpdateRunnable {
+    async fn update(&self, world: &World);
+}
+
+pub trait UpdateMutRunnable {
+    async fn update_mut(&mut self, world: &World);
 }
