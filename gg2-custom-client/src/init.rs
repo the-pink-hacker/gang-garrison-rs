@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
-use tokio::sync::RwLock;
+use tokio::{sync::RwLock, time::Duration};
 
 use crate::{networking::io::NetworkClient, prelude::*};
+
+const GAME_TPS: f32 = 30.0;
+const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 
 pub struct App {
     pub world: Arc<World>,
@@ -26,8 +29,10 @@ impl App {
         let world = Arc::clone(&self.world);
 
         tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs_f32(GAME_LOOP_INTERVAL));
             loop {
-                // TODO: Make update loop fixed
+                interval.tick().await;
+
                 Self::update(&world).await;
             }
         });
