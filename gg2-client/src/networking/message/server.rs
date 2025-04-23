@@ -116,6 +116,40 @@ impl ServerMessageGeneric {
     }
 }
 
+macro_rules! generic_kind_match {
+    ($value:ident, [$($case:ident),+$(,)?]$(,)?) => {
+        match $value {
+            $(ServerMessageGeneric::$case(_) => PacketKind::$case),+,
+        }
+    };
+}
+
+impl From<ServerMessageGeneric> for PacketKind {
+    fn from(value: ServerMessageGeneric) -> Self {
+        generic_kind_match!(
+            value,
+            [
+                Hello,
+                PlayerJoin,
+                PlayerLeave,
+                PlayerChangeTeam,
+                PlayerChangeClass,
+                PlayerSpawn,
+                InputState,
+                ChangeMap,
+                FullUpdate,
+                QuickUpdate,
+                PlayerDeath,
+                ServerFull,
+                CapsUpdate,
+                JoinUpdate,
+                MessageString,
+                ReserveSlot,
+            ],
+        )
+    }
+}
+
 impl ClientNetworkDeserialize for Caps {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let red_cap = payload.read_u8()?;

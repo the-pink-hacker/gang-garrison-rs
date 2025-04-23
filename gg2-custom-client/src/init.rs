@@ -33,7 +33,9 @@ impl App {
             loop {
                 interval.tick().await;
 
-                Self::update(&world).await;
+                if let Err(error) = Self::update(&world).await {
+                    error!("{}", error);
+                }
             }
         });
 
@@ -42,11 +44,13 @@ impl App {
         Ok(())
     }
 
-    async fn update(world: &World) {
+    async fn update(world: &World) -> Result<()> {
         {
             let mut networking_client = world.network_client.write().await;
-            networking_client.update_mut(world).await;
+            networking_client.update_mut(world).await?;
         }
+
+        Ok(())
     }
 }
 
@@ -56,9 +60,9 @@ pub struct World {
 }
 
 pub trait UpdateRunnable {
-    async fn update(&self, world: &World);
+    async fn update(&self, world: &World) -> Result<()>;
 }
 
 pub trait UpdateMutRunnable {
-    async fn update_mut(&mut self, world: &World);
+    async fn update_mut(&mut self, world: &World) -> Result<()>;
 }

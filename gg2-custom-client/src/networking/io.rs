@@ -10,11 +10,7 @@ use gg2_client::networking::{
     message::{ClientNetworkDeserialize, ClientNetworkSerialize, server::ServerMessageGeneric},
     state::NetworkingState,
 };
-use gg2_common::networking::{
-    NetworkPacket, PacketKind,
-    error::*,
-    message::{ClientHello, GGMessage},
-};
+use gg2_common::networking::{NetworkPacket, error::Error as NetworkError, message::*};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -28,7 +24,7 @@ use tokio::{
     task::JoinHandle,
 };
 
-use crate::prelude::{UpdateMutRunnable, World, debug, error, info, trace};
+use crate::prelude::*;
 
 pub const MAX_PACKET_LENGTH: usize = 1024;
 pub const DEFAULT_PORT: u16 = 8190;
@@ -51,7 +47,7 @@ impl<T> Default for SyncChannel<T> {
 pub enum ClientNetworkEvent {
     Connected,
     Disconnected,
-    Error(Error),
+    Error(NetworkError),
 }
 
 #[derive(Debug)]
@@ -97,7 +93,7 @@ pub struct NetworkClient {
 
 impl NetworkClient {
     // Connects to a new server
-    pub async fn connect(&mut self, address: SocketAddr) {
+    pub async fn connect(&mut self, address: SocketAddr) -> Result<()> {
         info!("Connecting to server: {}", address);
 
         if self.server_connection.is_some() {
@@ -110,22 +106,17 @@ impl NetworkClient {
         let stream = match TcpStream::connect(address).await {
             Ok(stream) => stream,
             Err(error) => {
-                if let Err(error) = network_error_sender
-                    .send(ClientNetworkEvent::Error(Error::Connection(error, address)))
-                {
-                    error!("Couldn't send error event: {}", error);
-                };
-                return;
+                return Err(Error::NetworkError(NetworkError::Connection(
+                    error, address,
+                )));
             }
         };
 
-        let address = stream
-            .peer_addr()
-            .expect("Couldn't fetch peer_addr of existing stream");
+        let address = stream.peer_addr().map_err(|_| NetworkError::NotConnected)?;
 
-        if let Err(error) = connection_event_sender.send((stream, address)) {
-            error!("Coudln't initiate connection: {}", error);
-        }
+        connection_event_sender
+            .send((stream, address))
+            .map_err(|_| Error::NetworkError(NetworkError::ConnectSend))
     }
 
     pub fn disconnect(&mut self) {
@@ -144,10 +135,10 @@ impl NetworkClient {
         trace!("Sending message to server.");
         self.server_connection
             .as_ref()
-            .ok_or(Error::NotConnected)?
+            .ok_or(NetworkError::NotConnected)?
             .send_message
             .send(NetworkPacket::from_message(message)?)
-            .map_err(|_| Error::NotConnected)
+            .map_err(|_| Error::NetworkError(NetworkError::NotConnected))
     }
 
     pub fn is_connected(&self) -> bool {
@@ -182,45 +173,43 @@ impl NetworkClient {
         };
     }
 
-    fn handle_network_events(&mut self) {
-        self.network_events
-            .receiver
-            .try_iter()
-            .collect::<Vec<_>>()
-            .into_iter()
-            .for_each(|event| match event {
+    fn handle_network_events(&mut self) -> Result<()> {
+        let events = self.network_events.receiver.try_iter().collect::<Vec<_>>();
+
+        for event in events {
+            match event {
                 ClientNetworkEvent::Connected => {
                     debug!("Network Event: Connected to server");
                     info!("Connected to server; sending hello");
-                    self.send_message(ClientHello::default())
-                        .expect("Failed to send message");
+                    self.send_message(ClientHello::default())?;
                     self.connection_state = NetworkingState::AwaitingHello;
                 }
                 ClientNetworkEvent::Disconnected => {
                     debug!("Network Event: Disconnected from server");
                     self.disconnect();
                 }
-                ClientNetworkEvent::Error(error) => error!("Network Event: {}", error),
-            });
+                ClientNetworkEvent::Error(error) => Err(error)?,
+            }
+        }
+
+        Ok(())
     }
 
-    pub async fn pop_message(&mut self) -> Option<ServerMessageGeneric> {
+    pub async fn pop_message(&mut self) -> Result<Option<ServerMessageGeneric>> {
         let recieve_message = &mut *self.receive_message.lock().await;
 
         if recieve_message.is_empty() {
-            None
+            Ok(None)
         } else {
-            Some(
-                ServerMessageGeneric::take(recieve_message).expect("Failed to deserialize message"),
-            )
+            Ok(Some(ServerMessageGeneric::take(recieve_message)?))
         }
     }
 }
 
 impl UpdateMutRunnable for NetworkClient {
-    async fn update_mut(&mut self, world: &World) {
+    async fn update_mut(&mut self, world: &World) -> Result<()> {
         self.handle_connection_event();
-        self.handle_network_events();
+        self.handle_network_events()?;
 
         match self.connection_state {
             NetworkingState::Disconnected => {
@@ -228,19 +217,19 @@ impl UpdateMutRunnable for NetworkClient {
                     std::net::Ipv4Addr::LOCALHOST,
                     DEFAULT_PORT,
                 )))
-                .await;
+                .await?;
                 self.connection_state = NetworkingState::AttemptingConnection;
             }
-            // Handles in `Self::handle_network_events`
+            // Handled in `Self::handle_network_events`
             NetworkingState::AttemptingConnection => (),
             NetworkingState::AwaitingHello => {
-                if let Some(generic_message) = self.pop_message().await {
+                if let Some(generic_message) = self.pop_message().await? {
                     match generic_message {
                         ServerMessageGeneric::Hello(message) => {
                             debug!("{:#?}", message);
                             self.connection_state = NetworkingState::ReserveSlot;
                         }
-                        _ => error!("Message not allowed at this time"),
+                        _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
                     }
                 }
             }
@@ -248,6 +237,8 @@ impl UpdateMutRunnable for NetworkClient {
             NetworkingState::PlayerJoining => (),
             NetworkingState::InGame => (),
         }
+
+        Ok(())
     }
 }
 
@@ -263,7 +254,9 @@ async fn send_task(
         trace!("Sending: {}", encoded_message.escape_ascii());
 
         if let Err(error) = send_socket.write_all(&encoded_message).await {
-            error!("Couldn't send packet: {:?}: {}", message_kind, error);
+            let _ = network_event_sender.send(ClientNetworkEvent::Error(NetworkError::PacketSend(
+                message_kind,
+            )));
         }
 
         trace!("Succesfully written all!");

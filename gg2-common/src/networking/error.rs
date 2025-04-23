@@ -28,4 +28,10 @@ pub enum Error {
     UnsanitizedString,
     #[error("{0}")]
     CommonError(#[from] crate::error::Error),
+    #[error("Message not allowed at this time: {0:?}")]
+    IncorrectMessage(crate::networking::PacketKind),
+    #[error("Failed to send packet: {0:?}")]
+    PacketSend(crate::networking::PacketKind),
+    #[error("Could not initiate connection")]
+    ConnectSend,
 }
