@@ -79,7 +79,7 @@ macro_rules! generic_match {
     ($buffer:ident, $kind:ident, [$($case:ident),+$(,)?]$(,)?) => {
         match $kind {
             $(PacketKind::$case => ServerMessageGeneric::$case(<concat_idents!(Server, $case)>::deserialize($buffer)?)),+,
-            _ => todo!("Unsupported packet kind"),
+            _ => todo!("Unsupported packet kind: {:?}", $kind),
         }
     };
 }

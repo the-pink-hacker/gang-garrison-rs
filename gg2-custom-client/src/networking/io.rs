@@ -227,13 +227,31 @@ impl UpdateMutRunnable for NetworkClient {
                     match generic_message {
                         ServerMessageGeneric::Hello(message) => {
                             debug!("{:#?}", message);
+                            self.send_message(ClientReserveSlot {
+                                player_name: "Rust Client".to_string(),
+                            })?;
                             self.connection_state = NetworkingState::ReserveSlot;
+                        }
+                        // TODO: ServerMessageGeneric::PasswordRequest => (),
+                        _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
+                    }
+                }
+            }
+            NetworkingState::ReserveSlot => {
+                if let Some(generic_message) = self.pop_message().await? {
+                    match generic_message {
+                        ServerMessageGeneric::ServerFull(message) => {
+                            info!("Server full");
+                            self.disconnect();
+                        }
+                        ServerMessageGeneric::ReserveSlot(message) => {
+                            debug!("{:#?}", message);
+                            self.connection_state = NetworkingState::PlayerJoining;
                         }
                         _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
                     }
                 }
             }
-            NetworkingState::ReserveSlot => (),
             NetworkingState::PlayerJoining => (),
             NetworkingState::InGame => (),
         }
