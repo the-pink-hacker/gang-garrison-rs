@@ -16,7 +16,7 @@ impl App {
     pub fn new() -> Self {
         env_logger::init();
 
-        let mut network_client = NetworkClient::default();
+        let network_client = NetworkClient::default();
 
         Self {
             world: Arc::new(World {

@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use gg2_common::{
     intel::RawIntel,
     networking::{
+        PacketKind,
         error::{Error, Result},
         message::*,
     },
@@ -11,6 +12,109 @@ use gg2_common::{
 };
 
 use super::ClientNetworkDeserialize;
+
+#[derive(Debug, Clone)]
+pub enum ServerMessageGeneric {
+    Hello(ServerHello),
+    PlayerJoin(ServerPlayerJoin),
+    PlayerLeave(ServerPlayerLeave),
+    PlayerChangeTeam(ServerPlayerChangeTeam),
+    PlayerChangeClass(ServerPlayerChangeClass),
+    PlayerSpawn(ServerPlayerSpawn),
+    InputState(ServerInputState),
+    ChangeMap(ServerChangeMap),
+    FullUpdate(ServerFullUpdate),
+    QuickUpdate(ServerQuickUpdate),
+    PlayerDeath(ServerPlayerDeath),
+    ServerFull(ServerServerFull),
+    //RedTeamCap = 12,
+    //BlueTeamCap = 13,
+    //MapEnd = 14,
+    //ChatBubble = 15,
+    //BuildSentry = 16,
+    //DestroySentry = 17,
+    //Balance = 18,
+    //GrabIntel = 19,
+    //ScoreIntel = 20,
+    //DropIntel = 21,
+    //UberCharged = 22,
+    //Uber = 23,
+    //Omnomnomnom = 24,
+    //PasswordRequest = 25,
+    //PasswordWrong = 27,
+    CapsUpdate(ServerCapsUpdate),
+    //CpCaptured = 30,
+    //PlayerChangeName = 31,
+    //GeneratorDestroy = 32,
+    //ArenaWaitForPlayers = 33,
+    //ArenaEndround = 34,
+    //ArenaRestart = 35,
+    //UnlockCp = 36,
+    //ServerKick = 37,
+    //Kick = 38,
+    //KickName = 39,
+    //ArenaStartround = 40,
+    //ToggleZoom = 41,
+    //ReturnIntel = 42,
+    //IncompatibleProtocol = 43,
+    JoinUpdate(ServerJoinUpdate),
+    //DownloadMap = 45,
+    //SentryPosition = 46,
+    //RewardUpdate = 47,
+    //RewardRequest = 50,
+    //RewardChallengeCode = 51,
+    //RewardChallengeResponse = 52,
+    MessageString(ServerMessageString),
+    //WeaponFire = 54,
+    //PluginPacket = 55,
+    //KickBadPluginPacket = 56,
+    //Ping = 57,
+    //ClientSettings = 58,
+    //KickMultiClient = 59,
+    ReserveSlot(ServerReserveSlot),
+}
+
+/// Significantly reduce vebosity with `ServerMessageGeneric::take`
+macro_rules! generic_match {
+    ($buffer:ident, $kind:ident, [$($case:ident),+$(,)?]$(,)?) => {
+        match $kind {
+            $(PacketKind::$case => ServerMessageGeneric::$case(<concat_idents!(Server, $case)>::deserialize($buffer)?)),+,
+            _ => todo!("Unsupported packet kind"),
+        }
+    };
+}
+
+impl ServerMessageGeneric {
+    pub fn take<I: Iterator<Item = u8>>(buffer: &mut I) -> Result<Self> {
+        let raw_kind = buffer.read_u8()?;
+        let kind = raw_kind
+            .try_into()
+            .map_err(|_| Error::PacketKind(raw_kind))?;
+
+        Ok(generic_match!(
+            buffer,
+            kind,
+            [
+                Hello,
+                PlayerJoin,
+                PlayerLeave,
+                PlayerChangeTeam,
+                PlayerChangeClass,
+                PlayerSpawn,
+                InputState,
+                ChangeMap,
+                FullUpdate,
+                QuickUpdate,
+                PlayerDeath,
+                ServerFull,
+                CapsUpdate,
+                JoinUpdate,
+                MessageString,
+                ReserveSlot,
+            ],
+        ))
+    }
+}
 
 impl ClientNetworkDeserialize for Caps {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {

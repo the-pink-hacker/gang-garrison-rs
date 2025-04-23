@@ -7,7 +7,7 @@ use bevy::{
 };
 use gg2_common::{
     error::*,
-    player::{PlayerId, class::ClassGeneric, team::Team},
+    player::{KeyState, PlayerId, class::ClassGeneric, team::Team},
 };
 
 use crate::game::InGameOnly;

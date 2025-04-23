@@ -1,16 +1,30 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    collections::VecDeque,
+    net::SocketAddr,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use crossbeam_channel::{Receiver, Sender};
-use dashmap::DashMap;
-use gg2_client::networking::message::{ClientNetworkDeserialize, ClientNetworkSerialize};
-use gg2_common::networking::{NetworkPacket, PacketKind, error::*, message::GGMessage};
+use gg2_client::networking::{
+    message::{ClientNetworkDeserialize, ClientNetworkSerialize, server::ServerMessageGeneric},
+    state::NetworkingState,
+};
+use gg2_common::networking::{
+    NetworkPacket, PacketKind,
+    error::*,
+    message::{ClientHello, GGMessage},
+};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
         TcpStream,
         tcp::{OwnedReadHalf, OwnedWriteHalf},
     },
-    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+    sync::{
+        Mutex,
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+    },
     task::JoinHandle,
 };
 
@@ -74,17 +88,17 @@ impl FromMessage for NetworkPacket {
 
 #[derive(Debug, Default)]
 pub struct NetworkClient {
-    tried_connect: bool, // TODO: REMOVE; IS FOR DEBUG
     server_connection: Option<ServerConnection>,
-    receive_message_map: Arc<DashMap<PacketKind, Vec<Vec<u8>>>>,
+    receive_message: Arc<Mutex<VecDequeIter<u8>>>,
     network_events: SyncChannel<ClientNetworkEvent>,
     connection_events: SyncChannel<(TcpStream, SocketAddr)>,
+    connection_state: NetworkingState,
 }
 
 impl NetworkClient {
     // Connects to a new server
     pub async fn connect(&mut self, address: SocketAddr) {
-        debug!("Starting connection.");
+        info!("Connecting to server: {}", address);
 
         if self.server_connection.is_some() {
             self.disconnect();
@@ -116,6 +130,7 @@ impl NetworkClient {
 
     pub fn disconnect(&mut self) {
         if let Some(connection) = self.server_connection.take() {
+            self.connection_state = NetworkingState::Disconnected;
             connection.stop();
 
             let _ = self
@@ -153,14 +168,17 @@ impl NetworkClient {
                 )),
                 receive_task: tokio::spawn(receive_task(
                     read_socket,
-                    self.receive_message_map.clone(),
+                    Arc::clone(&self.receive_message),
                     peer_address,
                     self.network_events.sender.clone(),
                 )),
                 send_message,
             });
 
-            info!("Connected to server {}", peer_address);
+            let _ = self
+                .network_events
+                .sender
+                .send(ClientNetworkEvent::Connected);
         };
     }
 
@@ -171,13 +189,31 @@ impl NetworkClient {
             .collect::<Vec<_>>()
             .into_iter()
             .for_each(|event| match event {
-                ClientNetworkEvent::Connected => debug!("Network Event: Connected to server"),
+                ClientNetworkEvent::Connected => {
+                    debug!("Network Event: Connected to server");
+                    info!("Connected to server; sending hello");
+                    self.send_message(ClientHello::default())
+                        .expect("Failed to send message");
+                    self.connection_state = NetworkingState::AwaitingHello;
+                }
                 ClientNetworkEvent::Disconnected => {
                     debug!("Network Event: Disconnected from server");
-                    self.tried_connect = false;
+                    self.disconnect();
                 }
                 ClientNetworkEvent::Error(error) => error!("Network Event: {}", error),
             });
+    }
+
+    pub async fn pop_message(&mut self) -> Option<ServerMessageGeneric> {
+        let recieve_message = &mut *self.receive_message.lock().await;
+
+        if recieve_message.is_empty() {
+            None
+        } else {
+            Some(
+                ServerMessageGeneric::take(recieve_message).expect("Failed to deserialize message"),
+            )
+        }
     }
 }
 
@@ -186,16 +222,31 @@ impl UpdateMutRunnable for NetworkClient {
         self.handle_connection_event();
         self.handle_network_events();
 
-        if self.is_connected() {
-            info!("Connected");
-        } else if !self.tried_connect {
-            info!("Trying connection");
-            self.connect(std::net::SocketAddr::V4(std::net::SocketAddrV4::new(
-                std::net::Ipv4Addr::LOCALHOST,
-                crate::networking::io::DEFAULT_PORT,
-            )))
-            .await;
-            self.tried_connect = true;
+        match self.connection_state {
+            NetworkingState::Disconnected => {
+                self.connect(std::net::SocketAddr::V4(std::net::SocketAddrV4::new(
+                    std::net::Ipv4Addr::LOCALHOST,
+                    DEFAULT_PORT,
+                )))
+                .await;
+                self.connection_state = NetworkingState::AttemptingConnection;
+            }
+            // Handles in `Self::handle_network_events`
+            NetworkingState::AttemptingConnection => (),
+            NetworkingState::AwaitingHello => {
+                if let Some(generic_message) = self.pop_message().await {
+                    match generic_message {
+                        ServerMessageGeneric::Hello(message) => {
+                            debug!("{:#?}", message);
+                            self.connection_state = NetworkingState::ReserveSlot;
+                        }
+                        _ => error!("Message not allowed at this time"),
+                    }
+                }
+            }
+            NetworkingState::ReserveSlot => (),
+            NetworkingState::PlayerJoining => (),
+            NetworkingState::InGame => (),
         }
     }
 }
@@ -206,8 +257,6 @@ async fn send_task(
     mut send_socket: OwnedWriteHalf,
     network_event_sender: Sender<ClientNetworkEvent>,
 ) {
-    debug!("Starting new server connection; sending task.");
-
     while let Some(message) = receive_message.recv().await {
         let message_kind = message.kind;
         let encoded_message = Vec::from(message);
@@ -226,11 +275,11 @@ async fn send_task(
 // Receives data from server and passes network packets
 async fn receive_task(
     mut read_socket: OwnedReadHalf,
-    receive_message_map: Arc<DashMap<PacketKind, Vec<Vec<u8>>>>,
+    receive_messages: Arc<Mutex<VecDequeIter<u8>>>,
     peer_address: SocketAddr,
     network_event_sender: Sender<ClientNetworkEvent>,
 ) {
-    let mut buffer = vec![0; MAX_PACKET_LENGTH];
+    let mut buffer = [0; MAX_PACKET_LENGTH];
     loop {
         let length = read_socket.read(&mut buffer).await.unwrap();
         trace!(
@@ -239,30 +288,53 @@ async fn receive_task(
             buffer[0..length].escape_ascii()
         );
 
-        let packet: NetworkPacket = match NetworkPacket::try_from(&buffer[..length]) {
-            Ok(packet) => packet,
-            Err(error) => {
-                error!(
-                    "Failed to decode network packet from [{}]: {}",
-                    peer_address, error
-                );
-                break;
-            }
-        };
-
-        let packet_kind = packet.kind;
-        trace!("Packet kind: {:?}", packet_kind);
-
-        match receive_message_map.get_mut(&packet_kind) {
-            Some(mut packets) => packets.push(packet.data),
-            None => {
-                error!(
-                    "Couldn't find existing entries for message kinds: {:?}",
-                    packet_kind
-                );
-            }
-        }
+        receive_messages.lock().await.extend(&buffer[..length]);
     }
 
     let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);
+}
+
+#[derive(Debug, Default)]
+struct VecDequeIter<T>(VecDeque<T>);
+
+impl<T> Iterator for VecDequeIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        self.0.pop_front()
+    }
+}
+
+impl<T> Deref for VecDequeIter<T> {
+    type Target = VecDeque<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for VecDequeIter<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn vec_deque_iter() {
+        let mut x = super::VecDequeIter(vec![0, 1, 2, 3, 4].into());
+
+        assert_eq!(x.next(), Some(0));
+        assert_eq!(x.next(), Some(1));
+
+        x.extend([100, 200]);
+
+        assert_eq!(x.next(), Some(2));
+        assert_eq!(x.next(), Some(3));
+        assert_eq!(x.next(), Some(4));
+        assert_eq!(x.next(), Some(100));
+        assert_eq!(x.next(), Some(200));
+        assert_eq!(x.next(), None);
+    }
 }

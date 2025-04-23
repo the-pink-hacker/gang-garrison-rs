@@ -1,7 +1,7 @@
 use error::{Error, Result};
 use message::GGMessage;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use uuid::{uuid, Uuid};
+use uuid::{Uuid, uuid};
 
 pub mod error;
 pub mod message;
