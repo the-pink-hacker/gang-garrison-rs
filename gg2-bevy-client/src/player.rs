@@ -56,7 +56,12 @@ fn add_client_player_system(
                 &mut commands,
                 &mut players,
                 Player {
-                    name: config.game.player_name.clone(),
+                    name: config
+                        .game
+                        .player_name
+                        .clone()
+                        .try_into()
+                        .expect("Invalid string"),
                     ..default()
                 },
             ) {

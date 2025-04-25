@@ -64,7 +64,12 @@ fn handle_hello_system(
     for event in hello_events.read() {
         debug!("{:#?}", **event);
         match client.send_message(ClientReserveSlot {
-            player_name: config.game.player_name.clone(),
+            player_name: config
+                .game
+                .player_name
+                .clone()
+                .try_into()
+                .expect("Invalid string"),
         }) {
             Ok(_) => state.set(NetworkingState::ReserveSlot),
             Err(error) => error!("Failed to send message: {}", error),

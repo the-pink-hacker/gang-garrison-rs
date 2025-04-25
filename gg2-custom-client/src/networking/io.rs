@@ -166,7 +166,7 @@ impl NetworkClient {
         };
     }
 
-    pub async fn pop_message(&mut self) -> Result<Option<ServerMessageGeneric>> {
+    pub async fn pop_message(&self) -> Result<Option<ServerMessageGeneric>> {
         let recieve_message = &mut *self.receive_message.lock().await;
 
         if recieve_message.is_empty() {
@@ -205,14 +205,17 @@ async fn receive_task(
 ) {
     let mut buffer = [0; MAX_PACKET_LENGTH];
     loop {
-        let length = read_socket.read(&mut buffer).await.unwrap();
-        trace!(
-            "Received {} bytes: {}",
-            length,
-            buffer[0..length].escape_ascii()
-        );
+        if let Ok(length) = read_socket.read(&mut buffer).await {
+            trace!(
+                "Received {} bytes: {}",
+                length,
+                buffer[0..length].escape_ascii()
+            );
 
-        receive_messages.lock().await.extend(&buffer[..length]);
+            receive_messages.lock().await.extend(&buffer[..length]);
+        } else {
+            break;
+        }
     }
 
     let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);

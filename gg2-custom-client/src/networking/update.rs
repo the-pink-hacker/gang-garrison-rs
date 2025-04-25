@@ -1,4 +1,4 @@
-use gg2_client::networking::{message::server::*, state::NetworkingState};
+use gg2_client::networking::{message::server::ServerMessageGeneric, state::NetworkingState};
 use gg2_common::networking::{error::Error as NetworkError, message::*};
 
 use crate::prelude::*;
@@ -50,6 +50,7 @@ impl UpdateMutRunnable for NetworkClient {
                     match generic_message {
                         ServerMessageGeneric::Hello(message) => {
                             debug!("{:#?}", message);
+                            debug!("Reserving player slot");
                             self.send_message(ClientReserveSlot {
                                 player_name: "Rust Client".to_string().try_into().unwrap(),
                             })?;
@@ -71,19 +72,31 @@ impl UpdateMutRunnable for NetworkClient {
             NetworkingState::ReserveSlot => {
                 if let Some(generic_message) = self.pop_message().await? {
                     match generic_message {
-                        ServerMessageGeneric::ServerFull(message) => {
+                        ServerMessageGeneric::ServerFull(_) => {
                             info!("Server full");
                             self.disconnect();
                         }
-                        ServerMessageGeneric::ReserveSlot(message) => {
-                            debug!("{:#?}", message);
+                        ServerMessageGeneric::ReserveSlot(_) => {
+                            debug!("Reserving player slot");
+                            self.send_message(ClientPlayerJoin)?;
                             self.connection_state = NetworkingState::PlayerJoining;
                         }
                         _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
                     }
                 }
             }
-            NetworkingState::PlayerJoining => (),
+            NetworkingState::PlayerJoining => {
+                if let Some(generic_message) = self.pop_message().await? {
+                    match generic_message {
+                        ServerMessageGeneric::JoinUpdate(message) => {
+                            info!("Successfully joined server");
+                            debug!("{:#?}", message);
+                            self.connection_state = NetworkingState::InGame;
+                        }
+                        _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
+                    }
+                }
+            }
             NetworkingState::InGame => (),
         }
 

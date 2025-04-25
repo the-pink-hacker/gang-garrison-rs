@@ -226,14 +226,14 @@ mod tests {
     #[test]
     fn read_string_short() {
         let mut data = [4, b't', b'e', b's', b't'].into_iter();
-        let parsed = data.read_utf8_short_string().unwrap();
+        let parsed = data.read_utf8_short_string().unwrap().to_string();
         assert_eq!(parsed, "test");
     }
 
     #[test]
     fn read_string_long() {
         let mut data = [4, 0, b'l', b'o', b'n', b'g'].into_iter();
-        let parsed = data.read_utf8_long_string().unwrap();
+        let parsed = data.read_utf8_long_string().unwrap().to_string();
         assert_eq!(parsed, "long");
     }
 
