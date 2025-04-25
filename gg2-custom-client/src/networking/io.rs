@@ -10,7 +10,7 @@ use gg2_client::networking::{
     message::{ClientNetworkSerialize, server::ServerMessageGeneric},
     state::NetworkingState,
 };
-use gg2_common::networking::{NetworkPacket, error::Error as NetworkError, message::*};
+use gg2_common::networking::{error::Error as NetworkError, message::*};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -209,7 +209,7 @@ async fn receive_task(
             trace!(
                 "Received {} bytes: {}",
                 length,
-                buffer[0..length].escape_ascii()
+                buffer[..length].escape_ascii()
             );
 
             receive_messages.lock().await.extend(&buffer[..length]);

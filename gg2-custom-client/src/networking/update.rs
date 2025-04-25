@@ -27,6 +27,26 @@ impl NetworkClient {
 
         Ok(())
     }
+
+    async fn update_in_game(&mut self) -> Result<()> {
+        if let Some(generic_message) = self.pop_message().await? {
+            match generic_message {
+                ServerMessageGeneric::ChangeMap(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::FullUpdate(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::InputState(message) => trace!("{:#?}", message),
+                ServerMessageGeneric::MessageString(message) => {
+                    info!("Server Message: \"{:#?}\"", message.message)
+                }
+                ServerMessageGeneric::PlayerChangeClass(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::PlayerChangeTeam(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::PlayerJoin(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::QuickUpdate(message) => trace!("{:#?}", message),
+                _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl UpdateMutRunnable for NetworkClient {
@@ -97,7 +117,7 @@ impl UpdateMutRunnable for NetworkClient {
                     }
                 }
             }
-            NetworkingState::InGame => (),
+            NetworkingState::InGame => self.update_in_game().await?,
         }
 
         Ok(())

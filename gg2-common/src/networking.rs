@@ -8,13 +8,13 @@ pub mod message;
 
 pub const PROTOCOL_UUID: Uuid = uuid!("b31c2209-4256-9a19-d0ef-c71c5373bd75");
 
+#[deprecated]
 #[derive(Clone)]
 pub struct NetworkPacket {
     pub kind: PacketKind,
     pub data: Vec<u8>,
 }
 
-// Only used by bevy
 impl From<NetworkPacket> for Vec<u8> {
     fn from(value: NetworkPacket) -> Self {
         let mut output = value.data;
@@ -23,7 +23,6 @@ impl From<NetworkPacket> for Vec<u8> {
     }
 }
 
-// Only used by bevy
 impl TryFrom<&[u8]> for NetworkPacket {
     type Error = error::Error;
 

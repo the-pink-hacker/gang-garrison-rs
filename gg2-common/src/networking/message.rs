@@ -1,5 +1,5 @@
 use std::{
-    fmt::Display,
+    fmt::{Debug, Display},
     ops::{Deref, DerefMut},
 };
 
@@ -19,7 +19,7 @@ pub trait GGMessage: Sync + Send {
 }
 
 /// A string with a max length of 65535
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Clone, Hash, PartialEq, Eq)]
 pub struct GGStringLong(String, u16);
 
 impl GGStringLong {
@@ -63,8 +63,14 @@ impl Display for GGStringLong {
     }
 }
 
+impl Debug for GGStringLong {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self)
+    }
+}
+
 /// A string with a max length of 255
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Clone, Hash, PartialEq, Eq)]
 pub struct GGStringShort(String, u8);
 
 impl GGStringShort {
@@ -103,6 +109,12 @@ impl DerefMut for GGStringShort {
 }
 
 impl Display for GGStringShort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self)
+    }
+}
+
+impl Debug for GGStringShort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self)
     }
