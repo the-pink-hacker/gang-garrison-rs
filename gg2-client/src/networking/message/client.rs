@@ -34,6 +34,6 @@ impl ClientNetworkSerialize for ClientPlayerJoin {
 
 impl ClientNetworkSerialize for ClientReserveSlot {
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
-        buffer.write_utf8_short_string(&self.player_name)
+        Ok(buffer.write_utf8_short_string(&self.player_name))
     }
 }

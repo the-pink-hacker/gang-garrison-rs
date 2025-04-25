@@ -7,7 +7,7 @@ use std::{
 
 use crossbeam_channel::{Receiver, Sender};
 use gg2_client::networking::{
-    message::{ClientNetworkDeserialize, ClientNetworkSerialize, server::ServerMessageGeneric},
+    message::{ClientNetworkSerialize, server::ServerMessageGeneric},
     state::NetworkingState,
 };
 use gg2_common::networking::{NetworkPacket, error::Error as NetworkError, message::*};
@@ -54,7 +54,7 @@ pub enum ClientNetworkEvent {
 pub struct ServerConnection {
     receive_task: JoinHandle<()>,
     send_task: JoinHandle<()>,
-    send_message: UnboundedSender<NetworkPacket>,
+    send_message: UnboundedSender<Vec<u8>>,
 }
 
 impl ServerConnection {
@@ -64,31 +64,13 @@ impl ServerConnection {
     }
 }
 
-trait FromMessage {
-    fn from_message<T: GGMessage + ClientNetworkSerialize>(message: T) -> Result<Self>
-    where
-        Self: Sized;
-}
-
-impl FromMessage for NetworkPacket {
-    fn from_message<T: GGMessage + ClientNetworkSerialize>(message: T) -> Result<Self> {
-        let mut data = Vec::new();
-        message.serialize(&mut data)?;
-
-        Ok(Self {
-            kind: T::KIND,
-            data,
-        })
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct NetworkClient {
     server_connection: Option<ServerConnection>,
     receive_message: Arc<Mutex<VecDequeIter<u8>>>,
-    network_events: SyncChannel<ClientNetworkEvent>,
+    pub network_events: SyncChannel<ClientNetworkEvent>,
     connection_events: SyncChannel<(TcpStream, SocketAddr)>,
-    connection_state: NetworkingState,
+    pub connection_state: NetworkingState,
 }
 
 impl NetworkClient {
@@ -131,22 +113,33 @@ impl NetworkClient {
         }
     }
 
-    pub fn send_message<T: ClientNetworkSerialize + GGMessage>(&self, message: T) -> Result<()> {
+    fn send_raw(&self, buffer: Vec<u8>) -> Result<()> {
         trace!("Sending message to server.");
         self.server_connection
             .as_ref()
             .ok_or(NetworkError::NotConnected)?
             .send_message
-            .send(NetworkPacket::from_message(message)?)
+            .send(buffer)
             .map_err(|_| Error::NetworkError(NetworkError::NotConnected))
     }
 
-    pub fn is_connected(&self) -> bool {
-        self.server_connection.is_some()
+    pub fn send<T: ClientNetworkSerialize>(&self, message: T) -> Result<()> {
+        let mut buffer = Vec::with_capacity(256);
+        message.serialize(&mut buffer)?;
+
+        self.send_raw(buffer)
+    }
+
+    pub fn send_message<T: ClientNetworkSerialize + GGMessage>(&self, message: T) -> Result<()> {
+        let mut buffer = Vec::with_capacity(256);
+        buffer.push(T::KIND.into());
+        message.serialize(&mut buffer)?;
+
+        self.send_raw(buffer)
     }
 
     /// Sets up send and receive threads when connecting
-    fn handle_connection_event(&mut self) {
+    pub fn handle_connection_event(&mut self) {
         if let Ok((connection, peer_address)) = self.connection_events.receiver.try_recv() {
             let (read_socket, send_socket) = connection.into_split();
             let (send_message, receive_message) = unbounded_channel();
@@ -173,28 +166,6 @@ impl NetworkClient {
         };
     }
 
-    fn handle_network_events(&mut self) -> Result<()> {
-        let events = self.network_events.receiver.try_iter().collect::<Vec<_>>();
-
-        for event in events {
-            match event {
-                ClientNetworkEvent::Connected => {
-                    debug!("Network Event: Connected to server");
-                    info!("Connected to server; sending hello");
-                    self.send_message(ClientHello::default())?;
-                    self.connection_state = NetworkingState::AwaitingHello;
-                }
-                ClientNetworkEvent::Disconnected => {
-                    debug!("Network Event: Disconnected from server");
-                    self.disconnect();
-                }
-                ClientNetworkEvent::Error(error) => Err(error)?,
-            }
-        }
-
-        Ok(())
-    }
-
     pub async fn pop_message(&mut self) -> Result<Option<ServerMessageGeneric>> {
         let recieve_message = &mut *self.receive_message.lock().await;
 
@@ -206,75 +177,17 @@ impl NetworkClient {
     }
 }
 
-impl UpdateMutRunnable for NetworkClient {
-    async fn update_mut(&mut self, world: &World) -> Result<()> {
-        self.handle_connection_event();
-        self.handle_network_events()?;
-
-        match self.connection_state {
-            NetworkingState::Disconnected => {
-                self.connect(std::net::SocketAddr::V4(std::net::SocketAddrV4::new(
-                    std::net::Ipv4Addr::LOCALHOST,
-                    DEFAULT_PORT,
-                )))
-                .await?;
-                self.connection_state = NetworkingState::AttemptingConnection;
-            }
-            // Handled in `Self::handle_network_events`
-            NetworkingState::AttemptingConnection => (),
-            NetworkingState::AwaitingHello => {
-                if let Some(generic_message) = self.pop_message().await? {
-                    match generic_message {
-                        ServerMessageGeneric::Hello(message) => {
-                            debug!("{:#?}", message);
-                            self.send_message(ClientReserveSlot {
-                                player_name: "Rust Client".to_string(),
-                            })?;
-                            self.connection_state = NetworkingState::ReserveSlot;
-                        }
-                        // TODO: ServerMessageGeneric::PasswordRequest => (),
-                        _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
-                    }
-                }
-            }
-            NetworkingState::ReserveSlot => {
-                if let Some(generic_message) = self.pop_message().await? {
-                    match generic_message {
-                        ServerMessageGeneric::ServerFull(message) => {
-                            info!("Server full");
-                            self.disconnect();
-                        }
-                        ServerMessageGeneric::ReserveSlot(message) => {
-                            debug!("{:#?}", message);
-                            self.connection_state = NetworkingState::PlayerJoining;
-                        }
-                        _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
-                    }
-                }
-            }
-            NetworkingState::PlayerJoining => (),
-            NetworkingState::InGame => (),
-        }
-
-        Ok(())
-    }
-}
-
 // Sends network packets to server
 async fn send_task(
-    mut receive_message: UnboundedReceiver<NetworkPacket>,
+    mut receive_message: UnboundedReceiver<Vec<u8>>,
     mut send_socket: OwnedWriteHalf,
     network_event_sender: Sender<ClientNetworkEvent>,
 ) {
     while let Some(message) = receive_message.recv().await {
-        let message_kind = message.kind;
-        let encoded_message = Vec::from(message);
-        trace!("Sending: {}", encoded_message.escape_ascii());
+        trace!("Sending: {}", message.escape_ascii());
 
-        if let Err(error) = send_socket.write_all(&encoded_message).await {
-            let _ = network_event_sender.send(ClientNetworkEvent::Error(NetworkError::PacketSend(
-                message_kind,
-            )));
+        if let Err(error) = send_socket.write_all(&message).await {
+            let _ = network_event_sender.send(ClientNetworkEvent::Error(NetworkError::PacketSend));
         }
 
         trace!("Succesfully written all!");

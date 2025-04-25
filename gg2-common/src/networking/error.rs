@@ -30,8 +30,8 @@ pub enum Error {
     CommonError(#[from] crate::error::Error),
     #[error("Message not allowed at this time: {0:?}")]
     IncorrectMessage(crate::networking::PacketKind),
-    #[error("Failed to send packet: {0:?}")]
-    PacketSend(crate::networking::PacketKind),
+    #[error("Failed to send packet")]
+    PacketSend,
     #[error("Could not initiate connection")]
     ConnectSend,
 }

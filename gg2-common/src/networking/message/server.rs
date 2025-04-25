@@ -3,13 +3,13 @@ use crate::{
     intel::RawIntel,
     networking::PacketKind,
     player::{
+        PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,
         class::ClassGeneric,
         team::{Caps, Team},
-        PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,
     },
 };
 
-use super::GGMessage;
+use super::{GGMessage, GGStringLong, GGStringShort};
 
 #[derive(Debug, Clone)]
 pub struct ServerCapsUpdate {
@@ -23,7 +23,7 @@ impl GGMessage for ServerCapsUpdate {
 
 #[derive(Debug, Clone)]
 pub struct ServerChangeMap {
-    pub map_name: String,
+    pub map_name: GGStringShort,
     pub map_md5: Option<u128>,
 }
 
@@ -57,7 +57,7 @@ pub struct PlayerUpdateInfo {
     pub bonus: u8,
     pub points: u8,
     pub queue_jump: u8,
-    pub rewards: String,
+    pub rewards: GGStringLong,
     pub dominations: Vec<u8>,
     pub character: Option<(RawInput, RawPlayerInfo, RawAdditionalPlayerInfo)>,
 }
@@ -88,8 +88,8 @@ impl GGMessage for ServerFullUpdate {
 
 #[derive(Debug, Clone)]
 pub struct ServerHello {
-    pub server_name: String,
-    pub map_name: String,
+    pub server_name: GGStringShort,
+    pub map_name: GGStringShort,
     pub map_md5: Option<u128>,
     pub plugins: Vec<()>,
 }
@@ -119,11 +119,25 @@ impl GGMessage for ServerJoinUpdate {
 
 #[derive(Debug, Clone)]
 pub struct ServerMessageString {
-    pub message: String,
+    pub message: GGStringShort,
 }
 
 impl GGMessage for ServerMessageString {
     const KIND: PacketKind = PacketKind::MessageString;
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ServerPasswordRequest;
+
+impl GGMessage for ServerPasswordRequest {
+    const KIND: PacketKind = PacketKind::PasswordRequest;
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ServerPasswordWrong;
+
+impl GGMessage for ServerPasswordWrong {
+    const KIND: PacketKind = PacketKind::PasswordWrong;
 }
 
 #[derive(Debug, Clone)]
@@ -148,7 +162,7 @@ impl GGMessage for ServerPlayerChangeTeam {
 
 #[derive(Debug, Clone)]
 pub struct ServerPlayerJoin {
-    pub player_name: String,
+    pub player_name: GGStringShort,
 }
 
 impl GGMessage for ServerPlayerJoin {

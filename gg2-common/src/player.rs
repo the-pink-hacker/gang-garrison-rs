@@ -2,7 +2,10 @@ use std::fmt::Display;
 
 use glam::Vec2;
 
-use crate::{error::*, networking::message::ServerPlayerJoin};
+use crate::{
+    error::*,
+    networking::message::{GGStringShort, ServerPlayerJoin},
+};
 
 pub mod class;
 pub mod team;
@@ -10,7 +13,7 @@ pub mod team;
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 pub struct Player {
-    pub name: String,
+    pub name: GGStringShort,
     #[cfg(feature = "bevy")]
     pub character: Option<bevy::ecs::entity::Entity>,
 }

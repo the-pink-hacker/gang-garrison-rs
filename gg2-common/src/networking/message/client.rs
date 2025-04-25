@@ -1,9 +1,11 @@
 use uuid::Uuid;
 
 use crate::{
-    networking::{GGMessage, PacketKind, PROTOCOL_UUID},
+    networking::{GGMessage, PROTOCOL_UUID, PacketKind},
     player::{class::ClassGeneric, team::Team},
 };
+
+use super::GGStringShort;
 
 pub struct ClientHello {
     pub protocol: Uuid,
@@ -48,7 +50,7 @@ impl GGMessage for ClientPlayerJoin {
 
 #[derive(Debug)]
 pub struct ClientReserveSlot {
-    pub player_name: String,
+    pub player_name: GGStringShort,
 }
 
 impl GGMessage for ClientReserveSlot {

@@ -1,3 +1,8 @@
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
+
 use glam::Vec2;
 
 use crate::networking::error::Error;
@@ -13,6 +18,96 @@ pub trait GGMessage: Sync + Send {
     const KIND: PacketKind;
 }
 
+/// A string with a max length of 65535
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+pub struct GGStringLong(String, u16);
+
+impl GGStringLong {
+    pub fn len(&self) -> u16 {
+        self.1
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.1 > 0
+    }
+}
+
+impl TryFrom<String> for GGStringLong {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        match u16::try_from(value.len()) {
+            Ok(length) => Ok(Self(value, length)),
+            Err(error) => Err(Error::StringLength(error)),
+        }
+    }
+}
+
+impl Deref for GGStringLong {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for GGStringLong {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Display for GGStringLong {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self)
+    }
+}
+
+/// A string with a max length of 255
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+pub struct GGStringShort(String, u8);
+
+impl GGStringShort {
+    pub fn len(&self) -> u8 {
+        self.1
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.1 > 0
+    }
+}
+
+impl TryFrom<String> for GGStringShort {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        match u8::try_from(value.len()) {
+            Ok(length) => Ok(Self(value, length)),
+            Err(error) => Err(Error::StringLength(error)),
+        }
+    }
+}
+
+impl Deref for GGStringShort {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for GGStringShort {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Display for GGStringShort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self)
+    }
+}
+
 pub trait MessageReader {
     fn read_u8(&mut self) -> Result<u8>;
 
@@ -26,9 +121,9 @@ pub trait MessageReader {
 
     fn read_fixed_point_u16_vec2(&mut self, scale: f32) -> Result<Vec2>;
 
-    fn read_utf8_short_string(&mut self) -> Result<String>;
+    fn read_utf8_short_string(&mut self) -> Result<GGStringShort>;
 
-    fn read_utf8_long_string(&mut self) -> Result<String>;
+    fn read_utf8_long_string(&mut self) -> Result<GGStringLong>;
 
     fn read_md5(&mut self) -> Result<Option<u128>>;
 }
@@ -69,16 +164,22 @@ where
         Ok(Vec2::new(x, y))
     }
 
-    fn read_utf8_short_string(&mut self) -> Result<String> {
-        let length = self.read_u8()? as usize;
-        let bytes = self.take(length).collect();
-        String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
+    fn read_utf8_short_string(&mut self) -> Result<GGStringShort> {
+        let length = self.read_u8()?;
+        let bytes = self.take(length as usize).collect();
+        Ok(GGStringShort(
+            String::from_utf8(bytes).map_err(|_| Error::PacketPayload)?,
+            length,
+        ))
     }
 
-    fn read_utf8_long_string(&mut self) -> Result<String> {
-        let length = self.read_u16()? as usize;
-        let bytes = self.take(length).collect();
-        String::from_utf8(bytes).map_err(|_| Error::PacketPayload)
+    fn read_utf8_long_string(&mut self) -> Result<GGStringLong> {
+        let length = self.read_u16()?;
+        let bytes = self.take(length as usize).collect();
+        Ok(GGStringLong(
+            String::from_utf8(bytes).map_err(|_| Error::PacketPayload)?,
+            length,
+        ))
     }
 
     fn read_md5(&mut self) -> Result<Option<u128>> {
@@ -108,16 +209,13 @@ where
 }
 
 pub trait MessageWriter {
-    fn write_utf8_short_string(&mut self, text: &str) -> Result<()>;
+    fn write_utf8_short_string(&mut self, value: &GGStringShort);
 }
 
 impl MessageWriter for Vec<u8> {
-    fn write_utf8_short_string(&mut self, text: &str) -> Result<()> {
-        let bytes = text.bytes();
-        let length = bytes.len().try_into().map_err(Error::StringLength)?;
-        self.push(length);
-        self.extend(bytes);
-        Ok(())
+    fn write_utf8_short_string(&mut self, value: &GGStringShort) {
+        self.push(value.len());
+        self.extend(value.bytes());
     }
 }
 

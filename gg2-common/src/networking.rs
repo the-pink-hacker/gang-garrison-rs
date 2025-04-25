@@ -14,6 +14,7 @@ pub struct NetworkPacket {
     pub data: Vec<u8>,
 }
 
+// Only used by bevy
 impl From<NetworkPacket> for Vec<u8> {
     fn from(value: NetworkPacket) -> Self {
         let mut output = value.data;
@@ -22,6 +23,7 @@ impl From<NetworkPacket> for Vec<u8> {
     }
 }
 
+// Only used by bevy
 impl TryFrom<&[u8]> for NetworkPacket {
     type Error = error::Error;
 
