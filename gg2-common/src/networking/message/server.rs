@@ -43,6 +43,17 @@ impl GGMessage for ServerPlayerDeath {
     const KIND: PacketKind = PacketKind::PlayerDeath;
 }
 
+/// Intel was dropped possibly by a player
+#[derive(Debug, Clone)]
+pub struct ServerDropIntel {
+    /// The player who dropped the intel
+    pub player_id: Option<PlayerId>,
+}
+
+impl GGMessage for ServerDropIntel {
+    const KIND: PacketKind = PacketKind::DropIntel;
+}
+
 #[derive(Debug, Clone)]
 pub struct PlayerUpdateInfo {
     pub kills: u8,

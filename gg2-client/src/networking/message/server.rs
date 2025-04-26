@@ -45,7 +45,7 @@ generic_enum!(
         //Balance = 18,
         //GrabIntel = 19,
         //ScoreIntel = 20,
-        //DropIntel = 21,
+        DropIntel,
         //UberCharged = 22,
         //Uber = 23,
         //Omnomnomnom = 24,
@@ -117,6 +117,7 @@ impl ServerMessageGeneric {
                 QuickUpdate,
                 PlayerDeath,
                 ServerFull,
+                DropIntel,
                 PasswordRequest,
                 PasswordWrong,
                 CapsUpdate,
@@ -153,6 +154,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 QuickUpdate,
                 PlayerDeath,
                 ServerFull,
+                DropIntel,
                 PasswordRequest,
                 PasswordWrong,
                 CapsUpdate,
@@ -209,6 +211,14 @@ impl ClientNetworkDeserialize for ServerChangeMap {
         } else {
             Ok(Self { map_name, map_md5 })
         }
+    }
+}
+
+impl ClientNetworkDeserialize for ServerDropIntel {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_id = PlayerId::from_u8(payload.read_u8()?);
+
+        Ok(Self { player_id })
     }
 }
 
@@ -335,6 +345,13 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
         for _ in 0..player_length {
             player_info.push(PlayerUpdateInfo::deserialize(payload, player_length)?);
         }
+
+        // TODO: Moving platform
+        //payload.next();
+        //payload.next();
+        //payload.next();
+        //payload.next();
+        //payload.next();
 
         let red_intel_length = payload.read_u16()?;
         let mut red_intel = Vec::with_capacity(red_intel_length as usize);
@@ -559,6 +576,13 @@ impl ClientNetworkDeserialize for ServerQuickUpdate {
 
             player_characters.push(character);
         }
+
+        // TODO: Moving platform
+        //payload.next();
+        //payload.next();
+        //payload.next();
+        //payload.next();
+        //payload.next();
 
         Ok(Self { player_characters })
     }

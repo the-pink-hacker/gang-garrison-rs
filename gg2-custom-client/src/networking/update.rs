@@ -31,11 +31,13 @@ impl NetworkClient {
     async fn update_in_game(&mut self) -> Result<()> {
         if let Some(generic_message) = self.pop_message().await? {
             match generic_message {
+                ServerMessageGeneric::CapsUpdate(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::ChangeMap(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::DropIntel(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::FullUpdate(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::InputState(message) => trace!("{:#?}", message),
                 ServerMessageGeneric::MessageString(message) => {
-                    info!("Server Message: \"{:#?}\"", message.message)
+                    info!("Server Message: \"{}\"", message.message)
                 }
                 ServerMessageGeneric::PlayerChangeClass(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerChangeTeam(message) => debug!("{:#?}", message),

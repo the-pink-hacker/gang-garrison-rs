@@ -167,12 +167,39 @@ impl NetworkClient {
     }
 
     pub async fn pop_message(&self) -> Result<Option<ServerMessageGeneric>> {
-        let recieve_message = &mut *self.receive_message.lock().await;
+        let generic_message = {
+            let queue = &mut *self.receive_message.lock().await;
 
-        if recieve_message.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(ServerMessageGeneric::take(recieve_message)?))
+            if queue.is_empty() {
+                return Ok(None);
+            }
+
+            // Forces queue to be dropped preventing dead lock on error
+            ServerMessageGeneric::take(queue)
+        };
+
+        match generic_message {
+            Ok(message) => Ok(Some(message)),
+            Err(error) => {
+                // Dead lock would happen here
+                self.purge_queue().await;
+                Err(Error::NetworkError(error))
+            }
+        }
+    }
+
+    /// Clears the message queue in the event something goes wrong
+    pub async fn purge_queue(&self) {
+        let mut queue = self.receive_message.lock().await;
+
+        if !queue.is_empty() {
+            debug!("Purging queue...");
+
+            let mut old_queue = VecDequeIter::default();
+
+            std::mem::swap(&mut *queue, &mut old_queue);
+            let data = old_queue.collect::<Vec<_>>();
+            debug!("'{}'", data.escape_ascii());
         }
     }
 }
