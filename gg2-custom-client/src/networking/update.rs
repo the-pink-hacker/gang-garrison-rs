@@ -38,9 +38,10 @@ impl NetworkClient {
                 ServerMessageGeneric::FullUpdate(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::InputState(message) => trace!("{:#?}", message),
                 ServerMessageGeneric::MessageString(message) => {
-                    info!("Server Message: \"{}\"", message.message)
+                    info!("Server Message: {:?}", message.message)
                 }
                 ServerMessageGeneric::PlayerChangeClass(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::PlayerChangeName(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerChangeTeam(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerJoin(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::QuickUpdate(message) => trace!("{:#?}", message),

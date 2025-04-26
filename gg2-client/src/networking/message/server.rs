@@ -53,7 +53,7 @@ generic_enum!(
         PasswordWrong,
         CapsUpdate,
         //CpCaptured = 30,
-        //PlayerChangeName = 31,
+        PlayerChangeName,
         //GeneratorDestroy = 32,
         //ArenaWaitForPlayers = 33,
         //ArenaEndround = 34,
@@ -123,6 +123,7 @@ impl ServerMessageGeneric {
                 PasswordRequest,
                 PasswordWrong,
                 CapsUpdate,
+                PlayerChangeName,
                 JoinUpdate,
                 MessageString,
                 WeaponFire,
@@ -163,6 +164,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 PasswordRequest,
                 PasswordWrong,
                 CapsUpdate,
+                PlayerChangeName,
                 JoinUpdate,
                 MessageString,
                 WeaponFire,
@@ -505,6 +507,15 @@ impl ClientNetworkDeserialize for ServerPlayerChangeClass {
             player_index,
             player_class,
         })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerPlayerChangeName {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_id = payload.read_u8()?.try_into()?;
+        let name = payload.read_utf8_short_string()?;
+
+        Ok(Self { player_id, name })
     }
 }
 

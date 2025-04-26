@@ -59,13 +59,13 @@ impl DerefMut for GGStringLong {
 
 impl Display for GGStringLong {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self)
+        Display::fmt(&**self, f)
     }
 }
 
 impl Debug for GGStringLong {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self)
+        Debug::fmt(&**self, f)
     }
 }
 
@@ -110,13 +110,13 @@ impl DerefMut for GGStringShort {
 
 impl Display for GGStringShort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self)
+        Display::fmt(&**self, f)
     }
 }
 
 impl Debug for GGStringShort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self)
+        Debug::fmt(&**self, f)
     }
 }
 

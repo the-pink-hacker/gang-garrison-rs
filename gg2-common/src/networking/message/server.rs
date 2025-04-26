@@ -174,6 +174,15 @@ impl GGMessage for ServerPlayerChangeClass {
     const KIND: PacketKind = PacketKind::PlayerChangeClass;
 }
 
+/// A player is chaning their name
+#[derive(Debug, Clone)]
+pub struct ServerPlayerChangeName {
+    /// The player changing their name
+    pub player_id: PlayerId,
+    /// The player's new name
+    pub name: GGStringShort,
+}
+
 #[derive(Debug, Clone)]
 pub struct ServerPlayerChangeTeam {
     pub player_index: PlayerId,
