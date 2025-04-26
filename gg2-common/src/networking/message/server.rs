@@ -229,6 +229,17 @@ impl GGMessage for ServerReserveSlot {
     const KIND: PacketKind = PacketKind::ReserveSlot;
 }
 
+/// A player scored intel
+#[derive(Debug, Clone)]
+pub struct ServerScoreIntel {
+    /// The player that scored the intel
+    pub player_id: PlayerId,
+}
+
+impl GGMessage for ServerScoreIntel {
+    const KIND: PacketKind = PacketKind::ScoreIntel;
+}
+
 #[derive(Debug, Clone)]
 pub struct ServerServerFull;
 

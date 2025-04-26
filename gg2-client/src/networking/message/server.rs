@@ -44,7 +44,7 @@ generic_enum!(
         //DestroySentry = 17,
         //Balance = 18,
         GrabIntel,
-        //ScoreIntel = 20,
+        ScoreIntel,
         DropIntel,
         //UberCharged = 22,
         //Uber = 23,
@@ -118,6 +118,7 @@ impl ServerMessageGeneric {
                 PlayerDeath,
                 ServerFull,
                 GrabIntel,
+                ScoreIntel,
                 DropIntel,
                 PasswordRequest,
                 PasswordWrong,
@@ -157,6 +158,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 PlayerDeath,
                 ServerFull,
                 GrabIntel,
+                ScoreIntel,
                 DropIntel,
                 PasswordRequest,
                 PasswordWrong,
@@ -603,6 +605,14 @@ impl ClientNetworkDeserialize for ServerQuickUpdate {
 impl ClientNetworkDeserialize for ServerReserveSlot {
     fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         Ok(Self)
+    }
+}
+
+impl ClientNetworkDeserialize for ServerScoreIntel {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let player_id = payload.read_u8()?.try_into()?;
+
+        Ok(Self { player_id })
     }
 }
 
