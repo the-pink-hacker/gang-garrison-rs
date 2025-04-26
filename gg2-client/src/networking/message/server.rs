@@ -64,7 +64,7 @@ generic_enum!(
         //KickName = 39,
         //ArenaStartround = 40,
         //ToggleZoom = 41,
-        //ReturnIntel = 42,
+        ReturnIntel,
         IncompatibleProtocol,
         JoinUpdate,
         //DownloadMap = 45,
@@ -124,6 +124,7 @@ impl ServerMessageGeneric {
                 PasswordWrong,
                 CaptureUpdate,
                 PlayerChangeName,
+                ReturnIntel,
                 IncompatibleProtocol,
                 JoinUpdate,
                 MessageString,
@@ -166,6 +167,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 PasswordWrong,
                 CaptureUpdate,
                 PlayerChangeName,
+                ReturnIntel,
                 IncompatibleProtocol,
                 JoinUpdate,
                 MessageString,
@@ -624,6 +626,17 @@ impl ClientNetworkDeserialize for ServerQuickUpdate {
 impl ClientNetworkDeserialize for ServerReserveSlot {
     fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         Ok(Self)
+    }
+}
+
+impl ClientNetworkDeserialize for ServerReturnIntel {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let team = payload
+            .read_u8()?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
+
+        Ok(Self { team })
     }
 }
 

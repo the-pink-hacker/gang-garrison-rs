@@ -5,7 +5,7 @@ use crate::{
     player::{
         PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,
         class::ClassGeneric,
-        team::{Captures, Team},
+        team::{Captures, Team, TeamSpawnable},
     },
 };
 use glam::Vec2;
@@ -314,6 +314,17 @@ pub struct ServerReserveSlot;
 
 impl GGMessage for ServerReserveSlot {
     const KIND: PacketKind = PacketKind::ReserveSlot;
+}
+
+/// An intel was returned
+#[derive(Debug, Clone)]
+pub struct ServerReturnIntel {
+    /// The intel's team
+    pub team: TeamSpawnable,
+}
+
+impl GGMessage for ServerReturnIntel {
+    const KIND: PacketKind = PacketKind::ReturnIntel;
 }
 
 /// A player scored intel

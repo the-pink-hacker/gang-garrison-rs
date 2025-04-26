@@ -48,6 +48,7 @@ impl NetworkClient {
                 ServerMessageGeneric::PlayerLeave(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerSpawn(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::QuickUpdate(message) => trace!("{:#?}", message),
+                ServerMessageGeneric::ReturnIntel(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::ScoreIntel(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::WeaponFire(message) => trace!("{:#?}", message),
                 _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
