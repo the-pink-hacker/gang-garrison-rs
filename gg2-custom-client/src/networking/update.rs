@@ -31,7 +31,7 @@ impl NetworkClient {
     async fn update_in_game(&mut self) -> Result<()> {
         if let Some(generic_message) = self.pop_message().await? {
             match generic_message {
-                ServerMessageGeneric::CapsUpdate(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::CaptureUpdate(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::ChangeMap(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::DropIntel(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::GrabIntel(message) => debug!("{:#?}", message),
@@ -43,7 +43,10 @@ impl NetworkClient {
                 ServerMessageGeneric::PlayerChangeClass(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerChangeName(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerChangeTeam(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::PlayerDeath(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerJoin(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::PlayerLeave(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::PlayerSpawn(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::QuickUpdate(message) => trace!("{:#?}", message),
                 ServerMessageGeneric::ScoreIntel(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::WeaponFire(message) => trace!("{:#?}", message),
@@ -103,7 +106,7 @@ impl UpdateMutRunnable for NetworkClient {
                             self.disconnect();
                         }
                         ServerMessageGeneric::ReserveSlot(_) => {
-                            debug!("Reserving player slot");
+                            debug!("Reserved player slot; joining");
                             self.send_message(ClientPlayerJoin)?;
                             self.connection_state = NetworkingState::PlayerJoining;
                         }

@@ -4,7 +4,7 @@ use tokio::{sync::RwLock, time::Duration};
 
 use crate::{networking::io::NetworkClient, prelude::*};
 
-const GAME_TPS: f32 = 30.0;
+const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 
 pub struct App {

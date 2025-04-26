@@ -8,7 +8,7 @@ use gg2_common::{
         error::{Error, Result},
         message::*,
     },
-    player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, team::Caps},
+    player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, team::Captures},
 };
 
 use super::ClientNetworkDeserialize;
@@ -51,7 +51,7 @@ generic_enum!(
         //Omnomnomnom = 24,
         PasswordRequest,
         PasswordWrong,
-        CapsUpdate,
+        CaptureUpdate,
         //CpCaptured = 30,
         PlayerChangeName,
         //GeneratorDestroy = 32,
@@ -88,8 +88,8 @@ generic_enum!(
 macro_rules! generic_match {
     ($buffer:ident, $kind:ident, [$($case:ident),+$(,)?]$(,)?) => {
         match $kind {
-            $(PacketKind::$case => ServerMessageGeneric::$case(<concat_idents!(Server, $case)>::deserialize($buffer)?)),+,
-            _ => todo!("Unsupported packet kind: {:?}", $kind),
+            $(PacketKind::$case => Ok(ServerMessageGeneric::$case(<concat_idents!(Server, $case)>::deserialize($buffer)?))),+,
+            _ => Err(Error::IncorrectMessage($kind)),
         }
     };
 }
@@ -101,7 +101,7 @@ impl ServerMessageGeneric {
             .try_into()
             .map_err(|_| Error::PacketKind(raw_kind))?;
 
-        Ok(generic_match!(
+        generic_match!(
             buffer,
             kind,
             [
@@ -122,14 +122,14 @@ impl ServerMessageGeneric {
                 DropIntel,
                 PasswordRequest,
                 PasswordWrong,
-                CapsUpdate,
+                CaptureUpdate,
                 PlayerChangeName,
                 JoinUpdate,
                 MessageString,
                 WeaponFire,
                 ReserveSlot,
             ],
-        ))
+        )
     }
 }
 
@@ -163,7 +163,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 DropIntel,
                 PasswordRequest,
                 PasswordWrong,
-                CapsUpdate,
+                CaptureUpdate,
                 PlayerChangeName,
                 JoinUpdate,
                 MessageString,
@@ -174,26 +174,26 @@ impl From<ServerMessageGeneric> for PacketKind {
     }
 }
 
-impl ClientNetworkDeserialize for Caps {
+impl ClientNetworkDeserialize for Captures {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let red_cap = payload.read_u8()?;
-        let blu_cap = payload.read_u8()?;
+        let red_captures = payload.read_u8()?;
+        let blu_captures = payload.read_u8()?;
 
         let raw_respawn_time = payload.read_u8()?;
         let respawn_time = Duration::from_secs(raw_respawn_time as u64);
 
         Ok(Self {
-            red_cap,
-            blu_cap,
+            red_captures,
+            blu_captures,
             respawn_time,
         })
     }
 }
 
-impl ClientNetworkDeserialize for ServerCapsUpdate {
+impl ClientNetworkDeserialize for ServerCaptureUpdate {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let player_amount = payload.read_u8()?;
-        let caps = Caps::deserialize(payload)?;
+        let captures = Captures::deserialize(payload)?;
 
         // TODO: HUD
         payload.next();
@@ -204,7 +204,7 @@ impl ClientNetworkDeserialize for ServerCapsUpdate {
 
         Ok(Self {
             player_amount,
-            caps,
+            captures,
         })
     }
 }
@@ -295,16 +295,16 @@ impl DeserializePlayerUpdateInfo for PlayerUpdateInfo {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I, player_length: u8) -> Result<Self> {
         let kills = payload.read_u8()?;
         let deaths = payload.read_u8()?;
-        let caps = payload.read_u8()?;
+        let captures = payload.read_u8()?;
         let assists = payload.read_u8()?;
         let destruction = payload.read_u8()?;
         let stabs = payload.read_u8()?;
         let healing = payload.read_u16()?;
         let defenses = payload.read_u8()?;
-        let invulnerability = payload.read_u8()?;
+        let invulnerability = payload.read_bool()?;
         let bonus = payload.read_u8()?;
         let points = payload.read_u8()?;
-        let queue_jump = payload.read_u8()?;
+        let queue_jump = payload.read_bool()?;
         let rewards = payload.read_utf8_long_string()?;
 
         let non_current_players = player_length.saturating_sub(1);
@@ -323,7 +323,7 @@ impl DeserializePlayerUpdateInfo for PlayerUpdateInfo {
         Ok(Self {
             kills,
             deaths,
-            caps,
+            captures,
             assists,
             destruction,
             stabs,
@@ -383,8 +383,8 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
             blu_intel.push(RawIntel::deserialize(payload)?);
         }
 
-        let cap_limit = payload.read_u8()?;
-        let caps = Caps::deserialize(payload)?;
+        let capture_limit = payload.read_u8()?;
+        let captures = Captures::deserialize(payload)?;
 
         // TODO: HUD
         payload.next();
@@ -409,8 +409,8 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
             player_info,
             red_intel,
             blu_intel,
-            cap_limit,
-            caps,
+            capture_limit,
+            captures,
             scout_limit,
             soldier_limit,
             sniper_limit,
@@ -497,14 +497,14 @@ impl ClientNetworkDeserialize for ServerPasswordWrong {
 
 impl ClientNetworkDeserialize for ServerPlayerChangeClass {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.try_into()?;
+        let player_id = payload.read_u8()?.try_into()?;
         let player_class = payload
             .read_u8()?
             .try_into()
             .map_err(|_| Error::PacketPayload)?;
 
         Ok(Self {
-            player_index,
+            player_id,
             player_class,
         })
     }
@@ -521,14 +521,14 @@ impl ClientNetworkDeserialize for ServerPlayerChangeName {
 
 impl ClientNetworkDeserialize for ServerPlayerChangeTeam {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.try_into()?;
+        let player_id = payload.read_u8()?.try_into()?;
         let player_team = payload
             .read_u8()?
             .try_into()
             .map_err(|_| Error::PacketPayload)?;
 
         Ok(Self {
-            player_index,
+            player_id,
             player_team,
         })
     }
@@ -563,19 +563,19 @@ impl ClientNetworkDeserialize for ServerPlayerJoin {
 
 impl ClientNetworkDeserialize for ServerPlayerLeave {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.try_into()?;
-        Ok(Self { player_index })
+        let player_id = payload.read_u8()?.try_into()?;
+        Ok(Self { player_id })
     }
 }
 
 impl ClientNetworkDeserialize for ServerPlayerSpawn {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_index = payload.read_u8()?.try_into()?;
+        let player_id = payload.read_u8()?.try_into()?;
         let spawn_index = payload.read_u8()?;
         let spawn_group = payload.read_u8()?;
 
         Ok(Self {
-            player_index,
+            player_id,
             spawn_index,
             spawn_group,
         })
@@ -635,13 +635,13 @@ impl ClientNetworkDeserialize for ServerServerFull {
 
 impl ClientNetworkDeserialize for ServerWeaponFire {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let attacker = payload.read_u8()?.try_into()?;
+        let player_id = payload.read_u8()?.try_into()?;
         let position = payload.read_fixed_point_u16_vec2(5.0)?;
         let velocity = payload.read_fixed_point_u8_vec2(8.5)?;
         let seed = payload.read_u16()?;
 
         Ok(Self {
-            attacker,
+            player_id,
             position,
             velocity,
             seed,

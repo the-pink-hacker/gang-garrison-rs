@@ -15,6 +15,7 @@ pub struct NetworkPacket {
     pub data: Vec<u8>,
 }
 
+#[allow(deprecated)]
 impl From<NetworkPacket> for Vec<u8> {
     fn from(value: NetworkPacket) -> Self {
         let mut output = value.data;
@@ -23,6 +24,7 @@ impl From<NetworkPacket> for Vec<u8> {
     }
 }
 
+#[allow(deprecated)]
 impl TryFrom<&[u8]> for NetworkPacket {
     type Error = error::Error;
 
@@ -67,7 +69,7 @@ pub enum PacketKind {
     Omnomnomnom = 24,
     PasswordRequest = 25,
     PasswordWrong = 27,
-    CapsUpdate = 28,
+    CaptureUpdate = 28,
     CpCaptured = 30,
     PlayerChangeName = 31,
     GeneratorDestroy = 32,

@@ -1,7 +1,6 @@
 use gg2_common::networking::{
-    NetworkPacket,
     error::*,
-    message::{GGStringShort, MessageReader, MessageWriter},
+    message::{GGStringShort, MessageWriter},
 };
 
 pub mod client;

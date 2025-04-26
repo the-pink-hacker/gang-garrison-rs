@@ -5,6 +5,7 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::error::{Error, Result};
 
+/// A player team
 #[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
 #[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 #[repr(u8)]
@@ -21,6 +22,7 @@ impl Display for Team {
     }
 }
 
+/// A team is allowed to spawn and have characters
 #[derive(Debug, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
 #[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 #[repr(u8)]
@@ -41,6 +43,7 @@ impl TryFrom<&Team> for TeamSpawnable {
     }
 }
 
+/// What team a player chooses to join
 #[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
 #[repr(u8)]
 pub enum TeamChoice {
@@ -51,9 +54,13 @@ pub enum TeamChoice {
     Any,
 }
 
+/// The server's captures
 #[derive(Debug, Clone)]
-pub struct Caps {
-    pub red_cap: u8,
-    pub blu_cap: u8,
+pub struct Captures {
+    /// Red's total captures in a game
+    pub red_captures: u8,
+    /// Blu's total captures in a game
+    pub blu_captures: u8,
+    /// How long it takes for a player to respawn
     pub respawn_time: Duration,
 }
