@@ -165,6 +165,14 @@ impl GGMessage for ServerHello {
     const KIND: PacketKind = PacketKind::Hello;
 }
 
+/// The server doesn't support the client's network protocol
+#[derive(Debug, Clone)]
+pub struct ServerIncompatibleProtocol;
+
+impl GGMessage for ServerIncompatibleProtocol {
+    const KIND: PacketKind = PacketKind::IncompatibleProtocol;
+}
+
 /// The inputs of all players
 #[derive(Debug, Clone)]
 pub struct ServerInputState {

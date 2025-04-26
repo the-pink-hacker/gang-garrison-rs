@@ -65,7 +65,7 @@ generic_enum!(
         //ArenaStartround = 40,
         //ToggleZoom = 41,
         //ReturnIntel = 42,
-        //IncompatibleProtocol = 43,
+        IncompatibleProtocol,
         JoinUpdate,
         //DownloadMap = 45,
         //SentryPosition = 46,
@@ -124,6 +124,7 @@ impl ServerMessageGeneric {
                 PasswordWrong,
                 CaptureUpdate,
                 PlayerChangeName,
+                IncompatibleProtocol,
                 JoinUpdate,
                 MessageString,
                 WeaponFire,
@@ -165,6 +166,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 PasswordWrong,
                 CaptureUpdate,
                 PlayerChangeName,
+                IncompatibleProtocol,
                 JoinUpdate,
                 MessageString,
                 WeaponFire,
@@ -442,6 +444,12 @@ impl ClientNetworkDeserialize for ServerHello {
             map_md5,
             plugins: Vec::new(),
         })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerIncompatibleProtocol {
+    fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
+        Ok(Self)
     }
 }
 

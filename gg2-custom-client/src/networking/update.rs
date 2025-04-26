@@ -85,13 +85,17 @@ impl UpdateMutRunnable for NetworkClient {
                             })?;
                             self.connection_state = NetworkingState::ReserveSlot;
                         }
+                        ServerMessageGeneric::IncompatibleProtocol(_) => {
+                            error!("Server doesn't support client's protocol; disconnecting");
+                            self.disconnect();
+                        }
                         ServerMessageGeneric::PasswordRequest(_) => {
                             let password = GGStringShort::try_from("1234".to_string()).unwrap();
                             debug!("Sending password to server \"{}\"", password);
                             self.send(&password)?;
                         }
                         ServerMessageGeneric::PasswordWrong(_) => {
-                            info!("Server password is wrong");
+                            error!("Server password is wrong");
                             self.disconnect();
                         }
                         _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
