@@ -43,6 +43,7 @@ impl NetworkClient {
                 ServerMessageGeneric::PlayerChangeTeam(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::PlayerJoin(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::QuickUpdate(message) => trace!("{:#?}", message),
+                ServerMessageGeneric::WeaponFire(message) => trace!("{:#?}", message),
                 _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
             }
         }

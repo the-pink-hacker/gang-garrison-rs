@@ -129,6 +129,8 @@ pub trait MessageReader {
 
     fn read_fixed_point_u8(&mut self, scale: f32) -> Result<f32>;
 
+    fn read_fixed_point_u8_vec2(&mut self, scale: f32) -> Result<Vec2>;
+
     fn read_fixed_point_u16(&mut self, scale: f32) -> Result<f32>;
 
     fn read_fixed_point_u16_vec2(&mut self, scale: f32) -> Result<Vec2>;
@@ -164,6 +166,12 @@ where
 
     fn read_fixed_point_u8(&mut self, scale: f32) -> Result<f32> {
         self.read_u8().map(|value| value as f32 / scale)
+    }
+
+    fn read_fixed_point_u8_vec2(&mut self, scale: f32) -> Result<Vec2> {
+        let x = self.read_fixed_point_u8(scale)?;
+        let y = self.read_fixed_point_u8(scale)?;
+        Ok(Vec2::new(x, y))
     }
 
     fn read_fixed_point_u16(&mut self, scale: f32) -> Result<f32> {

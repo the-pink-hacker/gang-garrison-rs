@@ -8,6 +8,7 @@ use crate::{
         team::{Caps, Team},
     },
 };
+use glam::Vec2;
 
 use super::{GGMessage, GGStringLong, GGStringShort};
 
@@ -43,11 +44,12 @@ impl GGMessage for ServerPlayerDeath {
     const KIND: PacketKind = PacketKind::PlayerDeath;
 }
 
-/// Intel was dropped possibly by a player
+/// Intel was dropped by a player
+/// Implicitly happens on player death
 #[derive(Debug, Clone)]
 pub struct ServerDropIntel {
     /// The player who dropped the intel
-    pub player_id: Option<PlayerId>,
+    pub player_id: PlayerId,
 }
 
 impl GGMessage for ServerDropIntel {
@@ -221,4 +223,23 @@ pub struct ServerServerFull;
 
 impl GGMessage for ServerServerFull {
     const KIND: PacketKind = PacketKind::ServerFull;
+}
+
+/// A player fired a weapon
+#[derive(Debug, Clone)]
+pub struct ServerWeaponFire {
+    /// The player who fired; must have a character
+    pub attacker: PlayerId,
+    /// The attacker's position
+    /// 16-bit fixed point with a scale of 5
+    pub position: Vec2,
+    /// The attacker's velocity
+    /// 8-bit fixed point with a scale of 8.5
+    pub velocity: Vec2,
+    /// Seed used for RNG
+    pub seed: u16,
+}
+
+impl GGMessage for ServerWeaponFire {
+    const KIND: PacketKind = PacketKind::WeaponFire;
 }

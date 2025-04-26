@@ -74,7 +74,7 @@ generic_enum!(
         //RewardChallengeCode = 51,
         //RewardChallengeResponse = 52,
         MessageString,
-        //WeaponFire = 54,
+        WeaponFire,
         //PluginPacket = 55,
         //KickBadPluginPacket = 56,
         //Ping = 57,
@@ -123,6 +123,7 @@ impl ServerMessageGeneric {
                 CapsUpdate,
                 JoinUpdate,
                 MessageString,
+                WeaponFire,
                 ReserveSlot,
             ],
         ))
@@ -160,6 +161,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 CapsUpdate,
                 JoinUpdate,
                 MessageString,
+                WeaponFire,
                 ReserveSlot,
             ],
         )
@@ -216,7 +218,7 @@ impl ClientNetworkDeserialize for ServerChangeMap {
 
 impl ClientNetworkDeserialize for ServerDropIntel {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let player_id = PlayerId::from_u8(payload.read_u8()?);
+        let player_id = payload.read_u8()?.try_into()?;
 
         Ok(Self { player_id })
     }
@@ -597,5 +599,21 @@ impl ClientNetworkDeserialize for ServerReserveSlot {
 impl ClientNetworkDeserialize for ServerServerFull {
     fn deserialize<I: Iterator<Item = u8>>(_payload: &mut I) -> Result<Self> {
         Ok(Self)
+    }
+}
+
+impl ClientNetworkDeserialize for ServerWeaponFire {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let attacker = payload.read_u8()?.try_into()?;
+        let position = payload.read_fixed_point_u16_vec2(5.0)?;
+        let velocity = payload.read_fixed_point_u8_vec2(8.5)?;
+        let seed = payload.read_u16()?;
+
+        Ok(Self {
+            attacker,
+            position,
+            velocity,
+            seed,
+        })
     }
 }
