@@ -32,18 +32,6 @@ impl GGMessage for ServerChangeMap {
     const KIND: PacketKind = PacketKind::ChangeMap;
 }
 
-#[derive(Debug, Clone)]
-pub struct ServerPlayerDeath {
-    pub target: PlayerId,
-    pub attacker: Option<PlayerId>,
-    pub assist: Option<PlayerId>,
-    pub damage_source: DamageSource,
-}
-
-impl GGMessage for ServerPlayerDeath {
-    const KIND: PacketKind = PacketKind::PlayerDeath;
-}
-
 /// Intel was dropped by a player
 /// Implicitly happens on player death
 #[derive(Debug, Clone)]
@@ -54,6 +42,29 @@ pub struct ServerDropIntel {
 
 impl GGMessage for ServerDropIntel {
     const KIND: PacketKind = PacketKind::DropIntel;
+}
+
+/// A player picked up intel
+#[derive(Debug, Clone)]
+pub struct ServerGrabIntel {
+    /// The player that grabbed the intel
+    pub player_id: PlayerId,
+}
+
+impl GGMessage for ServerGrabIntel {
+    const KIND: PacketKind = PacketKind::GrabIntel;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerPlayerDeath {
+    pub target: PlayerId,
+    pub attacker: Option<PlayerId>,
+    pub assist: Option<PlayerId>,
+    pub damage_source: DamageSource,
+}
+
+impl GGMessage for ServerPlayerDeath {
+    const KIND: PacketKind = PacketKind::PlayerDeath;
 }
 
 #[derive(Debug, Clone)]

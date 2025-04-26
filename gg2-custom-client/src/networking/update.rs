@@ -34,6 +34,7 @@ impl NetworkClient {
                 ServerMessageGeneric::CapsUpdate(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::ChangeMap(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::DropIntel(message) => debug!("{:#?}", message),
+                ServerMessageGeneric::GrabIntel(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::FullUpdate(message) => debug!("{:#?}", message),
                 ServerMessageGeneric::InputState(message) => trace!("{:#?}", message),
                 ServerMessageGeneric::MessageString(message) => {
