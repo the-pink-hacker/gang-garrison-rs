@@ -167,6 +167,7 @@ impl ApplicationHandler for RenderApp {
         match event {
             WindowEvent::CloseRequested => {
                 info!("User closed window; stopping");
+                event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
                 state.render();
