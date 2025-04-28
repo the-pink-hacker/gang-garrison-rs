@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use glam::Vec3;
+use wgpu::util::DeviceExt;
 use winit::{
     application::ApplicationHandler,
     event::*,
@@ -11,8 +13,25 @@ use winit::{
     window::{Window, WindowId},
 };
 
-use crate::init::{App, World};
-use crate::prelude::*;
+use crate::{
+    init::{App, World},
+    prelude::*,
+};
+use vertex::Vertex;
+
+pub mod vertex;
+
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: Vec3::new(0.0, 0.5, 0.0),
+    },
+    Vertex {
+        position: Vec3::new(-0.5, -0.5, 0.0),
+    },
+    Vertex {
+        position: Vec3::new(0.5, -0.5, 0.0),
+    },
+];
 
 /// Holds all rendering structs such as the window
 pub struct State {
@@ -23,6 +42,7 @@ pub struct State {
     surface: wgpu::Surface<'static>,
     surface_config: wgpu::SurfaceConfiguration,
     render_pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
 }
 
 impl State {
@@ -65,7 +85,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[],
+                buffers: &[Vertex::layout()],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -97,6 +117,12 @@ impl State {
             cache: None,
         });
 
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
         let state = State {
             window,
             device,
@@ -105,6 +131,7 @@ impl State {
             surface,
             surface_config,
             render_pipeline,
+            vertex_buffer,
         };
 
         state.configure_surface();
@@ -158,7 +185,8 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.draw(0..3, 0..1);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.draw(0..(VERTICES.len() as u32), 0..1);
         }
 
         // Submit and queue the command

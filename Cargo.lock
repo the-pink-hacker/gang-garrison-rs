@@ -2391,10 +2391,12 @@ dependencies = [
 name = "gg2-custom-client"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "crossbeam-channel",
  "env_logger",
  "gg2-client",
  "gg2-common",
+ "glam",
  "log",
  "pollster",
  "thiserror 2.0.12",
