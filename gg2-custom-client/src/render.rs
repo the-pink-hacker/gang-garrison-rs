@@ -21,16 +21,25 @@ use vertex::Vertex;
 
 pub mod vertex;
 
-const VERTICES: &[Vertex] = &[
+const QUAD_VERTICES: &[Vertex] = &[
     Vertex {
-        position: Vec3::new(0.0, 0.5, 0.0),
+        position: Vec3::new(1.0, 1.0, 0.0),
     },
     Vertex {
-        position: Vec3::new(-0.5, -0.5, 0.0),
+        position: Vec3::new(0.0, 1.0, 0.0),
     },
     Vertex {
-        position: Vec3::new(0.5, -0.5, 0.0),
+        position: Vec3::new(0.0, 0.0, 0.0),
     },
+    Vertex {
+        position: Vec3::new(1.0, 0.0, 0.0),
+    },
+];
+
+#[rustfmt::skip]
+const QUAD_INDICES: &[u16] = &[
+    0, 1, 2,
+    0, 2, 3
 ];
 
 /// Holds all rendering structs such as the window
@@ -43,6 +52,7 @@ pub struct State {
     surface_config: wgpu::SurfaceConfiguration,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
 }
 
 impl State {
@@ -119,8 +129,14 @@ impl State {
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(VERTICES),
+            contents: bytemuck::cast_slice(QUAD_VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(QUAD_INDICES),
+            usage: wgpu::BufferUsages::INDEX,
         });
 
         let state = State {
@@ -132,6 +148,7 @@ impl State {
             surface_config,
             render_pipeline,
             vertex_buffer,
+            index_buffer,
         };
 
         state.configure_surface();
@@ -186,7 +203,8 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..(VERTICES.len() as u32), 0..1);
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.draw_indexed(0..(QUAD_INDICES.len() as u32), 0, 0..1);
         }
 
         // Submit and queue the command
