@@ -81,7 +81,7 @@ impl State {
             width: size.width,
             height: size.height,
             desired_maximum_frame_latency: 2,
-            present_mode: wgpu::PresentMode::AutoVsync,
+            present_mode: wgpu::PresentMode::Immediate,
         };
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("render/shaders/shader.wgsl"));
@@ -201,14 +201,18 @@ impl State {
         self.surface.configure(&self.device, &self.surface_config);
     }
 
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>, world: &World) {
         self.size = new_size;
         self.surface_config.width = self.size.width;
         self.surface_config.height = self.size.height;
         self.configure_surface();
+
+        let mut camera = pollster::block_on(world.camera.write());
+        camera.game_width = self.size.width;
+        camera.game_height = self.size.height;
     }
 
-    fn update_camera_uniform_buffer(&mut self, world: Arc<World>) {
+    fn update_camera_uniform_buffer(&mut self, world: &World) {
         let camera = pollster::block_on(world.camera.read());
         let matrix = camera.build_view_projection_matrix();
         self.queue.write_buffer(
@@ -218,7 +222,7 @@ impl State {
         );
     }
 
-    fn render(&mut self, world: Arc<World>) {
+    fn render(&mut self, world: &World) {
         self.update_camera_uniform_buffer(world);
 
         let surface_texture = self
@@ -321,11 +325,11 @@ impl ApplicationHandler for RenderApp {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                state.render(Arc::clone(&self.world));
+                state.render(&self.world);
 
                 state.get_window().request_redraw();
             }
-            WindowEvent::Resized(size) => state.resize(size),
+            WindowEvent::Resized(size) => state.resize(size, &self.world),
             _ => (),
         }
     }

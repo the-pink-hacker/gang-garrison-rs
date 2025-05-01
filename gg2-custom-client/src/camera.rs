@@ -11,6 +11,10 @@ pub struct Camera {
     pub clipping_near: f32,
     /// The far clipping plane's distance from the camera
     pub clipping_far: f32,
+    /// The width of the game. This is the window's width after being cropped.
+    pub game_width: u32,
+    /// The height of the game. This is the window's height after being cropped.
+    pub game_height: u32,
 }
 
 impl Camera {
@@ -24,8 +28,10 @@ impl Camera {
         //    self.clipping_near,
         //    self.clipping_far,
         //);
+
         // At the moment can't seem to get orthographic working
-        let projection = Mat4::perspective_rh_gl(1.0, 16.0 / 9.0, 0.1, 100.0);
+        let aspect_ratio = self.game_width as f32 / self.game_height as f32;
+        let projection = Mat4::perspective_rh_gl(1.0, aspect_ratio, 0.1, 100.0);
 
         let translation_converted = self.translation * GAMEMAKER_CONVERSION;
 
@@ -47,6 +53,8 @@ impl Default for Camera {
             translation: Vec3::new(0.0, 0.0, 10.0),
             clipping_near: 0.1,
             clipping_far: 100.0,
+            game_width: 1,
+            game_height: 1,
         }
     }
 }
