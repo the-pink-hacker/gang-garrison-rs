@@ -2398,6 +2398,7 @@ dependencies = [
  "gg2-client",
  "gg2-common",
  "glam",
+ "image",
  "log",
  "pollster",
  "thiserror 2.0.12",
