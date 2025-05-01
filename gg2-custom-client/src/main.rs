@@ -1,4 +1,5 @@
 mod camera;
+mod config;
 mod error;
 mod init;
 mod networking;

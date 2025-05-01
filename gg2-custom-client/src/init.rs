@@ -4,7 +4,12 @@ use std::sync::Arc;
 use async_lock::RwLock;
 use tokio::time::Duration;
 
-use crate::{camera::Camera, networking::io::NetworkClient, prelude::*};
+use crate::{
+    camera::Camera,
+    config::{ClientConfig, ClientConfigLock},
+    networking::io::NetworkClient,
+    prelude::*,
+};
 
 const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
@@ -18,8 +23,15 @@ impl App {
     pub fn new() -> Self {
         env_logger::init();
 
+        let config = ClientConfig::load().expect("Failed to load client config");
+        config.save().expect("Failed to save client config");
+
         Self {
-            world: Arc::default(),
+            world: Arc::new(World {
+                camera: Camera::default().into(),
+                config: config.into(),
+                network_client: NetworkClient::default().into(),
+            }),
         }
     }
 
@@ -62,10 +74,10 @@ impl App {
 }
 
 /// The world is used to pass data between threads
-#[derive(Default)]
 pub struct World {
-    pub network_client: RwLock<NetworkClient>,
     pub camera: RwLock<Camera>,
+    pub config: ClientConfigLock,
+    pub network_client: RwLock<NetworkClient>,
 }
 
 pub trait UpdateRunnable {

@@ -66,11 +66,12 @@ impl UpdateMutRunnable for NetworkClient {
 
         match self.connection_state {
             NetworkingState::Disconnected => {
-                self.connect(std::net::SocketAddr::V4(std::net::SocketAddrV4::new(
-                    std::net::Ipv4Addr::LOCALHOST,
-                    DEFAULT_PORT,
-                )))
-                .await?;
+                let address = {
+                    let config = world.config.read().await;
+                    config.networking.default_server_address
+                };
+
+                self.connect(address).await?;
                 self.connection_state = NetworkingState::AttemptingConnection;
             }
             // Handled in `Self::handle_network_events`
@@ -81,8 +82,14 @@ impl UpdateMutRunnable for NetworkClient {
                         ServerMessageGeneric::Hello(message) => {
                             debug!("{:#?}", message);
                             debug!("Reserving player slot");
+
+                            let player_name = {
+                                let config = world.config.read().await;
+                                config.game.player_name.clone()
+                            };
+
                             self.send_message(ClientReserveSlot {
-                                player_name: "Rust Client".to_string().try_into().unwrap(),
+                                player_name: player_name.try_into().unwrap(),
                             })?;
                             self.connection_state = NetworkingState::ReserveSlot;
                         }
@@ -91,6 +98,7 @@ impl UpdateMutRunnable for NetworkClient {
                             self.disconnect();
                         }
                         ServerMessageGeneric::PasswordRequest(_) => {
+                            // TODO: Add password prompt
                             let password = GGStringShort::try_from("1234".to_string()).unwrap();
                             debug!("Sending password to server \"{}\"", password);
                             self.send(&password)?;
