@@ -258,12 +258,8 @@ impl ClientNetworkDeserialize for RawInput {
 
 impl ClientNetworkDeserialize for RawPlayerInfo {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
-        let position = payload.read_fixed_point_u16_vec2(5.0)? * Vec2::new(1.0, -1.0);
-
-        let velocity_x = payload.read_u8()? as i8 as f32 / 8.5;
-        let velocity_y = payload.read_u8()? as i8 as f32 / -8.5;
-        let velocity = Vec2::new(velocity_x, velocity_y);
-
+        let position = payload.read_fixed_point_u16_vec2(5.0)?;
+        let velocity = payload.read_fixed_point_u8_vec2(8.5)?;
         let health = payload.read_u8()?;
         let ammo_count = payload.read_u8()?;
         let move_status = payload.read_u8()?;
