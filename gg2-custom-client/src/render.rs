@@ -3,7 +3,6 @@
 
 use std::sync::Arc;
 
-use glam::Vec3;
 use wgpu::util::DeviceExt;
 use winit::{
     application::ApplicationHandler,
@@ -53,6 +52,9 @@ pub struct State {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
+    /// Store the camera's matrix
+    camera_uniform_buffer: wgpu::Buffer,
+    camera_uniform_bind_group: wgpu::BindGroup,
 }
 
 impl State {
@@ -83,12 +85,57 @@ impl State {
         };
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("render/shaders/shader.wgsl"));
+
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(QUAD_VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(QUAD_INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+
+        let camera_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Camera Buffer"),
+            size: std::mem::size_of::<[[f32; 4]; 4]>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let camera_uniform_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Camera Uniform Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+
+        let camera_uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Camera Uniform Bind Group Layout"),
+            layout: &camera_uniform_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_uniform_buffer.as_entire_binding(),
+            }],
+        });
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
+                bind_group_layouts: &[&camera_uniform_bind_group_layout],
                 push_constant_ranges: &[],
             });
+
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
             layout: Some(&render_pipeline_layout),
@@ -127,18 +174,6 @@ impl State {
             cache: None,
         });
 
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(QUAD_VERTICES),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(QUAD_INDICES),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
         let state = State {
             window,
             device,
@@ -149,6 +184,8 @@ impl State {
             render_pipeline,
             vertex_buffer,
             index_buffer,
+            camera_uniform_buffer,
+            camera_uniform_bind_group,
         };
 
         state.configure_surface();
@@ -171,7 +208,19 @@ impl State {
         self.configure_surface();
     }
 
-    fn render(&mut self) {
+    fn update_camera_uniform_buffer(&mut self, world: Arc<World>) {
+        let camera = pollster::block_on(world.camera.read());
+        let matrix = camera.build_view_projection_matrix();
+        self.queue.write_buffer(
+            &self.camera_uniform_buffer,
+            0,
+            bytemuck::cast_slice(&[matrix]),
+        );
+    }
+
+    fn render(&mut self, world: Arc<World>) {
+        self.update_camera_uniform_buffer(world);
+
         let surface_texture = self
             .surface
             .get_current_texture()
@@ -202,6 +251,9 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+
+            render_pass.set_bind_group(0, &self.camera_uniform_bind_group, &[]);
+
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..(QUAD_INDICES.len() as u32), 0, 0..1);
@@ -221,9 +273,8 @@ impl App {
 
         event_loop.set_control_flow(ControlFlow::Wait);
 
-        let world = Arc::clone(&self.world);
         event_loop
-            .run_app_on_demand(&mut RenderApp::new(world))
+            .run_app_on_demand(&mut RenderApp::new(self.get_world()))
             .unwrap();
 
         Ok(())
@@ -250,7 +301,7 @@ impl ApplicationHandler for RenderApp {
                 .expect("Failed to create window"),
         );
 
-        let state = pollster::block_on(async { State::new(Arc::clone(&window)).await })
+        let state = pollster::block_on(State::new(Arc::clone(&window)))
             .expect("Failed to create render state");
 
         self.state = Some(state);
@@ -270,7 +321,7 @@ impl ApplicationHandler for RenderApp {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                state.render();
+                state.render(Arc::clone(&self.world));
 
                 state.get_window().request_redraw();
             }

@@ -1,3 +1,4 @@
+mod camera;
 mod error;
 mod init;
 mod networking;

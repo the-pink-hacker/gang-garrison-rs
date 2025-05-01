@@ -2391,6 +2391,7 @@ dependencies = [
 name = "gg2-custom-client"
 version = "0.1.0"
 dependencies = [
+ "async-lock",
  "bytemuck",
  "crossbeam-channel",
  "env_logger",

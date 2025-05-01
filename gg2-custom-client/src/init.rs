@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
-use tokio::{sync::RwLock, time::Duration};
+// The render thread doesn't like tokio::sync::RwLock
+use async_lock::RwLock;
+use tokio::time::Duration;
 
-use crate::{networking::io::NetworkClient, prelude::*};
+use crate::{camera::Camera, networking::io::NetworkClient, prelude::*};
 
 const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 
 pub struct App {
-    pub world: Arc<World>,
+    world: Arc<World>,
 }
 
 impl App {
@@ -16,12 +18,8 @@ impl App {
     pub fn new() -> Self {
         env_logger::init();
 
-        let network_client = NetworkClient::default();
-
         Self {
-            world: Arc::new(World {
-                network_client: RwLock::new(network_client),
-            }),
+            world: Arc::default(),
         }
     }
 
@@ -44,10 +42,19 @@ impl App {
         Ok(())
     }
 
+    pub fn get_world(&self) -> Arc<World> {
+        Arc::clone(&self.world)
+    }
+
     async fn update(world: &World) -> Result<()> {
         {
             let mut networking_client = world.network_client.write().await;
             networking_client.update_mut(world).await?;
+        }
+
+        {
+            let mut camera = world.camera.write().await;
+            camera.update_mut(world).await?;
         }
 
         Ok(())
@@ -55,8 +62,10 @@ impl App {
 }
 
 /// The world is used to pass data between threads
+#[derive(Default)]
 pub struct World {
     pub network_client: RwLock<NetworkClient>,
+    pub camera: RwLock<Camera>,
 }
 
 pub trait UpdateRunnable {
