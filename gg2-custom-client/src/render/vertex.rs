@@ -1,4 +1,4 @@
-use glam::Vec3;
+use crate::prelude::*;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]

@@ -16,9 +16,13 @@ use crate::{
     init::{App, World},
     prelude::*,
 };
+use instance::Instance;
 use vertex::Vertex;
 
+pub mod instance;
 pub mod vertex;
+
+const MAX_SPRITE_INSTANCES: wgpu::BufferAddress = 1_024;
 
 const QUAD_VERTICES: &[Vertex] = &[
     Vertex {
@@ -56,6 +60,8 @@ pub struct State {
     /// Store the camera's matrix
     camera_uniform_buffer: wgpu::Buffer,
     camera_uniform_bind_group: wgpu::BindGroup,
+    sprite_instances: Vec<Instance>,
+    sprite_instance_buffer: wgpu::Buffer,
 }
 
 impl State {
@@ -99,9 +105,24 @@ impl State {
             usage: wgpu::BufferUsages::INDEX,
         });
 
+        let sprite_instances = vec![
+            Instance::from_translation(Vec3::new(0.0, 0.0, 0.0), Vec4::new(0.0, 0.0, 1.0, 1.0)),
+            Instance::from_translation(Vec3::new(-1.0, 1.0, 0.0), Vec4::new(0.0, 0.0, 0.5, 0.5)),
+            Instance::from_translation(Vec3::new(1.0, 1.0, 0.0), Vec4::new(0.5, 0.0, 0.5, 0.5)),
+            Instance::from_translation(Vec3::new(-1.0, -1.0, 0.0), Vec4::new(0.0, 0.5, 0.5, 0.5)),
+            Instance::from_translation(Vec3::new(1.0, -1.0, 0.0), Vec4::new(0.5, 0.5, 0.5, 0.5)),
+        ];
+
+        let sprite_instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Sprite Instance Buffer"),
+            size: std::mem::size_of::<Instance>() as wgpu::BufferAddress * MAX_SPRITE_INSTANCES,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         let camera_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Camera Buffer"),
-            size: std::mem::size_of::<[[f32; 4]; 4]>() as u64,
+            size: std::mem::size_of::<[[f32; 4]; 4]>() as wgpu::BufferAddress,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -237,7 +258,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[Vertex::layout()],
+                buffers: &[Vertex::layout(), Instance::layout()],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -282,6 +303,8 @@ impl State {
             texture_bind_group,
             camera_uniform_buffer,
             camera_uniform_bind_group,
+            sprite_instances,
+            sprite_instance_buffer,
         };
 
         state.configure_surface();
@@ -321,6 +344,12 @@ impl State {
     fn render(&mut self, world: &World) {
         self.update_camera_uniform_buffer(world);
 
+        self.queue.write_buffer(
+            &self.sprite_instance_buffer,
+            0,
+            bytemuck::cast_slice(&self.sprite_instances),
+        );
+
         let surface_texture = self
             .surface
             .get_current_texture()
@@ -356,8 +385,15 @@ impl State {
             render_pass.set_bind_group(1, &self.camera_uniform_bind_group, &[]);
 
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, self.sprite_instance_buffer.slice(..));
+
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..(QUAD_INDICES.len() as u32), 0, 0..1);
+
+            render_pass.draw_indexed(
+                0..(QUAD_INDICES.len() as u32),
+                0,
+                0..(self.sprite_instances.len() as u32),
+            );
         }
 
         // Submit and queue the command
@@ -412,7 +448,7 @@ impl ApplicationHandler for RenderApp {
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
-        window_id: WindowId,
+        _window_id: WindowId,
         event: WindowEvent,
     ) {
         let state = self.state.as_mut().expect("Render state is uninitialized");
