@@ -130,8 +130,7 @@ impl State {
             }],
         });
 
-        let diffuse_bytes =
-            include_bytes!("../../gg2-bevy-client/assets/sprites/characters/scout/red/stand/0.png");
+        let diffuse_bytes = include_bytes!("../../assets/sprites/characters/scout/red/stand/0.png");
         let diffuse_image =
             image::load_from_memory_with_format(diffuse_bytes, image::ImageFormat::Png).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();

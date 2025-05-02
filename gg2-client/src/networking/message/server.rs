@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
 use gg2_common::{
     intel::RawIntel,
     networking::{
@@ -432,9 +431,8 @@ impl ClientNetworkDeserialize for ServerHello {
 
         let map_md5 = payload.read_md5()?;
 
-        let plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
-        let plugins_raw = payload.read_utf8_long_string()?;
-        debug!("Found {} plugins: [ {} ]", plugins_amounts, plugins_raw);
+        let _plugins_amounts = payload.next().ok_or(Error::UnexpectedEOF)?;
+        let _plugins_raw = payload.read_utf8_long_string()?;
 
         Ok(Self {
             server_name,

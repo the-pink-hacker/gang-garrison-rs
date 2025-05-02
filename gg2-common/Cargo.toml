@@ -7,9 +7,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-bevy = { version = "0.15.3", default-features = false, features = ["bevy_core_pipeline"], optional = true }
 enum-iterator = "2.1.0"
-glam = { version = "0.29.3", default-features = false, features = ["bytemuck"] }
+glam = "0.30.3"
 hex = "0.4.3"
 num_enum = "0.7.3"
 thiserror = "2.0.12"

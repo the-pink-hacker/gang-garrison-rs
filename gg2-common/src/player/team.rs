@@ -7,7 +7,6 @@ use crate::error::{Error, Result};
 
 /// A player team
 #[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
-#[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 #[repr(u8)]
 pub enum Team {
     Red,
@@ -24,7 +23,6 @@ impl Display for Team {
 
 /// A team is allowed to spawn and have characters
 #[derive(Debug, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
-#[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 #[repr(u8)]
 pub enum TeamSpawnable {
     Red,

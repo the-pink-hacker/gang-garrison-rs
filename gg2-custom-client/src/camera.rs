@@ -41,8 +41,6 @@ impl Camera {
             Vec3::Y,
         );
 
-        use glam::Vec4;
-
         projection * view
     }
 }

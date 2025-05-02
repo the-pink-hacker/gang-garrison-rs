@@ -7,5 +7,4 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-bevy = { version = "0.15.3", default-features = false, features = ["bevy_core_pipeline"], optional = true }
-gg2-common = { path = "../gg2-common", features = ["bevy"] }
+gg2-common = { path = "../gg2-common" }

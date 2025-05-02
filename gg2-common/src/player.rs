@@ -11,11 +11,8 @@ pub mod class;
 pub mod team;
 
 #[derive(Debug, Default)]
-#[cfg_attr(feature = "bevy", derive(bevy::ecs::component::Component))]
 pub struct Player {
     pub name: GGStringShort,
-    #[cfg(feature = "bevy")]
-    pub character: Option<bevy::ecs::entity::Entity>,
 }
 
 impl From<ServerPlayerJoin> for Player {
