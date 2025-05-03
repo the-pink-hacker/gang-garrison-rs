@@ -4,6 +4,7 @@ members = [
     "gg2-client",
     "gg2-common",
     "gg2-custom-client",
+    "gg2-custom-common",
 ]
 
 [workspace.package]

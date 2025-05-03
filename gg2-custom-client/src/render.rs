@@ -106,11 +106,35 @@ impl State {
         });
 
         let sprite_instances = vec![
-            Instance::from_translation(Vec3::new(0.0, 0.0, 0.0), Vec4::new(0.0, 0.0, 1.0, 1.0)),
-            Instance::from_translation(Vec3::new(-1.0, 1.0, 0.0), Vec4::new(0.0, 0.0, 0.5, 0.5)),
-            Instance::from_translation(Vec3::new(1.0, 1.0, 0.0), Vec4::new(0.5, 0.0, 0.5, 0.5)),
-            Instance::from_translation(Vec3::new(-1.0, -1.0, 0.0), Vec4::new(0.0, 0.5, 0.5, 0.5)),
-            Instance::from_translation(Vec3::new(1.0, -1.0, 0.0), Vec4::new(0.5, 0.5, 0.5, 0.5)),
+            Instance::from_transform_origin(
+                Transform {
+                    translation: Vec3::new(0.0, 0.0, 0.0),
+                    rotation: 0.5,
+                    scale: Vec2::new(0.5, 1.0),
+                },
+                Vec2::new(0.5, 0.0),
+                Vec4::new(0.0, 0.0, 1.0, 1.0),
+            ),
+            Instance::from_transform_origin(
+                Transform::from_translation(Vec3::new(-1.0, 1.0, 0.0)),
+                Vec2::new(0.5, 0.0),
+                Vec4::new(0.0, 0.0, 0.5, 0.5),
+            ),
+            Instance::from_transform_origin(
+                Transform::from_translation(Vec3::new(1.0, 1.0, 0.0)),
+                Vec2::new(0.5, 0.0),
+                Vec4::new(0.5, 0.0, 0.5, 0.5),
+            ),
+            Instance::from_transform_origin(
+                Transform::from_translation(Vec3::new(-1.0, -1.0, 0.0)),
+                Vec2::new(0.5, 0.0),
+                Vec4::new(0.0, 0.5, 0.5, 0.5),
+            ),
+            Instance::from_transform_origin(
+                Transform::from_translation(Vec3::new(1.0, -1.0, 0.0)),
+                Vec2::new(0.5, 0.0),
+                Vec4::new(0.5, 0.5, 0.5, 0.5),
+            ),
         ];
 
         let sprite_instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {

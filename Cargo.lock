@@ -692,6 +692,7 @@ dependencies = [
  "env_logger",
  "gg2-client",
  "gg2-common",
+ "gg2-custom-common",
  "glam",
  "image",
  "log",
@@ -702,6 +703,15 @@ dependencies = [
  "toml",
  "wgpu",
  "winit",
+]
+
+[[package]]
+name = "gg2-custom-common"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "glam",
+ "log",
 ]
 
 [[package]]

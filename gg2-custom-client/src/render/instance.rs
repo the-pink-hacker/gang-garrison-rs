@@ -20,11 +20,10 @@ impl Instance {
         5 => Float32x4,
     ];
 
-    pub fn from_translation(translation: Vec3, texture_uv: Vec4) -> Self {
-        let transform_matrix = Mat4::from_translation(translation);
-
+    /// An origin of `0, 0` is at the bottom left corner
+    pub fn from_transform_origin(transform: Transform, origin: Vec2, texture_uv: Vec4) -> Self {
         Self {
-            transform_matrix,
+            transform_matrix: transform.calculate_matrix_origin(origin),
             texture_uv,
         }
     }

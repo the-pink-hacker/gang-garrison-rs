@@ -1,0 +1,12 @@
+[package]
+name = "gg2-custom-common"
+edition = "2024"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+bytemuck = { version = "1.23.0", features = ["derive"] }
+glam = { version = "0.30.3", features = ["bytemuck"] }
+log = "*"
