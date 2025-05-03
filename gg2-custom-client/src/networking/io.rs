@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    net::SocketAddr,
+    net::ToSocketAddrs,
     ops::{Deref, DerefMut},
     sync::Arc,
 };
@@ -27,7 +27,6 @@ use tokio::{
 use crate::prelude::*;
 
 pub const MAX_PACKET_LENGTH: usize = 1024;
-pub const DEFAULT_PORT: u16 = 8190;
 
 #[derive(Debug)]
 pub struct SyncChannel<T> {
@@ -69,36 +68,42 @@ pub struct NetworkClient {
     server_connection: Option<ServerConnection>,
     receive_message: Arc<Mutex<VecDequeIter<u8>>>,
     pub network_events: SyncChannel<ClientNetworkEvent>,
-    connection_events: SyncChannel<(TcpStream, SocketAddr)>,
+    connection_events: SyncChannel<TcpStream>,
     pub connection_state: NetworkingState,
 }
 
 impl NetworkClient {
     // Connects to a new server
-    pub async fn connect(&mut self, address: SocketAddr) -> Result<()> {
-        info!("Connecting to server: {}", address);
+    pub async fn connect(&mut self, url: &str) -> Result<()> {
+        info!("Connecting to server: {}", url);
 
         if self.server_connection.is_some() {
             self.disconnect();
         }
 
-        let network_error_sender = self.network_events.sender.clone();
         let connection_event_sender = self.connection_events.sender.clone();
+
+        let url = if url.contains(':') {
+            url
+        } else {
+            &*format!("{}:{}", url, gg2_common::networking::DEFAULT_PORT)
+        };
+
+        let address = &*(url).to_socket_addrs().unwrap().collect::<Vec<_>>();
 
         let stream = match TcpStream::connect(address).await {
             Ok(stream) => stream,
             Err(error) => {
-                return Err(Error::NetworkError(NetworkError::Connection(
-                    error, address,
+                return Err(Error::Network(NetworkError::Connection(
+                    error,
+                    url.to_string(),
                 )));
             }
         };
 
-        let address = stream.peer_addr().map_err(|_| NetworkError::NotConnected)?;
-
         connection_event_sender
-            .send((stream, address))
-            .map_err(|_| Error::NetworkError(NetworkError::ConnectSend))
+            .send(stream)
+            .map_err(|_| Error::Network(NetworkError::ConnectSend))
     }
 
     pub fn disconnect(&mut self) {
@@ -120,7 +125,7 @@ impl NetworkClient {
             .ok_or(NetworkError::NotConnected)?
             .send_message
             .send(buffer)
-            .map_err(|_| Error::NetworkError(NetworkError::NotConnected))
+            .map_err(|_| Error::Network(NetworkError::NotConnected))
     }
 
     pub fn send<T: ClientNetworkSerialize>(&self, message: T) -> Result<()> {
@@ -140,7 +145,7 @@ impl NetworkClient {
 
     /// Sets up send and receive threads when connecting
     pub fn handle_connection_event(&mut self) {
-        if let Ok((connection, peer_address)) = self.connection_events.receiver.try_recv() {
+        if let Ok(connection) = self.connection_events.receiver.try_recv() {
             let (read_socket, send_socket) = connection.into_split();
             let (send_message, receive_message) = unbounded_channel();
 
@@ -153,7 +158,6 @@ impl NetworkClient {
                 receive_task: tokio::spawn(receive_task(
                     read_socket,
                     Arc::clone(&self.receive_message),
-                    peer_address,
                     self.network_events.sender.clone(),
                 )),
                 send_message,
@@ -183,7 +187,7 @@ impl NetworkClient {
             Err(error) => {
                 // Dead lock would happen here
                 self.purge_queue().await;
-                Err(Error::NetworkError(error))
+                Err(Error::Network(error))
             }
         }
     }
@@ -213,7 +217,7 @@ async fn send_task(
     while let Some(message) = receive_message.recv().await {
         trace!("Sending: {}", message.escape_ascii());
 
-        if let Err(error) = send_socket.write_all(&message).await {
+        if send_socket.write_all(&message).await.is_err() {
             let _ = network_event_sender.send(ClientNetworkEvent::Error(NetworkError::PacketSend));
         }
 
@@ -227,22 +231,18 @@ async fn send_task(
 async fn receive_task(
     mut read_socket: OwnedReadHalf,
     receive_messages: Arc<Mutex<VecDequeIter<u8>>>,
-    peer_address: SocketAddr,
     network_event_sender: Sender<ClientNetworkEvent>,
 ) {
     let mut buffer = [0; MAX_PACKET_LENGTH];
-    loop {
-        if let Ok(length) = read_socket.read(&mut buffer).await {
-            trace!(
-                "Received {} bytes: {}",
-                length,
-                buffer[..length].escape_ascii()
-            );
 
-            receive_messages.lock().await.extend(&buffer[..length]);
-        } else {
-            break;
-        }
+    while let Ok(length) = read_socket.read(&mut buffer).await {
+        trace!(
+            "Received {} bytes: {}",
+            length,
+            buffer[..length].escape_ascii()
+        );
+
+        receive_messages.lock().await.extend(&buffer[..length]);
     }
 
     let _ = network_event_sender.send(ClientNetworkEvent::Disconnected);

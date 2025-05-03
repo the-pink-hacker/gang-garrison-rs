@@ -1,9 +1,12 @@
 use gg2_client::networking::{message::server::ServerMessageGeneric, state::NetworkingState};
-use gg2_common::networking::{error::Error as NetworkError, message::*};
+use gg2_common::{
+    networking::{error::Error as NetworkError, message::*},
+    string::GGStringShort,
+};
 
 use crate::prelude::*;
 
-use super::io::{ClientNetworkEvent, DEFAULT_PORT};
+use super::io::ClientNetworkEvent;
 
 impl NetworkClient {
     fn handle_network_events(&mut self) -> Result<()> {
@@ -66,13 +69,21 @@ impl UpdateMutRunnable for NetworkClient {
 
         match self.connection_state {
             NetworkingState::Disconnected => {
-                let address = {
-                    let config = world.config.read().await;
-                    config.networking.default_server_address
-                };
+                if let Some(command) = &world.client_cli_arguments.command {
+                    match command {
+                        ClientCliSubcommand::JoinServer(join_server) => {
+                            let url = match &join_server.server_url {
+                                Some(url) => url,
+                                None => {
+                                    &world.config.read().await.networking.default_server_address
+                                }
+                            };
 
-                self.connect(address).await?;
-                self.connection_state = NetworkingState::AttemptingConnection;
+                            self.connect(url).await?;
+                            self.connection_state = NetworkingState::AttemptingConnection;
+                        }
+                    }
+                }
             }
             // Handled in `Self::handle_network_events`
             NetworkingState::AttemptingConnection => (),
@@ -88,19 +99,17 @@ impl UpdateMutRunnable for NetworkClient {
                                 config.game.player_name.clone()
                             };
 
-                            self.send_message(ClientReserveSlot {
-                                player_name: player_name.try_into().unwrap(),
-                            })?;
+                            self.send_message(ClientReserveSlot { player_name })?;
                             self.connection_state = NetworkingState::ReserveSlot;
                         }
                         ServerMessageGeneric::IncompatibleProtocol(_) => {
-                            error!("Server doesn't support client's protocol; disconnecting");
+                            error!("Server doesn't support client's protocol; disconnecting...");
                             self.disconnect();
                         }
                         ServerMessageGeneric::PasswordRequest(_) => {
                             // TODO: Add password prompt
                             let password = GGStringShort::try_from("1234".to_string()).unwrap();
-                            debug!("Sending password to server \"{}\"", password);
+                            debug!("Sending password to server...");
                             self.send(&password)?;
                         }
                         ServerMessageGeneric::PasswordWrong(_) => {

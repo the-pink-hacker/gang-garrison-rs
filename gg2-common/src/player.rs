@@ -2,10 +2,7 @@ use std::fmt::Display;
 
 use glam::Vec2;
 
-use crate::{
-    error::*,
-    networking::message::{GGStringShort, ServerPlayerJoin},
-};
+use crate::{error::*, networking::message::ServerPlayerJoin, string::GGStringShort};
 
 pub mod class;
 pub mod team;
@@ -19,12 +16,14 @@ impl From<ServerPlayerJoin> for Player {
     fn from(value: ServerPlayerJoin) -> Self {
         Self {
             name: value.player_name,
-            ..Default::default()
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "u8", try_from = "u8"))]
 pub struct PlayerId(u8);
 
 impl PlayerId {

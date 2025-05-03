@@ -14,5 +14,5 @@ pub enum Error {
     #[error("WGPU Error: {0}")]
     WgpuCreateSurface(#[from] wgpu::CreateSurfaceError),
     #[error("Network Error: {0}")]
-    NetworkError(#[from] gg2_common::networking::error::Error),
+    Network(#[from] gg2_common::networking::error::Error),
 }

@@ -13,7 +13,7 @@ pub enum Error {
     #[error("An error occured when trying to start listening for new connections: {0}")]
     Listen(std::io::Error),
     #[error("An error occured when trying to connect to '{1}': {0}")]
-    Connection(std::io::Error, std::net::SocketAddr),
+    Connection(std::io::Error, String),
     #[error("No data was found in the packet")]
     PacketEmpty,
     #[error("Failed to parse packet kind: {0}")]

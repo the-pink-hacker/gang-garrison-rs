@@ -6,6 +6,7 @@ impl ClientNetworkSerialize for ClientHello {
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
         let protocol_bytes = self.protocol.into_bytes();
         buffer.extend(protocol_bytes.iter());
+
         Ok(())
     }
 }
@@ -34,6 +35,8 @@ impl ClientNetworkSerialize for ClientPlayerJoin {
 
 impl ClientNetworkSerialize for ClientReserveSlot {
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
-        Ok(buffer.write_utf8_short_string(&self.player_name))
+        buffer.write_utf8_short_string(&self.player_name);
+
+        Ok(())
     }
 }

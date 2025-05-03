@@ -4,15 +4,14 @@ use std::{
     path::PathBuf,
 };
 
-use log::{error, info, warn};
-
 use super::{
     ClientConfig,
     error::{LoadError, SaveError},
 };
+use crate::prelude::*;
 
 impl ClientConfig {
-    pub fn load() -> Result<Self, LoadError> {
+    pub fn load() -> std::result::Result<Self, LoadError> {
         let path = Self::default_path()?;
 
         match read_to_string(&path) {
@@ -34,7 +33,7 @@ impl ClientConfig {
         }
     }
 
-    pub fn save(&self) -> Result<(), SaveError> {
+    pub fn save(&self) -> std::result::Result<(), SaveError> {
         info!("Saving config");
         let config_raw = toml::to_string_pretty(&self.values)
             .map_err(|error| SaveError::Toml(error, self.path.clone()))?;
@@ -45,7 +44,7 @@ impl ClientConfig {
             .map_err(|error| SaveError::Io(error, self.path.clone()))
     }
 
-    fn default_path() -> Result<PathBuf, LoadError> {
+    fn default_path() -> std::result::Result<PathBuf, LoadError> {
         std::env::current_exe()
             .map_err(|_| LoadError::DefaultPath)?
             .parent()

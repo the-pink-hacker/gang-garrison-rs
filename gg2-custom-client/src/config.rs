@@ -1,10 +1,10 @@
 use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
     ops::{Deref, DerefMut},
     path::PathBuf,
 };
 
 use async_lock::RwLock;
+use gg2_common::string::GGStringShort;
 use serde::{Deserialize, Serialize};
 use winit::keyboard::KeyCode;
 
@@ -47,13 +47,16 @@ pub struct ClientConfigRoot {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ClientConfigGame {
-    pub player_name: String,
+    pub player_name: GGStringShort,
 }
 
 impl Default for ClientConfigGame {
     fn default() -> Self {
         Self {
-            player_name: "Rust Player".to_string(),
+            player_name: "Rust Player"
+                .to_string()
+                .try_into()
+                .expect("Failed to create default player name"),
         }
     }
 }
@@ -61,13 +64,13 @@ impl Default for ClientConfigGame {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ClientConfigNetworking {
-    pub default_server_address: SocketAddr,
+    pub default_server_address: String,
 }
 
 impl Default for ClientConfigNetworking {
     fn default() -> Self {
         Self {
-            default_server_address: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8190),
+            default_server_address: format!("127.0.0.1:{}", gg2_common::networking::DEFAULT_PORT),
         }
     }
 }

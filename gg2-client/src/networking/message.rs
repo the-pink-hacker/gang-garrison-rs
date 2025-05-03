@@ -1,6 +1,6 @@
-use gg2_common::networking::{
-    error::*,
-    message::{GGStringShort, MessageWriter},
+use gg2_common::{
+    networking::{error::*, message::MessageWriter},
+    string::GGStringShort,
 };
 
 pub mod client;
@@ -16,6 +16,8 @@ pub trait ClientNetworkDeserialize: Sized {
 
 impl ClientNetworkSerialize for &GGStringShort {
     fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
-        Ok(buffer.write_utf8_short_string(self))
+        buffer.write_utf8_short_string(self);
+
+        Ok(())
     }
 }

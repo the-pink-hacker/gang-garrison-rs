@@ -1,11 +1,9 @@
-use std::{
-    fmt::{Debug, Display},
-    ops::{Deref, DerefMut},
-};
-
 use glam::Vec2;
 
-use crate::networking::error::Error;
+use crate::{
+    networking::error::Error,
+    string::{GGStringLong, GGStringShort},
+};
 
 use super::{PacketKind, error::Result};
 pub use client::*;
@@ -16,108 +14,6 @@ mod server;
 
 pub trait GGMessage: Sync + Send {
     const KIND: PacketKind;
-}
-
-/// A string with a max length of 65535
-#[derive(Default, Clone, Hash, PartialEq, Eq)]
-pub struct GGStringLong(String, u16);
-
-impl GGStringLong {
-    pub fn len(&self) -> u16 {
-        self.1
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.1 > 0
-    }
-}
-
-impl TryFrom<String> for GGStringLong {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self> {
-        match u16::try_from(value.len()) {
-            Ok(length) => Ok(Self(value, length)),
-            Err(error) => Err(Error::StringLength(error)),
-        }
-    }
-}
-
-impl Deref for GGStringLong {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for GGStringLong {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Display for GGStringLong {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&**self, f)
-    }
-}
-
-impl Debug for GGStringLong {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&**self, f)
-    }
-}
-
-/// A string with a max length of 255
-#[derive(Default, Clone, Hash, PartialEq, Eq)]
-pub struct GGStringShort(String, u8);
-
-impl GGStringShort {
-    pub fn len(&self) -> u8 {
-        self.1
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.1 > 0
-    }
-}
-
-impl TryFrom<String> for GGStringShort {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self> {
-        match u8::try_from(value.len()) {
-            Ok(length) => Ok(Self(value, length)),
-            Err(error) => Err(Error::StringLength(error)),
-        }
-    }
-}
-
-impl Deref for GGStringShort {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for GGStringShort {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Display for GGStringShort {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&**self, f)
-    }
-}
-
-impl Debug for GGStringShort {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&**self, f)
-    }
 }
 
 pub trait MessageReader {
@@ -187,19 +83,13 @@ where
     fn read_utf8_short_string(&mut self) -> Result<GGStringShort> {
         let length = self.read_u8()?;
         let bytes = self.take(length as usize).collect();
-        Ok(GGStringShort(
-            String::from_utf8(bytes).map_err(|_| Error::PacketPayload)?,
-            length,
-        ))
+        GGStringShort::from_utf8(bytes).map_err(|_| Error::PacketPayload)
     }
 
     fn read_utf8_long_string(&mut self) -> Result<GGStringLong> {
         let length = self.read_u16()?;
         let bytes = self.take(length as usize).collect();
-        Ok(GGStringLong(
-            String::from_utf8(bytes).map_err(|_| Error::PacketPayload)?,
-            length,
-        ))
+        GGStringLong::from_utf8(bytes).map_err(|_| Error::PacketPayload)
     }
 
     fn read_md5(&mut self) -> Result<Option<u128>> {

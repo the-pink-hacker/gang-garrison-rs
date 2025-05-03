@@ -1,4 +1,3 @@
-use error::{Error, Result};
 use message::GGMessage;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use uuid::{Uuid, uuid};
@@ -6,38 +5,10 @@ use uuid::{Uuid, uuid};
 pub mod error;
 pub mod message;
 
+/// The protocol UUID that is sent on a client to server Hello message
 pub const PROTOCOL_UUID: Uuid = uuid!("b31c2209-4256-9a19-d0ef-c71c5373bd75");
-
-#[deprecated]
-#[derive(Clone)]
-pub struct NetworkPacket {
-    pub kind: PacketKind,
-    pub data: Vec<u8>,
-}
-
-#[allow(deprecated)]
-impl From<NetworkPacket> for Vec<u8> {
-    fn from(value: NetworkPacket) -> Self {
-        let mut output = value.data;
-        output.insert(0, value.kind.into());
-        output
-    }
-}
-
-#[allow(deprecated)]
-impl TryFrom<&[u8]> for NetworkPacket {
-    type Error = error::Error;
-
-    fn try_from(value: &[u8]) -> Result<Self> {
-        let mut stream = value.iter().cloned();
-        let raw_kind = stream.next().ok_or(error::Error::PacketEmpty)?;
-        let kind = raw_kind
-            .try_into()
-            .map_err(|_| Error::PacketKind(raw_kind))?;
-        let data = stream.collect();
-        Ok(Self { kind, data })
-    }
-}
+/// The default GG2 server port
+pub const DEFAULT_PORT: u16 = 8190;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]

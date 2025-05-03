@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 // The render thread doesn't like tokio::sync::RwLock
 use async_lock::RwLock;
+use cli::ClientCliArguments;
 use tokio::time::Duration;
 
 use crate::{
@@ -14,6 +15,8 @@ use crate::{
 const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 
+pub mod cli;
+
 pub struct App {
     world: Arc<World>,
 }
@@ -23,12 +26,15 @@ impl App {
     pub fn new() -> Self {
         env_logger::init();
 
+        let client_cli_arguments = cli::init();
+
         let config = ClientConfig::load().expect("Failed to load client config");
         config.save().expect("Failed to save client config");
 
         Self {
             world: Arc::new(World {
                 camera: Camera::default().into(),
+                client_cli_arguments,
                 config: config.into(),
                 network_client: NetworkClient::default().into(),
             }),
@@ -76,12 +82,9 @@ impl App {
 /// The world is used to pass data between threads
 pub struct World {
     pub camera: RwLock<Camera>,
+    pub client_cli_arguments: ClientCliArguments,
     pub config: ClientConfigLock,
     pub network_client: RwLock<NetworkClient>,
-}
-
-pub trait UpdateRunnable {
-    async fn update(&self, world: &World) -> Result<()>;
 }
 
 pub trait UpdateMutRunnable {

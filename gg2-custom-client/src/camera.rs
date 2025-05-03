@@ -58,7 +58,7 @@ impl Default for Camera {
 }
 
 impl UpdateMutRunnable for Camera {
-    async fn update_mut(&mut self, world: &World) -> Result<()> {
+    async fn update_mut(&mut self, _world: &World) -> Result<()> {
         // Move camera up and to the right
         //self.translation.x += 0.01;
         //self.translation.y -= 0.01;

@@ -6,8 +6,12 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 use crate::error::{Error, Result};
 
 /// A player team
-#[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
 #[repr(u8)]
+#[derive(
+    Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence, Hash,
+)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum Team {
     Red,
     Blu,
@@ -22,8 +26,10 @@ impl Display for Team {
 }
 
 /// A team is allowed to spawn and have characters
-#[derive(Debug, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
 #[repr(u8)]
+#[derive(Debug, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum TeamSpawnable {
     Red,
     Blu,
@@ -42,8 +48,12 @@ impl TryFrom<&Team> for TeamSpawnable {
 }
 
 /// What team a player chooses to join
-#[derive(Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence)]
 #[repr(u8)]
+#[derive(
+    Debug, Default, Clone, Copy, TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Sequence, Hash,
+)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum TeamChoice {
     Red,
     Blu,

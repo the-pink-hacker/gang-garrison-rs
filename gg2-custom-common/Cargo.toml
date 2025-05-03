@@ -8,5 +8,7 @@ repository.workspace = true
 
 [dependencies]
 bytemuck = { version = "1.23.0", features = ["derive"] }
+clap = { version = "4.5.37", features = ["derive"] }
+gg2-common = { version = "0.1.0", path = "../gg2-common" }
 glam = { version = "0.30.3", features = ["bytemuck"] }
 log = "*"
