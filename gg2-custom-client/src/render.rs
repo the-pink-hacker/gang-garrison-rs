@@ -19,7 +19,9 @@ use crate::{
 use instance::Instance;
 use vertex::Vertex;
 
+pub mod camera;
 pub mod instance;
+pub mod texture;
 pub mod vertex;
 
 const MAX_SPRITE_INSTANCES: wgpu::BufferAddress = 1_024;
@@ -144,127 +146,11 @@ impl State {
             mapped_at_creation: false,
         });
 
-        let camera_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Camera Buffer"),
-            size: std::mem::size_of::<[[f32; 4]; 4]>() as wgpu::BufferAddress,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        let (camera_uniform_bind_group_layout, camera_uniform_bind_group, camera_uniform_buffer) =
+            Self::create_camera_buffer(&device);
 
-        let camera_uniform_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Camera Uniform Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
-
-        let camera_uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Camera Uniform Bind Group Layout"),
-            layout: &camera_uniform_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: camera_uniform_buffer.as_entire_binding(),
-            }],
-        });
-
-        let diffuse_bytes = include_bytes!("../../assets/sprites/characters/scout/red/stand/0.png");
-        let diffuse_image =
-            image::load_from_memory_with_format(diffuse_bytes, image::ImageFormat::Png).unwrap();
-        let diffuse_rgba = diffuse_image.to_rgba8();
-
-        use image::GenericImageView;
-        let (diffuse_width, diffuse_height) = diffuse_image.dimensions();
-
-        let texture_size = wgpu::Extent3d {
-            width: diffuse_width,
-            height: diffuse_height,
-            depth_or_array_layers: 1,
-        };
-        let diffuse_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Diffuse Texture"),
-            size: texture_size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &diffuse_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &diffuse_rgba,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * diffuse_width),
-                rows_per_image: Some(diffuse_height),
-            },
-            texture_size,
-        );
-
-        let diffuse_texture_view =
-            diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let diffuse_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Diffuse Sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        });
-
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Texture Bind Group Layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
-
-        let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Texture Bind Group"),
-            layout: &texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
-                },
-            ],
-        });
+        let (texture_bind_group_layout, texture_bind_group) =
+            Self::create_texture_bind_group(&device, &queue);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -335,7 +221,6 @@ impl State {
 
         Ok(state)
     }
-
     fn get_window(&self) -> &Window {
         &self.window
     }
@@ -353,16 +238,6 @@ impl State {
         let mut camera = pollster::block_on(world.camera.write());
         camera.game_width = self.size.width;
         camera.game_height = self.size.height;
-    }
-
-    fn update_camera_uniform_buffer(&mut self, world: &World) {
-        let camera = pollster::block_on(world.camera.read());
-        let matrix = camera.build_view_projection_matrix();
-        self.queue.write_buffer(
-            &self.camera_uniform_buffer,
-            0,
-            bytemuck::cast_slice(&[matrix]),
-        );
     }
 
     fn render(&mut self, world: &World) {
