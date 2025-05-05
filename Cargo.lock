@@ -731,13 +731,16 @@ dependencies = [
  "bytemuck",
  "clap",
  "crossbeam-channel",
+ "enum-iterator",
  "env_logger",
  "gg2-client",
  "gg2-common",
  "gg2-custom-common",
  "glam",
  "image",
+ "image-atlas",
  "log",
+ "png",
  "pollster",
  "serde",
  "thiserror 2.0.12",
@@ -910,6 +913,16 @@ dependencies = [
  "byteorder-lite",
  "num-traits",
  "png",
+]
+
+[[package]]
+name = "image-atlas"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a196af1c517503f198be191527881b4a60ed02515814dd0b64a38cb40c4be10"
+dependencies = [
+ "image",
+ "rectangle-pack",
 ]
 
 [[package]]
@@ -1668,6 +1681,12 @@ name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+
+[[package]]
+name = "rectangle-pack"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0d463f2884048e7153449a55166f91028d5b0ea53c79377099ce4e8cf0cf9bb"
 
 [[package]]
 name = "redox_syscall"

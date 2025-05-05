@@ -1,23 +1,36 @@
-use image::GenericImageView;
+use std::path::PathBuf;
 
 use super::State;
+use crate::prelude::*;
+
+pub mod atlas;
+
+const ATLAS_SIZE: u32 = 512;
 
 impl State {
     pub fn create_texture_bind_group(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-    ) -> (wgpu::BindGroupLayout, wgpu::BindGroup) {
-        let diffuse_bytes =
-            include_bytes!("../../../assets/sprites/characters/scout/red/stand/0.png");
-        let diffuse_image =
-            image::load_from_memory_with_format(diffuse_bytes, image::ImageFormat::Png).unwrap();
-        let diffuse_rgba = diffuse_image.to_rgba8();
+    ) -> Result<(wgpu::BindGroupLayout, wgpu::BindGroup)> {
+        let images = enum_iterator::all::<gg2_common::player::class::ClassGeneric>()
+            .flat_map(|class| {
+                [
+                    ("red", class.to_string().to_lowercase()),
+                    ("blu", class.to_string().to_lowercase()),
+                ]
+                .into_iter()
+            })
+            .map(|(team, class)| {
+                format!("./assets/sprites/characters/{}/{}/stand/0.png", class, team)
+            })
+            .map(PathBuf::from)
+            .collect::<Vec<_>>();
 
-        let (diffuse_width, diffuse_height) = diffuse_image.dimensions();
+        let diffuse_rgba = atlas::create_atlas(ATLAS_SIZE, &images)?;
 
         let texture_size = wgpu::Extent3d {
-            width: diffuse_width,
-            height: diffuse_height,
+            width: ATLAS_SIZE,
+            height: ATLAS_SIZE,
             depth_or_array_layers: 1,
         };
         let diffuse_texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -41,8 +54,8 @@ impl State {
             &diffuse_rgba,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * diffuse_width),
-                rows_per_image: Some(diffuse_height),
+                bytes_per_row: Some(4 * ATLAS_SIZE),
+                rows_per_image: Some(ATLAS_SIZE),
             },
             texture_size,
         );
@@ -98,6 +111,6 @@ impl State {
             ],
         });
 
-        (texture_bind_group_layout, texture_bind_group)
+        Ok((texture_bind_group_layout, texture_bind_group))
     }
 }

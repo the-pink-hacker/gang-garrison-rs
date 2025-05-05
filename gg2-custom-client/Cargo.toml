@@ -25,3 +25,6 @@ serde = { version = "1.0.219", features = ["derive"] }
 toml = "0.8.22"
 gg2-custom-common = { version = "0.1.0", path = "../gg2-custom-common" }
 clap = { version = "4.5.37", features = ["derive"] }
+image-atlas = "0.4.1"
+enum-iterator = "2.1.0"
+png = "0.17.16"

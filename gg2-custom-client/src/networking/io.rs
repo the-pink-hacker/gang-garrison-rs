@@ -89,7 +89,10 @@ impl NetworkClient {
             &*format!("{}:{}", url, gg2_common::networking::DEFAULT_PORT)
         };
 
-        let address = &*(url).to_socket_addrs().unwrap().collect::<Vec<_>>();
+        let address = &*(url)
+            .to_socket_addrs()
+            .expect("Failed to parse server address")
+            .collect::<Vec<_>>();
 
         let stream = match TcpStream::connect(address).await {
             Ok(stream) => stream,

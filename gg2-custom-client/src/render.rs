@@ -107,37 +107,15 @@ impl State {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let sprite_instances = vec![
-            Instance::from_transform_origin(
-                Transform {
-                    translation: Vec3::new(0.0, 0.0, 0.0),
-                    rotation: 0.5,
-                    scale: Vec2::new(0.5, 1.0),
-                },
-                Vec2::new(0.5, 0.0),
-                Vec4::new(0.0, 0.0, 1.0, 1.0),
-            ),
-            Instance::from_transform_origin(
-                Transform::from_translation(Vec3::new(-1.0, 1.0, 0.0)),
-                Vec2::new(0.5, 0.0),
-                Vec4::new(0.0, 0.0, 0.5, 0.5),
-            ),
-            Instance::from_transform_origin(
-                Transform::from_translation(Vec3::new(1.0, 1.0, 0.0)),
-                Vec2::new(0.5, 0.0),
-                Vec4::new(0.5, 0.0, 0.5, 0.5),
-            ),
-            Instance::from_transform_origin(
-                Transform::from_translation(Vec3::new(-1.0, -1.0, 0.0)),
-                Vec2::new(0.5, 0.0),
-                Vec4::new(0.0, 0.5, 0.5, 0.5),
-            ),
-            Instance::from_transform_origin(
-                Transform::from_translation(Vec3::new(1.0, -1.0, 0.0)),
-                Vec2::new(0.5, 0.0),
-                Vec4::new(0.5, 0.5, 0.5, 0.5),
-            ),
-        ];
+        let sprite_instances = vec![Instance::from_transform_origin(
+            Transform {
+                translation: Vec3::new(0.0, 0.0, 0.0),
+                rotation: 0.0,
+                scale: Vec2::splat(8.0),
+            },
+            Vec2::new(0.5, 0.5),
+            Vec4::new(0.0, 0.0, 1.0, 1.0),
+        )];
 
         let sprite_instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Sprite Instance Buffer"),
@@ -150,7 +128,7 @@ impl State {
             Self::create_camera_buffer(&device);
 
         let (texture_bind_group_layout, texture_bind_group) =
-            Self::create_texture_bind_group(&device, &queue);
+            Self::create_texture_bind_group(&device, &queue)?;
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
