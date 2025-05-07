@@ -1,6 +1,39 @@
 use super::State;
 use crate::prelude::*;
 
+const GAMEMAKER_CONVERSION: Vec3 = Vec3::new(1.0, -1.0, 1.0);
+const GAME_HEIGHT: u32 = 96 * 3;
+
+impl Camera {
+    /// Genrates a matrix to project world space into screen space
+    pub fn build_view_projection_matrix(&self, window_size: UVec2) -> Mat4 {
+        // TODO: Add aspect ratio crop
+        let ratio = window_size.x as f32 / window_size.y as f32;
+        let width = (GAME_HEIGHT as f32 * ratio).trunc();
+        let game_size = Vec2::new(width, GAME_HEIGHT as f32);
+        let (width_half, height_half) = (game_size / 2.0).into();
+
+        let projection = Mat4::orthographic_rh_gl(
+            -width_half,
+            width_half,
+            -height_half,
+            height_half,
+            self.clipping_near,
+            self.clipping_far,
+        );
+
+        let translation_converted = self.translation * GAMEMAKER_CONVERSION;
+
+        let view = Mat4::look_at_rh(
+            translation_converted,
+            translation_converted.with_z(0.0),
+            Vec3::Y,
+        );
+
+        projection * view
+    }
+}
+
 impl State {
     pub fn create_camera_buffer(
         device: &wgpu::Device,
@@ -45,7 +78,8 @@ impl State {
 
     pub fn update_camera_uniform_buffer(&mut self, world: &World) {
         let camera = pollster::block_on(world.camera.read());
-        let matrix = camera.build_view_projection_matrix();
+        let matrix =
+            camera.build_view_projection_matrix(UVec2::new(self.size.width, self.size.height));
         self.queue.write_buffer(
             &self.camera_uniform_buffer,
             0,

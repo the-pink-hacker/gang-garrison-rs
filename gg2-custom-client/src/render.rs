@@ -111,7 +111,7 @@ impl State {
             Transform {
                 translation: Vec3::new(0.0, 0.0, 0.0),
                 rotation: 0.0,
-                scale: Vec2::splat(8.0),
+                scale: Vec2::splat(128.0),
             },
             Vec2::new(0.5, 0.5),
             Vec4::new(0.0, 0.0, 1.0, 1.0),
@@ -207,15 +207,11 @@ impl State {
         self.surface.configure(&self.device, &self.surface_config);
     }
 
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>, world: &World) {
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.size = new_size;
         self.surface_config.width = self.size.width;
         self.surface_config.height = self.size.height;
         self.configure_surface();
-
-        let mut camera = pollster::block_on(world.camera.write());
-        camera.game_width = self.size.width;
-        camera.game_height = self.size.height;
     }
 
     fn render(&mut self, world: &World) {
@@ -339,7 +335,7 @@ impl ApplicationHandler for RenderApp {
 
                 state.get_window().request_redraw();
             }
-            WindowEvent::Resized(size) => state.resize(size, &self.world),
+            WindowEvent::Resized(size) => state.resize(size),
             _ => (),
         }
     }

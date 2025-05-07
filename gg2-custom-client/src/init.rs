@@ -6,7 +6,6 @@ use cli::ClientCliArguments;
 use tokio::time::Duration;
 
 use crate::{
-    camera::Camera,
     config::{ClientConfig, ClientConfigLock},
     networking::io::NetworkClient,
     prelude::*,
