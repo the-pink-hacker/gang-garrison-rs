@@ -1,7 +1,6 @@
 use super::State;
 use crate::prelude::*;
 
-const GAMEMAKER_CONVERSION: Vec3 = Vec3::new(1.0, -1.0, 1.0);
 const GAME_HEIGHT: u32 = 96 * 3;
 
 impl Camera {
@@ -13,24 +12,14 @@ impl Camera {
         let game_size = Vec2::new(width, GAME_HEIGHT as f32);
         let (width_half, height_half) = (game_size / 2.0).into();
 
-        let projection = Mat4::orthographic_rh_gl(
-            -width_half,
-            width_half,
-            -height_half,
-            height_half,
+        Mat4::orthographic_rh_gl(
+            self.translation.x - width_half,
+            self.translation.x + width_half,
+            -self.translation.y - height_half,
+            -self.translation.y + height_half,
             self.clipping_near,
             self.clipping_far,
-        );
-
-        let translation_converted = self.translation * GAMEMAKER_CONVERSION;
-
-        let view = Mat4::look_at_rh(
-            translation_converted,
-            translation_converted.with_z(0.0),
-            Vec3::Y,
-        );
-
-        projection * view
+        )
     }
 }
 

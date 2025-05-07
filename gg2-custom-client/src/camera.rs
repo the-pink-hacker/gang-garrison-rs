@@ -4,7 +4,7 @@ use crate::prelude::*;
 #[derive(Debug)]
 pub struct Camera {
     /// The location
-    pub translation: Vec3,
+    pub translation: Vec2,
     /// The near clipping plane's z
     pub clipping_near: f32,
     /// The far clipping plane's z
@@ -14,7 +14,7 @@ pub struct Camera {
 impl Default for Camera {
     fn default() -> Self {
         Self {
-            translation: Vec3::new(0.0, 0.0, 10.0),
+            translation: Vec2::ZERO,
             clipping_near: -100.0,
             clipping_far: 100.0,
         }
