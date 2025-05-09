@@ -1,41 +1,22 @@
-use std::path::PathBuf;
-
 use super::State;
 use crate::prelude::*;
 
 pub mod atlas;
 
 const ATLAS_SIZE: u32 = 512;
+const ATLAS_EXTENT: wgpu::Extent3d = wgpu::Extent3d {
+    width: ATLAS_SIZE,
+    height: ATLAS_SIZE,
+    depth_or_array_layers: 1,
+};
 
 impl State {
     pub fn create_texture_bind_group(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) -> Result<(wgpu::BindGroupLayout, wgpu::BindGroup)> {
-        let images = enum_iterator::all::<gg2_common::player::class::ClassGeneric>()
-            .flat_map(|class| {
-                [
-                    ("red", class.to_string().to_lowercase()),
-                    ("blu", class.to_string().to_lowercase()),
-                ]
-                .into_iter()
-            })
-            .map(|(team, class)| {
-                format!("./assets/sprites/characters/{}/{}/stand/0.png", class, team)
-            })
-            .map(PathBuf::from)
-            .collect::<Vec<_>>();
-
-        let diffuse_rgba = atlas::create_atlas(ATLAS_SIZE, &images)?;
-
-        let texture_size = wgpu::Extent3d {
-            width: ATLAS_SIZE,
-            height: ATLAS_SIZE,
-            depth_or_array_layers: 1,
-        };
+    ) -> Result<(wgpu::BindGroupLayout, wgpu::BindGroup, wgpu::Texture)> {
         let diffuse_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Diffuse Texture"),
-            size: texture_size,
+            size: ATLAS_EXTENT,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -43,22 +24,6 @@ impl State {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
-
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &diffuse_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &diffuse_rgba,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * ATLAS_SIZE),
-                rows_per_image: Some(ATLAS_SIZE),
-            },
-            texture_size,
-        );
 
         let diffuse_texture_view =
             diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -111,6 +76,41 @@ impl State {
             ],
         });
 
-        Ok((texture_bind_group_layout, texture_bind_group))
+        Ok((
+            texture_bind_group_layout,
+            texture_bind_group,
+            diffuse_texture,
+        ))
+    }
+
+    pub async fn update_texture_atlas(&self, world: &World) {
+        let textures = {
+            let mut asset_server = world.asset_server.write().await;
+
+            if !asset_server.textures_updated {
+                return;
+            }
+
+            asset_server.take_textures()
+        };
+
+        let diffuse_rgba =
+            atlas::create_atlas(ATLAS_SIZE, textures).expect("Failed to construct texture atlas");
+
+        self.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &self.texture_atlas,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &diffuse_rgba,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * ATLAS_SIZE),
+                rows_per_image: Some(ATLAS_SIZE),
+            },
+            ATLAS_EXTENT,
+        );
     }
 }

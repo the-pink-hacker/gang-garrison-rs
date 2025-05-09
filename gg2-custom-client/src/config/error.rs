@@ -6,8 +6,6 @@ pub enum LoadError {
     Io(std::io::Error, PathBuf),
     #[error("Failed to deserialize config at '{1}': {0}")]
     Toml(toml::de::Error, PathBuf),
-    #[error("Failed to get default config path")]
-    DefaultPath,
 }
 
 #[derive(Debug, thiserror::Error)]

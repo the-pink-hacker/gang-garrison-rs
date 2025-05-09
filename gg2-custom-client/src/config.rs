@@ -38,6 +38,7 @@ pub struct ClientConfigRoot {
     pub networking: ClientConfigNetworking,
     pub game: ClientConfigGame,
     pub controls: ClientConfigControls,
+    pub assets: ClientConfigAssets,
 
     /// Doesn't override unknown values
     #[serde(flatten)]
@@ -93,6 +94,20 @@ impl Default for ClientConfigControls {
             down: KeyCode::KeyS,
             left: KeyCode::KeyA,
             right: KeyCode::KeyD,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ClientConfigAssets {
+    enabled_packs: Vec<PathBuf>,
+}
+
+impl Default for ClientConfigAssets {
+    fn default() -> Self {
+        Self {
+            enabled_packs: vec!["builtin".into()],
         }
     }
 }

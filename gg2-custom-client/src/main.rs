@@ -1,3 +1,4 @@
+mod asset;
 mod camera;
 mod config;
 mod error;

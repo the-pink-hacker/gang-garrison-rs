@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 // The render thread doesn't like tokio::sync::RwLock
 use async_lock::RwLock;
@@ -6,6 +6,7 @@ use cli::ClientCliArguments;
 use tokio::time::Duration;
 
 use crate::{
+    asset::identifier::{AssetId, AssetPath},
     config::{ClientConfig, ClientConfigLock},
     networking::io::NetworkClient,
     prelude::*,
@@ -27,20 +28,57 @@ impl App {
 
         let client_cli_arguments = cli::init();
 
-        let config = ClientConfig::load().expect("Failed to load client config");
+        let executable_directory = std::env::current_exe()
+            .ok()
+            .and_then(|mut path| if path.pop() { Some(path) } else { None })
+            .expect("Failed to get current exe directory");
+
+        let config =
+            ClientConfig::load(&executable_directory).expect("Failed to load client config");
         config.save().expect("Failed to save client config");
 
         Self {
             world: Arc::new(World {
+                asset_server: AssetServer::default().into(),
                 camera: Camera::default().into(),
                 client_cli_arguments,
                 config: config.into(),
                 network_client: NetworkClient::default().into(),
+                executable_directory,
             }),
         }
     }
 
     pub async fn start(self) -> Result<()> {
+        {
+            let texture_ids = enum_iterator::all::<gg2_common::player::class::ClassGeneric>()
+                .flat_map(|class| {
+                    [
+                        ("red", class.to_string().to_lowercase()),
+                        ("blu", class.to_string().to_lowercase()),
+                    ]
+                    .into_iter()
+                })
+                .map(|(team, class)| {
+                    [
+                        "characters".to_string(),
+                        class,
+                        team.to_string(),
+                        "stand".to_string(),
+                        "0.png".to_string(),
+                    ]
+                })
+                .map(AssetPath::from_iter)
+                .map(AssetId::gg2);
+
+            let base = self.world.executable_directory.join("assets/builtin");
+            let mut asset_server = self.world.asset_server.write().await;
+
+            for id in texture_ids {
+                asset_server.load_texture(base.clone(), id).await?;
+            }
+        }
+
         let world = Arc::clone(&self.world);
 
         tokio::spawn(async move {
@@ -80,10 +118,12 @@ impl App {
 
 /// The world is used to pass data between threads
 pub struct World {
+    pub asset_server: RwLock<AssetServer>,
     pub camera: RwLock<Camera>,
     pub client_cli_arguments: ClientCliArguments,
     pub config: ClientConfigLock,
     pub network_client: RwLock<NetworkClient>,
+    pub executable_directory: PathBuf,
 }
 
 pub trait UpdateMutRunnable {

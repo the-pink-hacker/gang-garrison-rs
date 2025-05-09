@@ -15,8 +15,8 @@ pub enum Error {
     WgpuCreateSurface(#[from] wgpu::CreateSurfaceError),
     #[error("Network Error: {0}")]
     Network(#[from] gg2_common::networking::error::Error),
-    #[error("Failed to load asset: {0}")]
-    AssetLoad(String),
     #[error("Atlas Error: {0}")]
     Atlas(#[from] image_atlas::AtlasError),
+    #[error("Asset Error: {0}")]
+    Asset(#[from] crate::asset::error::AssetError),
 }

@@ -5,7 +5,7 @@ const GAME_HEIGHT: u32 = 96 * 3;
 
 impl Camera {
     /// Genrates a matrix to project world space into screen space
-    pub fn build_view_projection_matrix(&self, window_size: UVec2) -> Mat4 {
+    fn build_view_projection_matrix(&self, window_size: UVec2) -> Mat4 {
         // TODO: Add aspect ratio crop
         let ratio = window_size.x as f32 / window_size.y as f32;
         let width = (GAME_HEIGHT as f32 * ratio).trunc();
@@ -65,8 +65,8 @@ impl State {
         )
     }
 
-    pub fn update_camera_uniform_buffer(&mut self, world: &World) {
-        let camera = pollster::block_on(world.camera.read());
+    pub async fn update_camera_uniform_buffer(&mut self, world: &World) {
+        let camera = world.camera.read().await;
         let matrix =
             camera.build_view_projection_matrix(UVec2::new(self.size.width, self.size.height));
         self.queue.write_buffer(

@@ -1,7 +1,7 @@
 use std::{
     fs::{File, read_to_string},
     io::Write,
-    path::PathBuf,
+    path::Path,
 };
 
 use super::{
@@ -10,9 +10,11 @@ use super::{
 };
 use crate::prelude::*;
 
+const FILE_NAME: &str = "config.toml";
+
 impl ClientConfig {
-    pub fn load() -> std::result::Result<Self, LoadError> {
-        let path = Self::default_path()?;
+    pub fn load(executable_directory: &Path) -> std::result::Result<Self, LoadError> {
+        let path = executable_directory.join(FILE_NAME);
 
         match read_to_string(&path) {
             Ok(config_raw) => {
@@ -42,13 +44,5 @@ impl ClientConfig {
             .map_err(|error| SaveError::Io(error, self.path.clone()))?
             .write_all(config_raw.as_bytes())
             .map_err(|error| SaveError::Io(error, self.path.clone()))
-    }
-
-    fn default_path() -> std::result::Result<PathBuf, LoadError> {
-        std::env::current_exe()
-            .map_err(|_| LoadError::DefaultPath)?
-            .parent()
-            .ok_or(LoadError::DefaultPath)
-            .map(|path| path.join("config.toml"))
     }
 }

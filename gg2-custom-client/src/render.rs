@@ -59,6 +59,7 @@ pub struct State {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     texture_bind_group: wgpu::BindGroup,
+    texture_atlas: wgpu::Texture,
     /// Store the camera's matrix
     camera_uniform_buffer: wgpu::Buffer,
     camera_uniform_bind_group: wgpu::BindGroup,
@@ -127,8 +128,8 @@ impl State {
         let (camera_uniform_bind_group_layout, camera_uniform_bind_group, camera_uniform_buffer) =
             Self::create_camera_buffer(&device);
 
-        let (texture_bind_group_layout, texture_bind_group) =
-            Self::create_texture_bind_group(&device, &queue)?;
+        let (texture_bind_group_layout, texture_bind_group, texture_atlas) =
+            Self::create_texture_bind_group(&device)?;
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -189,6 +190,7 @@ impl State {
             vertex_buffer,
             index_buffer,
             texture_bind_group,
+            texture_atlas,
             camera_uniform_buffer,
             camera_uniform_bind_group,
             sprite_instances,
@@ -214,8 +216,9 @@ impl State {
         self.configure_surface();
     }
 
-    fn render(&mut self, world: &World) {
-        self.update_camera_uniform_buffer(world);
+    async fn render(&mut self, world: &World) {
+        self.update_camera_uniform_buffer(world).await;
+        self.update_texture_atlas(world).await;
 
         self.queue.write_buffer(
             &self.sprite_instance_buffer,
@@ -331,7 +334,7 @@ impl ApplicationHandler for RenderApp {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                state.render(&self.world);
+                pollster::block_on(state.render(&self.world));
 
                 state.get_window().request_redraw();
             }

@@ -15,7 +15,7 @@ glam = { version = "0.30.3", features = ["bytemuck", "fast-math"] }
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
 pollster = "0.4.0"
 thiserror = "2.0.12"
-tokio = { version = "1.44.2", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.44.2", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 wgpu = "25.0.0"
 winit = { version = "0.30.9", features = ["serde"] }
 bytemuck = { version = "1.22.0", features = ["derive"] }
