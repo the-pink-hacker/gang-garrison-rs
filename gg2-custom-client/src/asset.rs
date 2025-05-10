@@ -35,8 +35,6 @@ pub struct AssetServer {
     /// All loaded packs in ascending priority
     loaded_packs: Vec<AssetPack>,
     textures: HashMap<AssetId, ImageBufferU8>,
-    // TODO: Replace with signal to render thread
-    pub textures_updated: bool,
 }
 
 impl AssetServer {
@@ -50,20 +48,20 @@ impl AssetServer {
         Ok(tokio::fs::read(path).await?)
     }
 
-    pub async fn load_texture(&mut self, base: PathBuf, id: AssetId) -> error::Result<()> {
+    async fn load_texture(base: PathBuf, id: AssetId) -> error::Result<(AssetId, ImageBufferU8)> {
         let path = id.as_path(base, AssetType::Texture);
+        trace!("Loading texture {} from: {}", id, path.display());
+
         let image_raw = Self::load_asset(&path).await?;
-        let texture = Self::read_texture(&image_raw).await?;
+        Ok((id, Self::read_texture(&image_raw).await?))
+    }
 
-        self.textures.insert(id, texture);
-        self.textures_updated = true;
-
-        Ok(())
+    // TODO: Replace with signal to render thread
+    pub fn is_textures_empty(&self) -> bool {
+        self.textures.is_empty()
     }
 
     pub fn take_textures(&mut self) -> Vec<(AssetId, ImageBufferU8)> {
-        self.textures_updated = false;
-
         let mut old_textures = HashMap::new();
         std::mem::swap(&mut self.textures, &mut old_textures);
 
@@ -84,8 +82,27 @@ impl AssetServer {
             pack.scan_files(&mut asset_map)?;
         }
 
-        debug!("{:#?}", self.loaded_packs);
-        debug!("{:#?}", asset_map);
+        let mut set = tokio::task::JoinSet::new();
+
+        for (asset_id, pack_path) in
+            asset_map
+                .into_iter()
+                .filter_map(|((asset_type, asset_id), pack_path)| match asset_type {
+                    AssetType::Texture => Some((asset_id, pack_path)),
+                    AssetType::Map => None,
+                })
+        {
+            set.spawn(Self::load_texture(pack_path.as_ref().clone(), asset_id));
+        }
+
+        for image in set.join_all().await {
+            match image {
+                Ok((image_id, image_buffer)) => {
+                    self.textures.insert(image_id, image_buffer);
+                }
+                Err(error) => error!("Asset Error: {}", error),
+            }
+        }
 
         Ok(())
     }

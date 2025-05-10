@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use serde::{Deserialize, Serialize};
@@ -9,11 +10,12 @@ use crate::prelude::*;
 
 const PACK_TOML: &str = "pack.toml";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AssetPack {
     metadata: AssetPackMetadata,
     /// The path that contains `pack.toml`
     pack_path: PathBuf,
+    asset_root: Arc<PathBuf>,
 }
 
 impl AssetPack {
@@ -34,17 +36,16 @@ impl AssetPack {
 
         Ok(Self {
             metadata,
+            asset_root: canon_path.join("assets").into(),
             pack_path: canon_path,
         })
     }
 
     pub fn scan_files(
         &self,
-        asset_map: &mut HashMap<(AssetType, AssetId), PathBuf>,
+        asset_map: &mut HashMap<(AssetType, AssetId), Arc<PathBuf>>,
     ) -> std::result::Result<(), AssetError> {
-        let asset_root = self.pack_path.join("assets");
-
-        for asset_path in walkdir::WalkDir::new(&asset_root)
+        for asset_path in walkdir::WalkDir::new(&*self.asset_root)
             .follow_links(false)
             // Skip root directory
             .min_depth(1)
@@ -59,11 +60,11 @@ impl AssetPack {
             })
             .map(walkdir::DirEntry::into_path)
         {
-            let relative_path = asset_path
-                .strip_prefix(&asset_root)
-                .map_err(|_| AssetError::StripPrefix(asset_root.clone(), asset_path.clone()))?;
+            let relative_path = asset_path.strip_prefix(&*self.asset_root).map_err(|_| {
+                AssetError::StripPrefix((*self.asset_root).clone(), asset_path.clone())
+            })?;
             let asset_path_parsed = AssetId::from_path(relative_path)?;
-            asset_map.insert(asset_path_parsed, asset_path);
+            asset_map.insert(asset_path_parsed, Arc::clone(&self.asset_root));
         }
 
         Ok(())
@@ -71,14 +72,14 @@ impl AssetPack {
 }
 
 /// A wrapper struct for serde that represents the `pack.toml` file
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 struct AssetPackMetadataRoot {
     pack: AssetPackMetadata,
 }
 
 /// All data stored in the pack's `pack.toml` file
 #[skip_serializing_none]
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct AssetPackMetadata {
     /// A human readable name for the pack
     name: String,

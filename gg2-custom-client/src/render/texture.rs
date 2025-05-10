@@ -87,7 +87,7 @@ impl State {
         let textures = {
             let mut asset_server = world.asset_server.write().await;
 
-            if !asset_server.textures_updated {
+            if asset_server.is_textures_empty() {
                 return;
             }
 

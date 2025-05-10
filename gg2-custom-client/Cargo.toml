@@ -12,7 +12,7 @@ env_logger = "0.11.8"
 gg2-common = { version = "0.1.0", path = "../gg2-common", features = ["serde"] }
 gg2-client = { path = "../gg2-client" }
 glam = { version = "0.30.3", features = ["bytemuck", "fast-math"] }
-log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
+log = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
 pollster = "0.4.0"
 thiserror = "2.0.12"
 tokio = { version = "1.44.2", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }

@@ -20,6 +20,13 @@ impl AssetType {
             Self::Map => Path::new("maps"),
         }
     }
+
+    pub fn extension(&self) -> &str {
+        match self {
+            Self::Texture => "png",
+            Self::Map => "png",
+        }
+    }
 }
 
 #[derive(Hash, PartialEq, Eq)]
@@ -91,10 +98,12 @@ pub struct AssetId {
     path: AssetPath,
 }
 impl AssetId {
+    #[must_use]
     pub fn new(namespace: String, path: AssetPath) -> Self {
         Self { namespace, path }
     }
 
+    #[must_use]
     pub fn gg2(path: AssetPath) -> Self {
         Self::new(DEFAULT_NAMESPACE.to_string(), path)
     }
@@ -107,6 +116,7 @@ impl AssetId {
         base.push(&self.namespace);
         base.push(asset_type.as_path());
         base.extend(&self.path);
+        base.set_extension(asset_type.extension());
 
         base
     }
