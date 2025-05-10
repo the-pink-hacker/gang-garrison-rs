@@ -68,7 +68,7 @@ pub struct State {
 }
 
 impl State {
-    async fn new(window: Arc<Window>) -> Result<State> {
+    async fn new(window: Arc<Window>) -> Result<State, ClientError> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions::default())
@@ -281,7 +281,7 @@ impl State {
 
 impl App {
     /// Initializes render loop
-    pub fn init_render(&self) -> Result<()> {
+    pub fn init_render(&self) -> Result<(), ClientError> {
         let mut event_loop = EventLoop::new()?;
 
         event_loop.set_control_flow(ControlFlow::Wait);

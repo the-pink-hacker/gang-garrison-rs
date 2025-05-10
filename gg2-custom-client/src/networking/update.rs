@@ -1,15 +1,12 @@
 use gg2_client::networking::{message::server::ServerMessageGeneric, state::NetworkingState};
-use gg2_common::{
-    networking::{error::Error as NetworkError, message::*},
-    string::GGStringShort,
-};
+use gg2_common::{networking::message::*, string::GGStringShort};
 
 use crate::prelude::*;
 
 use super::io::ClientNetworkEvent;
 
 impl NetworkClient {
-    fn handle_network_events(&mut self) -> Result<()> {
+    fn handle_network_events(&mut self) -> Result<(), ClientError> {
         let events = self.network_events.receiver.try_iter().collect::<Vec<_>>();
 
         for event in events {
@@ -31,7 +28,7 @@ impl NetworkClient {
         Ok(())
     }
 
-    async fn update_in_game(&mut self) -> Result<()> {
+    async fn update_in_game(&mut self) -> Result<(), ClientError> {
         if let Some(generic_message) = self.pop_message().await? {
             match generic_message {
                 ServerMessageGeneric::CaptureUpdate(message) => debug!("{:#?}", message),
@@ -63,7 +60,7 @@ impl NetworkClient {
 }
 
 impl UpdateMutRunnable for NetworkClient {
-    async fn update_mut(&mut self, world: &World) -> Result<()> {
+    async fn update_mut(&mut self, world: &World) -> Result<(), ClientError> {
         self.handle_connection_event();
         self.handle_network_events()?;
 

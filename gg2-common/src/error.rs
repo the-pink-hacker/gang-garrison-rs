@@ -1,9 +1,9 @@
-use crate::player::{team::TeamSpawnable, PlayerId};
+use crate::player::{PlayerId, team::TeamSpawnable};
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, CommonError>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum CommonError {
     #[error("Failed to lookup player with index: {0}")]
     PlayerLookup(PlayerId),
     #[error("Player id is too big {0}")]

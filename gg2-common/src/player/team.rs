@@ -3,7 +3,7 @@ use std::{fmt::Display, time::Duration};
 use enum_iterator::Sequence;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-use crate::error::{Error, Result};
+use crate::error::{CommonError as Error, Result};
 
 /// A player team
 #[repr(u8)]

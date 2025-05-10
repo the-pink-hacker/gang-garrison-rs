@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::networking::error::*;
+use crate::networking::error::{NetworkError as Error, Result};
 
 macro_rules! string_type {
     ($name: ident, $length: literal, $length_type: ident) => {

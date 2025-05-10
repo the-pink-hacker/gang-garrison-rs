@@ -9,7 +9,7 @@ pub use crate::{
         pack::AssetPack,
     },
     camera::Camera,
-    error::*,
+    error::ClientError,
     init::{UpdateMutRunnable, World, cli::ClientCliSubcommand},
     networking::io::NetworkClient,
 };

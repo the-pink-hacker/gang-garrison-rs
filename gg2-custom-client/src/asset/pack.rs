@@ -20,7 +20,7 @@ pub struct AssetPack {
 
 impl AssetPack {
     /// Constructs an `AssetPack` given the path that contains the `pack.toml`
-    pub async fn from_path(pack_path: &Path) -> std::result::Result<Self, AssetError> {
+    pub async fn from_path(pack_path: &Path) -> Result<Self, AssetError> {
         let canon_path = pack_path
             .canonicalize()
             .map_err(|_| AssetError::PackMeta(pack_path.to_path_buf()))?;
@@ -44,7 +44,7 @@ impl AssetPack {
     pub fn scan_files(
         &self,
         asset_map: &mut HashMap<(AssetType, AssetId), Arc<PathBuf>>,
-    ) -> std::result::Result<(), AssetError> {
+    ) -> Result<(), AssetError> {
         for asset_path in walkdir::WalkDir::new(&*self.asset_root)
             .follow_links(false)
             // Skip root directory
@@ -55,7 +55,8 @@ impl AssetPack {
             .filter(|entry| {
                 entry
                     .metadata()
-                    .map(|metadata| metadata.is_file())
+                    .as_ref()
+                    .map(std::fs::Metadata::is_file)
                     .unwrap_or_default()
             })
             .map(walkdir::DirEntry::into_path)

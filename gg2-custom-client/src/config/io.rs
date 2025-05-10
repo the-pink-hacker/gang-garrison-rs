@@ -13,7 +13,7 @@ use crate::prelude::*;
 const FILE_NAME: &str = "config.toml";
 
 impl ClientConfig {
-    pub fn load(executable_directory: &Path) -> std::result::Result<Self, LoadError> {
+    pub fn load(executable_directory: &Path) -> Result<Self, LoadError> {
         let path = executable_directory.join(FILE_NAME);
 
         match read_to_string(&path) {
@@ -35,7 +35,7 @@ impl ClientConfig {
         }
     }
 
-    pub fn save(&self) -> std::result::Result<(), SaveError> {
+    pub fn save(&self) -> Result<(), SaveError> {
         info!("Saving config");
         let config_raw = toml::to_string_pretty(&self.values)
             .map_err(|error| SaveError::Toml(error, self.path.clone()))?;

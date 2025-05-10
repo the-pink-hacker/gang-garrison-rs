@@ -1,7 +1,7 @@
 use glam::Vec2;
 
 use crate::{
-    networking::error::Error,
+    networking::error::NetworkError as Error,
     string::{GGStringLong, GGStringShort},
 };
 

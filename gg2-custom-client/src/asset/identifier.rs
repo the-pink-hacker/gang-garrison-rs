@@ -121,7 +121,7 @@ impl AssetId {
         base
     }
 
-    pub fn from_path(path: &Path) -> std::result::Result<(AssetType, Self), AssetError> {
+    pub fn from_path(path: &Path) -> Result<(AssetType, Self), AssetError> {
         let mut path_parts = path
             .iter()
             .map(std::ffi::OsStr::to_str)

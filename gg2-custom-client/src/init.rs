@@ -49,7 +49,7 @@ impl App {
         }
     }
 
-    pub async fn start(self) -> Result<()> {
+    pub async fn start(self) -> Result<(), ClientError> {
         {
             let asset_folder = self.world.executable_directory.join("assets");
 
@@ -92,7 +92,7 @@ impl App {
         Arc::clone(&self.world)
     }
 
-    async fn update(world: &World) -> Result<()> {
+    async fn update(world: &World) -> Result<(), ClientError> {
         {
             let mut networking_client = world.network_client.write().await;
             networking_client.update_mut(world).await?;
@@ -118,5 +118,5 @@ pub struct World {
 }
 
 pub trait UpdateMutRunnable {
-    async fn update_mut(&mut self, world: &World) -> Result<()>;
+    async fn update_mut(&mut self, world: &World) -> Result<(), ClientError>;
 }

@@ -1,7 +1,7 @@
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, NetworkError>;
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum NetworkError {
     #[error("An error occured when accepting a new connnection: {0}")]
     Accept(std::io::Error),
     #[error("Could not find connection")]
@@ -27,7 +27,7 @@ pub enum Error {
     #[error("Unsanitized string")]
     UnsanitizedString,
     #[error("{0}")]
-    CommonError(#[from] crate::error::Error),
+    CommonError(#[from] crate::error::CommonError),
     #[error("Message not allowed at this time: {0:?}")]
     IncorrectMessage(crate::networking::PacketKind),
     #[error("Failed to send packet")]

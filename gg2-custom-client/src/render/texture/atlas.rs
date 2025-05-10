@@ -2,7 +2,10 @@ use image_atlas::{AtlasDescriptor, AtlasEntry, AtlasEntryMipOption, AtlasMipOpti
 
 use crate::{asset::identifier::AssetId, prelude::*};
 
-pub fn create_atlas(size: u32, textures: Vec<(AssetId, ImageBufferU8)>) -> Result<ImageBufferU8> {
+pub fn create_atlas(
+    size: u32,
+    textures: Vec<(AssetId, ImageBufferU8)>,
+) -> Result<ImageBufferU8, ClientError> {
     let entries = textures
         .into_iter()
         .map(|(_id, texture)| AtlasEntry {

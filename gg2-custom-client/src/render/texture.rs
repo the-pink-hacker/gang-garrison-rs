@@ -13,7 +13,7 @@ const ATLAS_EXTENT: wgpu::Extent3d = wgpu::Extent3d {
 impl State {
     pub fn create_texture_bind_group(
         device: &wgpu::Device,
-    ) -> Result<(wgpu::BindGroupLayout, wgpu::BindGroup, wgpu::Texture)> {
+    ) -> Result<(wgpu::BindGroupLayout, wgpu::BindGroup, wgpu::Texture), ClientError> {
         let diffuse_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Diffuse Texture"),
             size: ATLAS_EXTENT,

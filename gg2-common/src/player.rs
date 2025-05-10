@@ -2,7 +2,11 @@ use std::fmt::Display;
 
 use glam::Vec2;
 
-use crate::{error::*, networking::message::ServerPlayerJoin, string::GGStringShort};
+use crate::{
+    error::{CommonError as Error, Result},
+    networking::message::ServerPlayerJoin,
+    string::GGStringShort,
+};
 
 pub mod class;
 pub mod team;

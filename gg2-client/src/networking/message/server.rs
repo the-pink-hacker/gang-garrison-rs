@@ -4,7 +4,7 @@ use gg2_common::{
     intel::RawIntel,
     networking::{
         PacketKind,
-        error::{Error, Result},
+        error::{NetworkError as Error, Result},
         message::*,
     },
     player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, team::Captures},

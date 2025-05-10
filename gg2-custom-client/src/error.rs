@@ -1,10 +1,8 @@
 use crate::prelude::*;
 
-pub type Result<T> = std::result::Result<T, Error>;
-
 /// All of Gang Garrison's errors
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum ClientError {
     #[error("Winit Error: {0}")]
     WinitEventLoop(#[from] winit::error::EventLoopError),
     #[error("WGPU Error: {0}")]
@@ -14,9 +12,9 @@ pub enum Error {
     #[error("WGPU Error: {0}")]
     WgpuCreateSurface(#[from] wgpu::CreateSurfaceError),
     #[error("Network Error: {0}")]
-    Network(#[from] gg2_common::networking::error::Error),
+    Network(#[from] NetworkError),
     #[error("Atlas Error: {0}")]
     Atlas(#[from] image_atlas::AtlasError),
     #[error("Asset Error: {0}")]
-    Asset(#[from] crate::asset::error::AssetError),
+    Asset(#[from] AssetError),
 }

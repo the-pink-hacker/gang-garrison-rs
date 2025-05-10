@@ -10,6 +10,6 @@ mod render;
 use prelude::*;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), ClientError> {
     init::App::new().start().await
 }
