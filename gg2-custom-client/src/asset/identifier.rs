@@ -1,11 +1,13 @@
 use std::{
-    fmt::Display,
+    fmt::{Debug, Display},
     path::{Path, PathBuf},
 };
 
+use crate::prelude::*;
+
 const DEFAULT_NAMESPACE: &str = "gg2";
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub enum AssetType {
     Texture,
     Map,
@@ -20,9 +22,19 @@ impl AssetType {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Hash, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct AssetPath(Vec<String>);
+
+impl AssetPath {
+    pub fn strip_extension(&mut self) {
+        if let Some(last) = self.0.iter_mut().next_back() {
+            if let Some(extension_index) = last.find('.') {
+                let _extension = last.split_off(extension_index);
+            }
+        }
+    }
+}
 
 impl<P: ToString> FromIterator<P> for AssetPath {
     #[inline]
@@ -67,12 +79,17 @@ impl Display for AssetPath {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+impl Debug for AssetPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\"", self.0.join("/"))
+    }
+}
+
+#[derive(Hash, PartialEq, Eq)]
 pub struct AssetId {
     namespace: String,
     path: AssetPath,
 }
-
 impl AssetId {
     pub fn new(namespace: String, path: AssetPath) -> Self {
         Self { namespace, path }
@@ -92,6 +109,36 @@ impl AssetId {
         base.extend(&self.path);
 
         base
+    }
+
+    pub fn from_path(path: &Path) -> std::result::Result<(AssetType, Self), AssetError> {
+        let mut path_parts = path
+            .iter()
+            .map(std::ffi::OsStr::to_str)
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| AssetError::InvalidAssetPath(path.to_path_buf()))?
+            .into_iter();
+
+        let namespace = path_parts
+            .next()
+            .ok_or_else(|| AssetError::InvalidAssetPath(path.to_path_buf()))?
+            .to_string();
+
+        let (asset_type, mut path) = match path_parts.next() {
+            Some("textures") => Ok((AssetType::Texture, AssetPath::from_iter(path_parts))),
+            Some("maps") => Ok((AssetType::Map, AssetPath::from_iter(path_parts))),
+            _ => Err(AssetError::InvalidAssetPath(path.to_path_buf())),
+        }?;
+
+        path.strip_extension();
+
+        Ok((asset_type, Self { namespace, path }))
+    }
+}
+
+impl Debug for AssetId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}:{}\"", self.namespace, self.path)
     }
 }
 

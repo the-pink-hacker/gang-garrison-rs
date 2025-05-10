@@ -98,18 +98,10 @@ impl Default for ClientConfigControls {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ClientConfigAssets {
-    enabled_packs: Vec<PathBuf>,
-}
-
-impl Default for ClientConfigAssets {
-    fn default() -> Self {
-        Self {
-            enabled_packs: vec!["builtin".into()],
-        }
-    }
+    pub enabled_packs: Vec<String>,
 }
 
 pub struct ClientConfigLock(RwLock<ClientConfig>);

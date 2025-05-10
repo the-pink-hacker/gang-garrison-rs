@@ -6,7 +6,6 @@ use cli::ClientCliArguments;
 use tokio::time::Duration;
 
 use crate::{
-    asset::identifier::{AssetId, AssetPath},
     config::{ClientConfig, ClientConfigLock},
     networking::io::NetworkClient,
     prelude::*,
@@ -14,6 +13,7 @@ use crate::{
 
 const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
+const BUILTIN_ASSET_PACKS: [&str; 1] = ["builtin"];
 
 pub mod cli;
 
@@ -51,32 +51,23 @@ impl App {
 
     pub async fn start(self) -> Result<()> {
         {
-            let texture_ids = enum_iterator::all::<gg2_common::player::class::ClassGeneric>()
-                .flat_map(|class| {
-                    [
-                        ("red", class.to_string().to_lowercase()),
-                        ("blu", class.to_string().to_lowercase()),
-                    ]
-                    .into_iter()
-                })
-                .map(|(team, class)| {
-                    [
-                        "characters".to_string(),
-                        class,
-                        team.to_string(),
-                        "stand".to_string(),
-                        "0.png".to_string(),
-                    ]
-                })
-                .map(AssetPath::from_iter)
-                .map(AssetId::gg2);
+            let asset_folder = self.world.executable_directory.join("assets");
 
-            let base = self.world.executable_directory.join("assets/builtin");
+            let mut enabled_packs = BUILTIN_ASSET_PACKS.map(str::to_string).to_vec();
+
+            {
+                let config = self.world.config.read().await;
+                enabled_packs.extend(config.assets.enabled_packs.iter().cloned());
+            }
+
+            let packs = enabled_packs
+                .into_iter()
+                .map(|pack_name| asset_folder.join(pack_name))
+                .collect::<Vec<_>>();
+
             let mut asset_server = self.world.asset_server.write().await;
 
-            for id in texture_ids {
-                asset_server.load_texture(base.clone(), id).await?;
-            }
+            asset_server.load_packs(&packs).await?;
         }
 
         let world = Arc::clone(&self.world);
