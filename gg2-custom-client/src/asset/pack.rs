@@ -12,9 +12,8 @@ const PACK_TOML: &str = "pack.toml";
 
 #[derive(Debug, Clone)]
 pub struct AssetPack {
-    metadata: AssetPackMetadata,
-    /// The path that contains `pack.toml`
-    pack_path: PathBuf,
+    pub metadata: AssetPackMetadata,
+    /// Located at `/assets`
     asset_root: Arc<PathBuf>,
 }
 
@@ -37,7 +36,6 @@ impl AssetPack {
         Ok(Self {
             metadata,
             asset_root: canon_path.join("assets").into(),
-            pack_path: canon_path,
         })
     }
 
@@ -73,23 +71,23 @@ impl AssetPack {
 }
 
 /// A wrapper struct for serde that represents the `pack.toml` file
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct AssetPackMetadataRoot {
     pack: AssetPackMetadata,
 }
 
 /// All data stored in the pack's `pack.toml` file
 #[skip_serializing_none]
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AssetPackMetadata {
     /// A human readable name for the pack
-    name: String,
+    pub name: String,
     #[serde(default)]
-    description: String,
+    pub description: String,
     #[serde(default)]
-    license: String,
+    pub license: String,
     /// The pack's version
-    version: String,
+    pub version: semver::Version,
     /// Should be 0 until standard is formed
-    format: u8,
+    pub format: u16,
 }

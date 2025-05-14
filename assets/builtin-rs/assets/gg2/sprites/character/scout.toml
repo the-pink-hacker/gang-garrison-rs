@@ -1,0 +1,4 @@
+[branch]
+type = "team"
+blu = "gg2:character/scout/blu/stand"
+red = "gg2:character/scout/red/stand"

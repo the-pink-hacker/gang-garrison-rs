@@ -1,0 +1,6 @@
+[pack]
+name = "GG2 Rust Built-ins"
+description = "Assets from the Rust port of Gang Garrison 2."
+license = "GPL-3.0"
+format = 0
+version = "0.1.0"

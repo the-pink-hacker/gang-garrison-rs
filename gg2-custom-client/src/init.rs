@@ -13,7 +13,7 @@ use crate::{
 
 const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
-const BUILTIN_ASSET_PACKS: [&str; 1] = ["builtin"];
+const BUILTIN_ASSET_PACKS: [&str; 2] = ["builtin", "builtin-rs"];
 
 pub mod cli;
 

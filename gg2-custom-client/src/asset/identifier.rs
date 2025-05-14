@@ -1,9 +1,12 @@
 use std::{
     fmt::{Debug, Display},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use crate::prelude::*;
+
+mod serde;
 
 const DEFAULT_NAMESPACE: &str = "gg2";
 
@@ -92,24 +95,41 @@ impl Debug for AssetPath {
     }
 }
 
+impl From<String> for AssetPath {
+    fn from(value: String) -> Self {
+        Self::from_iter(value.split('/'))
+    }
+}
+
+impl From<&str> for AssetPath {
+    fn from(value: &str) -> Self {
+        Self::from_iter(value.split('/'))
+    }
+}
+
 #[derive(Hash, PartialEq, Eq)]
 pub struct AssetId {
     namespace: String,
     path: AssetPath,
 }
+
 impl AssetId {
     #[must_use]
-    pub fn new(namespace: String, path: AssetPath) -> Self {
-        Self { namespace, path }
+    #[inline]
+    pub fn new(namespace: String, path: impl Into<AssetPath>) -> Self {
+        Self {
+            namespace,
+            path: path.into(),
+        }
     }
 
     #[must_use]
-    pub fn gg2(path: AssetPath) -> Self {
-        Self::new(DEFAULT_NAMESPACE.to_string(), path)
+    pub fn gg2(path: impl Into<AssetPath>) -> Self {
+        Self::_gg2(path.into())
     }
 
-    pub fn is_default_namespace(&self) -> bool {
-        self.namespace == DEFAULT_NAMESPACE
+    fn _gg2(path: AssetPath) -> Self {
+        Self::new(DEFAULT_NAMESPACE.to_string(), path)
     }
 
     pub fn as_path(&self, mut base: PathBuf, asset_type: AssetType) -> PathBuf {
@@ -154,10 +174,20 @@ impl Debug for AssetId {
 
 impl Display for AssetId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.is_default_namespace() {
-            write!(f, "{}:{}", self.namespace, self.path)
-        } else {
-            Display::fmt(&self.path, f)
-        }
+        write!(f, "{}:{}", self.namespace, self.path)
+    }
+}
+
+impl FromStr for AssetId {
+    type Err = AssetError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (namespace, path_raw) = s
+            .split_once(':')
+            .ok_or_else(|| AssetError::IdNamespace(s.to_string()))?;
+
+        let path = AssetPath::from_iter(path_raw.split('/'));
+
+        Ok(Self::new(namespace.to_string(), path))
     }
 }

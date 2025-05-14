@@ -16,4 +16,6 @@ pub enum AssetError {
     StripPrefix(PathBuf, PathBuf),
     #[error("Invalid asset path: {0}")]
     InvalidAssetPath(PathBuf),
+    #[error("Failed to parse asset id's namespace")]
+    IdNamespace(String),
 }

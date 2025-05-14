@@ -8,6 +8,7 @@ use crate::prelude::*;
 pub mod error;
 pub mod identifier;
 pub mod pack;
+pub mod sprite;
 
 #[derive(Debug, Default)]
 pub struct AssetServer {
@@ -52,6 +53,17 @@ impl AssetServer {
 
         for path in packs {
             let asset_pack = AssetPack::from_path(path).await?;
+
+            if asset_pack.metadata.format != 0 {
+                error!(
+                    "Asset Pack \"{}\" has incompatible pack format: {} != 0",
+                    asset_pack.metadata.name, asset_pack.metadata.format
+                );
+                continue;
+            }
+
+            debug!("Loading asset pack:\n{:#?}", asset_pack.metadata);
+
             self.loaded_packs.push(asset_pack);
         }
 
