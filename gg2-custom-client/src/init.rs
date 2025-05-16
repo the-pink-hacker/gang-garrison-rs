@@ -51,7 +51,12 @@ impl App {
 
     pub async fn start(self) -> Result<(), ClientError> {
         {
-            let asset_folder = self.world.executable_directory.join("assets");
+            // When ran with Cargo, located at `./assets` relative root of the project
+            // When ran on own, located at `./assets` relative to exececutable
+            let asset_root = std::env::var("GG2_ASSET_ROOT")
+                .ok()
+                .map(PathBuf::from)
+                .unwrap_or_else(|| self.world.executable_directory.join("assets"));
 
             let mut enabled_packs = BUILTIN_ASSET_PACKS.map(str::to_string).to_vec();
 
@@ -62,7 +67,7 @@ impl App {
 
             let packs = enabled_packs
                 .into_iter()
-                .map(|pack_name| asset_folder.join(pack_name))
+                .map(|pack_name| asset_root.join(pack_name))
                 .collect::<Vec<_>>();
 
             let mut asset_server = self.world.asset_server.write().await;

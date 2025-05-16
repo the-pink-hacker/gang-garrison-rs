@@ -6,3 +6,7 @@ rustflags = [
     # Mold linker
     "-C", "link-arg=-fuse-ld=mold"
 ]
+
+[env]
+# Set the asset directory when game is ran with cargo
+GG2_ASSET_ROOT = { value = "assets", relative = true, force = true }
