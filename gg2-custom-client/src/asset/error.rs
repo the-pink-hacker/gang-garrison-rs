@@ -18,4 +18,6 @@ pub enum AssetError {
     InvalidAssetPath(PathBuf),
     #[error("Failed to parse asset id's namespace")]
     IdNamespace(String),
+    #[error("Toml Error: {0}")]
+    TomlDe(#[from] toml::de::Error),
 }

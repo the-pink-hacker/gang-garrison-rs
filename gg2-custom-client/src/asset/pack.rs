@@ -41,7 +41,8 @@ impl AssetPack {
 
     pub fn scan_files(
         &self,
-        asset_map: &mut HashMap<(AssetType, AssetId), Arc<PathBuf>>,
+        texture_map: &mut HashMap<AssetId, Arc<PathBuf>>,
+        sprite_map: &mut HashMap<AssetId, Arc<PathBuf>>,
     ) -> Result<(), AssetError> {
         for asset_path in walkdir::WalkDir::new(&*self.asset_root)
             .follow_links(false)
@@ -62,8 +63,17 @@ impl AssetPack {
             let relative_path = asset_path.strip_prefix(&*self.asset_root).map_err(|_| {
                 AssetError::StripPrefix((*self.asset_root).clone(), asset_path.clone())
             })?;
-            let asset_path_parsed = AssetId::from_path(relative_path)?;
-            asset_map.insert(asset_path_parsed, Arc::clone(&self.asset_root));
+            let (asset_type, asset_id) = AssetId::from_path(relative_path)?;
+
+            match asset_type {
+                AssetType::Texture => {
+                    texture_map.insert(asset_id, Arc::clone(&self.asset_root));
+                }
+                AssetType::Map => (),
+                AssetType::Sprite => {
+                    sprite_map.insert(asset_id, Arc::clone(&self.asset_root));
+                }
+            }
         }
 
         Ok(())

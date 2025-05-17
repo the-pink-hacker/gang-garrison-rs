@@ -14,6 +14,7 @@ const DEFAULT_NAMESPACE: &str = "gg2";
 pub enum AssetType {
     Texture,
     Map,
+    Sprite,
 }
 
 impl AssetType {
@@ -21,6 +22,7 @@ impl AssetType {
         match self {
             Self::Texture => Path::new("textures"),
             Self::Map => Path::new("maps"),
+            Self::Sprite => Path::new("sprites"),
         }
     }
 
@@ -28,6 +30,7 @@ impl AssetType {
         match self {
             Self::Texture => "png",
             Self::Map => "png",
+            Self::Sprite => "toml",
         }
     }
 }
@@ -157,6 +160,7 @@ impl AssetId {
         let (asset_type, mut path) = match path_parts.next() {
             Some("textures") => Ok((AssetType::Texture, AssetPath::from_iter(path_parts))),
             Some("maps") => Ok((AssetType::Map, AssetPath::from_iter(path_parts))),
+            Some("sprites") => Ok((AssetType::Sprite, AssetPath::from_iter(path_parts))),
             _ => Err(AssetError::InvalidAssetPath(path.to_path_buf())),
         }?;
 
