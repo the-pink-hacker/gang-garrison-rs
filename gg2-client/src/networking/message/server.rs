@@ -16,7 +16,7 @@ macro_rules! generic_enum {
     (pub enum $name:ident {$($case:ident),+$(,)?}) => {
         #[derive(Debug, Clone)]
         pub enum $name {
-            $($case(concat_idents!(Server, $case))),+,
+            $($case(${concat(Server, $case)})),+,
         }
     };
 }
@@ -87,7 +87,7 @@ generic_enum!(
 macro_rules! generic_match {
     ($buffer:ident, $kind:ident, [$($case:ident),+$(,)?]$(,)?) => {
         match $kind {
-            $(PacketKind::$case => Ok(ServerMessageGeneric::$case(<concat_idents!(Server, $case)>::deserialize($buffer)?))),+,
+            $(PacketKind::$case => Ok(ServerMessageGeneric::$case(${concat(Server, $case)}::deserialize($buffer)?))),+,
             _ => Err(Error::IncorrectMessage($kind)),
         }
     };
