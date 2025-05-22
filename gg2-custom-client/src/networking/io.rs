@@ -75,7 +75,7 @@ pub struct NetworkClient {
 impl NetworkClient {
     // Connects to a new server
     pub async fn connect(&mut self, url: &str) -> Result<(), ClientError> {
-        info!("Connecting to server: {}", url);
+        info!("Connecting to server: {url}");
 
         if self.server_connection.is_some() {
             self.disconnect();

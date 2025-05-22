@@ -12,6 +12,7 @@ pub use crate::{
     error::ClientError,
     init::{UpdateMutRunnable, World, cli::ClientCliSubcommand},
     networking::io::NetworkClient,
+    player::{Player, Players},
 };
 
 pub type ImageBufferU8 = image::ImageBuffer<image::Rgba<u8>, Vec<u8>>;

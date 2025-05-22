@@ -110,7 +110,7 @@ impl State {
 
         let sprite_instances = vec![Instance::from_transform_origin(
             Transform {
-                translation: Vec3::new(0.0, 0.0, 0.0),
+                translation: Vec3::ZERO,
                 rotation: 0.0,
                 scale: Vec2::splat(128.0),
             },

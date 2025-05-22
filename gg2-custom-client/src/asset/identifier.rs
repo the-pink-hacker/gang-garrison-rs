@@ -41,10 +41,10 @@ pub struct AssetPath(Vec<String>);
 
 impl AssetPath {
     pub fn strip_extension(&mut self) {
-        if let Some(last) = self.0.iter_mut().next_back() {
-            if let Some(extension_index) = last.find('.') {
-                let _extension = last.split_off(extension_index);
-            }
+        if let Some(last) = self.0.iter_mut().next_back()
+            && let Some(extension_index) = last.find('.')
+        {
+            let _extension = last.split_off(extension_index);
         }
     }
 }

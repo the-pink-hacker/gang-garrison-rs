@@ -11,19 +11,6 @@ use crate::{
 pub mod class;
 pub mod team;
 
-#[derive(Debug, Default)]
-pub struct Player {
-    pub name: GGStringShort,
-}
-
-impl From<ServerPlayerJoin> for Player {
-    fn from(value: ServerPlayerJoin) -> Self {
-        Self {
-            name: value.player_name,
-        }
-    }
-}
-
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -127,16 +114,16 @@ impl From<KeyState> for u8 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct RawInput {
     pub key_state: KeyState,
     pub net_aim_direction: u16,
     pub aim_distance: f32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct RawPlayerInfo {
-    pub position: Vec2,
+    pub translation: Vec2,
     pub velocity: Vec2,
     pub health: u8,
     pub ammo_count: u8,

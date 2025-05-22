@@ -111,7 +111,7 @@ impl AssetServer {
                 Ok((sprite_id, sprite_asset)) => {
                     self.sprites.insert(sprite_id, sprite_asset);
                 }
-                Err(error) => error!("Asset Error: {}", error),
+                Err(error) => error!("Asset Error: {error}"),
             }
         }
 
@@ -121,7 +121,7 @@ impl AssetServer {
                 Ok((image_id, image_buffer)) => {
                     self.textures.insert(image_id, image_buffer);
                 }
-                Err(error) => error!("Asset Error: {}", error),
+                Err(error) => error!("Asset Error: {error}"),
             }
         }
 

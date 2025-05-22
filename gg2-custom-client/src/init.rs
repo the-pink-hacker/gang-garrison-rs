@@ -45,6 +45,7 @@ impl App {
                 config: config.into(),
                 network_client: NetworkClient::default().into(),
                 executable_directory,
+                players: Players::default().into(),
             }),
         }
     }
@@ -83,7 +84,7 @@ impl App {
                 interval.tick().await;
 
                 if let Err(error) = Self::update(&world).await {
-                    error!("{}", error);
+                    error!("{error}");
                 }
             }
         });
@@ -120,6 +121,7 @@ pub struct World {
     pub config: ClientConfigLock,
     pub network_client: RwLock<NetworkClient>,
     pub executable_directory: PathBuf,
+    pub players: RwLock<Players>,
 }
 
 pub trait UpdateMutRunnable {

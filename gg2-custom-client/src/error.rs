@@ -17,4 +17,8 @@ pub enum ClientError {
     Atlas(#[from] image_atlas::AtlasError),
     #[error("Asset Error: {0}")]
     Asset(#[from] AssetError),
+    #[error("Common Error: {0}")]
+    Common(#[from] CommonError),
+    #[error("Client player unset")]
+    ClientPlayerLookup,
 }

@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod init;
 mod networking;
+mod player;
 mod prelude;
 mod render;
 
