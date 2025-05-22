@@ -120,8 +120,6 @@ impl NetworkClient {
             player.velocity = character_info.velocity;
             player.transform.translation = Vec3::from((character_info.translation, 0.0));
             player.input_state = character_input;
-
-            debug!("{player:#?}");
         }
 
         Ok(())

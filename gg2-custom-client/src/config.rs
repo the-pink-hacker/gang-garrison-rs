@@ -3,7 +3,6 @@ use std::{
     path::PathBuf,
 };
 
-use async_lock::RwLock;
 use gg2_common::string::GGStringShort;
 use serde::{Deserialize, Serialize};
 use winit::keyboard::KeyCode;
@@ -104,10 +103,10 @@ pub struct ClientConfigAssets {
     pub enabled_packs: Vec<String>,
 }
 
-pub struct ClientConfigLock(RwLock<ClientConfig>);
+pub struct ClientConfigLock(tokio::sync::RwLock<ClientConfig>);
 
 impl ClientConfigLock {
-    pub async fn read(&self) -> async_lock::RwLockReadGuard<'_, ClientConfig> {
+    pub async fn read(&self) -> tokio::sync::RwLockReadGuard<'_, ClientConfig> {
         self.0.read().await
     }
 
@@ -119,11 +118,11 @@ impl ClientConfigLock {
 
 impl From<ClientConfig> for ClientConfigLock {
     fn from(value: ClientConfig) -> Self {
-        Self(RwLock::new(value))
+        Self(tokio::sync::RwLock::new(value))
     }
 }
 
-pub struct ClientConfigLockWriteGuard<'a>(async_lock::RwLockWriteGuard<'a, ClientConfig>);
+pub struct ClientConfigLockWriteGuard<'a>(tokio::sync::RwLockWriteGuard<'a, ClientConfig>);
 
 impl Drop for ClientConfigLockWriteGuard<'_> {
     fn drop(&mut self) {

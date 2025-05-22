@@ -8,7 +8,6 @@ use winit::{
     application::ApplicationHandler,
     event::*,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    platform::run_on_demand::EventLoopExtRunOnDemand,
     window::{Window, WindowId},
 };
 
@@ -281,14 +280,12 @@ impl State {
 
 impl App {
     /// Initializes render loop
-    pub fn init_render(&self) -> Result<(), ClientError> {
-        let mut event_loop = EventLoop::new()?;
+    pub fn init_render(&self, runtime: tokio::runtime::Runtime) -> Result<(), ClientError> {
+        let event_loop = EventLoop::new()?;
 
         event_loop.set_control_flow(ControlFlow::Wait);
 
-        event_loop
-            .run_app_on_demand(&mut RenderApp::new(self.get_world()))
-            .unwrap();
+        event_loop.run_app(&mut RenderApp::new(self.get_world(), runtime))?;
 
         Ok(())
     }
@@ -297,11 +294,16 @@ impl App {
 pub struct RenderApp {
     world: Arc<World>,
     state: Option<State>,
+    runtime: tokio::runtime::Runtime,
 }
 
 impl RenderApp {
-    fn new(world: Arc<World>) -> Self {
-        Self { world, state: None }
+    fn new(world: Arc<World>, runtime: tokio::runtime::Runtime) -> Self {
+        Self {
+            world,
+            state: None,
+            runtime,
+        }
     }
 }
 
@@ -314,7 +316,9 @@ impl ApplicationHandler for RenderApp {
                 .expect("Failed to create window"),
         );
 
-        let state = pollster::block_on(State::new(Arc::clone(&window)))
+        let state = self
+            .runtime
+            .block_on(State::new(Arc::clone(&window)))
             .expect("Failed to create render state");
 
         self.state = Some(state);
@@ -327,18 +331,27 @@ impl ApplicationHandler for RenderApp {
         _window_id: WindowId,
         event: WindowEvent,
     ) {
-        let state = self.state.as_mut().expect("Render state is uninitialized");
+        let state = self.state.as_mut().expect("Render state uninitilized");
+
         match event {
             WindowEvent::CloseRequested => {
                 info!("User closed window; stopping");
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                pollster::block_on(state.render(&self.world));
+                self.runtime.block_on(async {
+                    state.render(&self.world).await;
 
-                state.get_window().request_redraw();
+                    state.get_window().request_redraw();
+                });
             }
-            WindowEvent::Resized(size) => state.resize(size),
+            WindowEvent::Resized(size) => {
+                //let state = Arc::clone(self.state.as_ref().expect("Render state is uninitialized"));
+
+                self.runtime.block_on(async {
+                    state.resize(size);
+                });
+            }
             _ => (),
         }
     }

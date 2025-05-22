@@ -1,15 +1,13 @@
 use std::{path::PathBuf, sync::Arc};
 
-// The render thread doesn't like tokio::sync::RwLock
-use async_lock::RwLock;
-use cli::ClientCliArguments;
-use tokio::time::Duration;
+use tokio::{sync::RwLock, time::Duration};
 
 use crate::{
     config::{ClientConfig, ClientConfigLock},
     networking::io::NetworkClient,
     prelude::*,
 };
+use cli::ClientCliArguments;
 
 const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
@@ -50,35 +48,45 @@ impl App {
         }
     }
 
-    pub async fn start(self) -> Result<(), ClientError> {
+    async fn setup(&self) -> Result<(), ClientError> {
+        // When ran with Cargo, located at `./assets` relative root of the project
+        // When ran on own, located at `./assets` relative to exececutable
+        let asset_root = std::env::var("GG2_ASSET_ROOT")
+            .ok()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| self.world.executable_directory.join("assets"));
+
+        let mut enabled_packs = BUILTIN_ASSET_PACKS.map(str::to_string).to_vec();
+
         {
-            // When ran with Cargo, located at `./assets` relative root of the project
-            // When ran on own, located at `./assets` relative to exececutable
-            let asset_root = std::env::var("GG2_ASSET_ROOT")
-                .ok()
-                .map(PathBuf::from)
-                .unwrap_or_else(|| self.world.executable_directory.join("assets"));
-
-            let mut enabled_packs = BUILTIN_ASSET_PACKS.map(str::to_string).to_vec();
-
-            {
-                let config = self.world.config.read().await;
-                enabled_packs.extend(config.assets.enabled_packs.iter().cloned());
-            }
-
-            let packs = enabled_packs
-                .into_iter()
-                .map(|pack_name| asset_root.join(pack_name))
-                .collect::<Vec<_>>();
-
-            let mut asset_server = self.world.asset_server.write().await;
-
-            asset_server.load_packs(&packs).await?;
+            let config = self.world.config.read().await;
+            enabled_packs.extend(config.assets.enabled_packs.iter().cloned());
         }
+
+        let packs = enabled_packs
+            .into_iter()
+            .map(|pack_name| asset_root.join(pack_name))
+            .collect::<Vec<_>>();
+
+        let mut asset_server = self.world.asset_server.write().await;
+
+        asset_server.load_packs(&packs).await?;
+
+        Ok(())
+    }
+
+    pub fn start(self) -> Result<(), ClientError> {
+        // Winit runs outside of tokio but joins it to render
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("Failed building the Runtime");
+
+        runtime.block_on(self.setup())?;
 
         let world = Arc::clone(&self.world);
 
-        tokio::spawn(async move {
+        runtime.spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs_f32(GAME_LOOP_INTERVAL));
             loop {
                 interval.tick().await;
@@ -89,7 +97,7 @@ impl App {
             }
         });
 
-        self.init_render()?;
+        self.init_render(runtime)?;
 
         Ok(())
     }
