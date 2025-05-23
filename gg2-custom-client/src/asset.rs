@@ -68,6 +68,12 @@ impl AssetServer {
         old_textures.into_iter().collect()
     }
 
+    pub fn get_sprite(&self, id: &AssetId) -> Result<&SpriteContextAsset, AssetError> {
+        self.sprites
+            .get(id)
+            .ok_or_else(|| AssetError::AtlasLookup(id.clone()))
+    }
+
     pub async fn load_packs(&mut self, packs: &[PathBuf]) -> error::Result<()> {
         self.loaded_packs.reserve(packs.len());
 

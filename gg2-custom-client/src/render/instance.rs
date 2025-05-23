@@ -3,13 +3,13 @@ use crate::prelude::*;
 /// Stores information about a sprite
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Instance {
+pub struct SpriteInstance {
     transform_matrix: Mat4,
     /// Where x and y are the top left position, and z and w are the size
     texture_uv: Vec4,
 }
 
-impl Instance {
+impl SpriteInstance {
     const ATTRIBUTES: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![
         // Transform Matrix
         1 => Float32x4,
@@ -26,6 +26,11 @@ impl Instance {
             transform_matrix: transform.calculate_matrix_origin(origin),
             texture_uv,
         }
+    }
+
+    #[inline]
+    pub fn translation_z(&self) -> f32 {
+        self.transform_matrix.w_axis.z
     }
 
     pub fn layout() -> wgpu::VertexBufferLayout<'static> {

@@ -14,6 +14,15 @@ pub enum SpriteContextBranch {
     Texture(AssetId),
 }
 
+impl SpriteContextBranch {
+    fn evaluate<R: SpriteRenderable + ?Sized>(&self, renderable: &R) -> Option<&AssetId> {
+        match self {
+            Self::Condition(condition) => condition.evaluate(renderable),
+            Self::Texture(id) => Some(id),
+        }
+    }
+}
+
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -26,6 +35,56 @@ pub enum SpriteContextCondition {
         #[serde(default)]
         spectator: Option<SpriteContextBranch>,
     },
+}
+
+impl SpriteContextCondition {
+    fn evaluate<R: SpriteRenderable + ?Sized>(&self, renderable: &R) -> Option<&AssetId> {
+        match self {
+            Self::Team {
+                red,
+                blu,
+                spectator,
+            } => renderable
+                .get_team()
+                .map(|team| match team {
+                    Team::Red => red,
+                    Team::Blu => blu,
+                    Team::Spectator => spectator,
+                })
+                .and_then(Option::as_ref),
+        }
+        .and_then(|branch| branch.evaluate(renderable))
+    }
+}
+
+const ORIGIN_CENTER: Vec2 = Vec2::new(0.5, 0.5);
+
+pub trait SpriteRenderable {
+    fn render(
+        &self,
+        atlas: &TextureAtlas,
+        asset_server: &AssetServer,
+    ) -> Result<Option<SpriteInstance>, ClientError> {
+        let sprite_context = asset_server.get_sprite(&Self::get_context_id())?;
+
+        if let Some(id) = sprite_context.branch.evaluate(self) {
+            let texture_uv = atlas.lookup_sprite(id)?;
+
+            Ok(Some(SpriteInstance::from_transform_origin(
+                self.get_transform(),
+                ORIGIN_CENTER,
+                texture_uv,
+            )))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_context_id() -> AssetId;
+
+    fn get_transform(&self) -> Transform;
+
+    fn get_team(&self) -> Option<Team>;
 }
 
 #[cfg(test)]

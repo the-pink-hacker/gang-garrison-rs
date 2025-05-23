@@ -11,11 +11,7 @@ use winit::{
     window::{Window, WindowId},
 };
 
-use crate::{
-    init::{App, World},
-    prelude::*,
-};
-use instance::Instance;
+use crate::prelude::*;
 use vertex::Vertex;
 
 pub mod camera;
@@ -63,7 +59,7 @@ pub struct State {
     /// Store the camera's matrix
     camera_uniform_buffer: wgpu::Buffer,
     camera_uniform_bind_group: wgpu::BindGroup,
-    sprite_instances: Vec<Instance>,
+    sprite_instances: Vec<SpriteInstance>,
     sprite_instance_buffer: wgpu::Buffer,
 }
 
@@ -111,7 +107,8 @@ impl State {
         let sprite_instances = Vec::default();
         let sprite_instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Sprite Instance Buffer"),
-            size: std::mem::size_of::<Instance>() as wgpu::BufferAddress * MAX_SPRITE_INSTANCES,
+            size: std::mem::size_of::<SpriteInstance>() as wgpu::BufferAddress
+                * MAX_SPRITE_INSTANCES,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -139,7 +136,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[Vertex::layout(), Instance::layout()],
+                buffers: &[Vertex::layout(), SpriteInstance::layout()],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -213,28 +210,41 @@ impl State {
         self.update_camera_uniform_buffer(world).await;
         self.update_texture_atlas(world).await;
 
-        self.sprite_instances = vec![
-            Instance::from_transform_origin(
+        self.sprite_instances = {
+            let players = world.players.read().await;
+            let asset_server = world.asset_server.read().await;
+
+            players
+                .iter()
+                .map(|player| player.render(&self.sprite_atlas, &asset_server))
+                .flat_map(|player| match player {
+                    Ok(player) => player,
+                    Err(error) => {
+                        error!("Sprite Render: {error}");
+                        None
+                    }
+                })
+                .collect()
+        };
+
+        self.sprite_instances
+            .push(SpriteInstance::from_transform_origin(
                 Transform {
-                    translation: Vec3::new(-64.0, 0.0, 0.0),
+                    translation: Vec3::new(1142.0, 504.4, -0.1),
                     rotation: 0.0,
                     scale: Vec2::splat(128.0),
                 },
                 Vec2::new(0.5, 0.5),
                 Vec4::new(0.0, 0.0, 1.0, 1.0),
-            ),
-            Instance::from_transform_origin(
-                Transform {
-                    translation: Vec3::new(64.0, 0.0, 0.0),
-                    rotation: 0.0,
-                    scale: Vec2::splat(128.0),
-                },
-                Vec2::new(0.5, 0.5),
-                self.sprite_atlas
-                    .lookup_sprite(&AssetId::gg2("character/scout/red/stand"))
-                    .unwrap(),
-            ),
-        ];
+            ));
+
+        // Maybe this should be a compute shader?
+        // Sort by z
+        self.sprite_instances.sort_by(|instance, other_instance| {
+            instance
+                .translation_z()
+                .total_cmp(&other_instance.translation_z())
+        });
 
         self.queue.write_buffer(
             &self.sprite_instance_buffer,

@@ -14,8 +14,28 @@ impl Player {
     pub fn from_name(name: GGStringShort) -> Self {
         Self {
             name,
+            transform: Transform {
+                scale: Vec2::splat(64.0),
+                ..Default::default()
+            },
             ..Default::default()
         }
+    }
+}
+
+impl SpriteRenderable for Player {
+    fn get_context_id() -> AssetId {
+        AssetId::gg2("player")
+    }
+
+    #[inline]
+    fn get_transform(&self) -> Transform {
+        self.transform
+    }
+
+    #[inline]
+    fn get_team(&self) -> Option<Team> {
+        Some(self.team)
     }
 }
 
@@ -81,5 +101,40 @@ impl Players {
         } else {
             Err(CommonError::PlayerLookup(id))
         }
+    }
+
+    #[inline]
+    pub fn iter(&self) -> std::slice::Iter<'_, Player> {
+        self.into_iter()
+    }
+}
+
+impl IntoIterator for Players {
+    type Item = Player;
+    type IntoIter = std::vec::IntoIter<Player>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.players.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Players {
+    type Item = &'a Player;
+    type IntoIter = std::slice::Iter<'a, Player>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.players.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Players {
+    type Item = &'a mut Player;
+    type IntoIter = std::slice::IterMut<'a, Player>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.players.iter_mut()
     }
 }
