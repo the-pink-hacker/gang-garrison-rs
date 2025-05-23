@@ -35,7 +35,7 @@ impl AssetType {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct AssetPath(Vec<String>);
 
@@ -46,6 +46,16 @@ impl AssetPath {
         {
             let _extension = last.split_off(extension_index);
         }
+    }
+
+    /// The last part of the asset path
+    #[must_use]
+    pub fn file_name(&self) -> Option<&str> {
+        self.0.last().map(String::as_str)
+    }
+
+    pub fn pop(&mut self) -> bool {
+        self.0.pop().is_some()
     }
 }
 
@@ -110,7 +120,7 @@ impl From<&str> for AssetPath {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AssetId {
     namespace: String,
     path: AssetPath,
@@ -167,6 +177,17 @@ impl AssetId {
         path.strip_extension();
 
         Ok((asset_type, Self { namespace, path }))
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn file_name(&self) -> Option<&str> {
+        self.path.file_name()
+    }
+
+    #[inline]
+    pub fn pop(&mut self) -> bool {
+        self.path.pop()
     }
 }
 

@@ -116,10 +116,10 @@ impl AssetServer {
         }
 
         // Textures will likely take the longest to load
-        while let Some(Ok(image)) = texture_set.join_next().await {
-            match image {
-                Ok((image_id, image_buffer)) => {
-                    self.textures.insert(image_id, image_buffer);
+        while let Some(Ok(texture)) = texture_set.join_next().await {
+            match texture {
+                Ok((texture_id, texture_buffer)) => {
+                    self.textures.insert(texture_id, texture_buffer);
                 }
                 Err(error) => error!("Asset Error: {error}"),
             }

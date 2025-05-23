@@ -221,9 +221,7 @@ impl State {
                     scale: Vec2::splat(128.0),
                 },
                 Vec2::new(0.5, 0.5),
-                self.sprite_atlas
-                    .lookup_sprite(&AssetId::gg2("character/scout/blu/stand/0"))
-                    .unwrap(),
+                Vec4::new(0.0, 0.0, 1.0, 1.0),
             ),
             Instance::from_transform_origin(
                 Transform {
@@ -233,7 +231,7 @@ impl State {
                 },
                 Vec2::new(0.5, 0.5),
                 self.sprite_atlas
-                    .lookup_sprite(&AssetId::gg2("character/scout/red/stand/0"))
+                    .lookup_sprite(&AssetId::gg2("character/scout/red/stand"))
                     .unwrap(),
             ),
         ];

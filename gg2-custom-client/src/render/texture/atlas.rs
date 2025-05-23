@@ -6,15 +6,18 @@ use crate::{asset::identifier::AssetId, prelude::*};
 
 #[derive(Debug, Default)]
 pub struct TextureAtlas {
-    uv_lookup: HashMap<AssetId, Vec4>,
+    uv_lookup: HashMap<AssetId, Vec<Vec4>>,
 }
 
 impl TextureAtlas {
     pub fn new(
         size: u32,
-        sprites: Vec<(AssetId, ImageBufferU8)>,
+        mut textures: Vec<(AssetId, ImageBufferU8)>,
     ) -> Result<(Self, ImageBufferU8), AssetError> {
-        let (sprite_ids, entries) = sprites
+        // Sort to keep animations in order
+        textures.sort_by(|(id, _), (other_id, _)| id.cmp(other_id));
+
+        let (texture_ids, entries) = textures
             .into_iter()
             .map(|(id, texture)| {
                 (
@@ -46,9 +49,28 @@ impl TextureAtlas {
                  ..
              }| Vec4::new(min_x, min_y, max_x - min_x, max_y - min_y),
         );
-        let uv_lookup = sprite_ids.into_iter().zip(texture_coordinates).collect();
 
-        let atlas = Self { uv_lookup };
+        let mut atlas = Self {
+            uv_lookup: Default::default(),
+        };
+
+        for (mut id, texture_coordinate) in texture_ids.into_iter().zip(texture_coordinates) {
+            let is_animation = id
+                .file_name()
+                .map(str::parse::<usize>)
+                .and_then(Result::ok)
+                .is_some();
+
+            if is_animation {
+                id.pop();
+            }
+
+            atlas
+                .uv_lookup
+                .entry(id)
+                .or_default()
+                .push(texture_coordinate);
+        }
 
         let texture_buffer = image_atlas
             .textures
@@ -61,9 +83,15 @@ impl TextureAtlas {
         Ok((atlas, texture_buffer))
     }
 
-    /// A non-blocking way to get the texture coordinates of a sprite
     pub fn lookup_sprite(&self, id: &AssetId) -> Result<Vec4, AssetError> {
         Ok(*self
+            .lookup_sprite_many(id)?
+            .first()
+            .unwrap_or_else(|| panic!("Sprite {id} has no frames")))
+    }
+
+    pub fn lookup_sprite_many(&self, id: &AssetId) -> Result<&[Vec4], AssetError> {
+        Ok(self
             .uv_lookup
             .get(id)
             .ok_or_else(|| AssetError::AtlasLookup(id.clone()))?)
