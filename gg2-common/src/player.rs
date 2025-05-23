@@ -117,6 +117,14 @@ pub struct RawInput {
     pub aim_distance: f32,
 }
 
+impl RawInput {
+    pub fn looking_left(&self) -> bool {
+        let quater_rotation = u16::MAX / 4;
+        let aim_rotation = self.net_aim_direction.wrapping_sub(quater_rotation);
+        aim_rotation <= (u16::MAX / 2) + 2
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct RawPlayerInfo {
     pub translation: Vec2,

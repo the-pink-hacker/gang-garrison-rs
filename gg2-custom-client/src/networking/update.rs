@@ -26,6 +26,29 @@ impl NetworkClient {
         Ok(())
     }
 
+    async fn event_input_state(
+        message: ServerInputState,
+        world: &World,
+    ) -> Result<(), ClientError> {
+        trace!("{message:#?}");
+
+        let mut players = world.players.write().await;
+
+        for (player, input) in players.flat_zip_mut(message.inputs) {
+            player.input_state = input;
+
+            let scale_x = if player.input_state.looking_left() {
+                -crate::player::PLAYER_SCALE
+            } else {
+                crate::player::PLAYER_SCALE
+            };
+
+            player.transform.scale.x = scale_x;
+        }
+
+        Ok(())
+    }
+
     async fn event_player_change_class(
         message: ServerPlayerChangeClass,
         world: &World,
@@ -106,20 +129,22 @@ impl NetworkClient {
         message: ServerQuickUpdate,
         world: &World,
     ) -> Result<(), ClientError> {
-        let characters = message
-            .player_characters
-            .into_iter()
-            .enumerate()
-            .flat_map(|(index, character)| character.map(|character| (index, character)));
-
         let mut players = world.players.write().await;
 
-        for (index, (character_input, character_info)) in characters {
-            let player = players.get_mut(PlayerId::try_from(index)?)?;
-
+        for (player, (character_input, character_info)) in
+            players.flat_zip_mut(message.player_characters)
+        {
             player.velocity = character_info.velocity;
             player.transform.translation = Vec3::from((character_info.translation, 0.0));
             player.input_state = character_input;
+
+            let scale_x = if player.input_state.looking_left() {
+                -crate::player::PLAYER_SCALE
+            } else {
+                crate::player::PLAYER_SCALE
+            };
+
+            player.transform.scale.x = scale_x;
         }
 
         Ok(())
@@ -133,9 +158,11 @@ impl NetworkClient {
                 ServerMessageGeneric::DropIntel(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::GrabIntel(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::FullUpdate(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::InputState(message) => trace!("{message:#?}"),
+                ServerMessageGeneric::InputState(message) => {
+                    Self::event_input_state(message, world).await?;
+                }
                 ServerMessageGeneric::MessageString(message) => {
-                    info!("Server Message: {:?}", message.message)
+                    info!("Server Message: {:?}", message.message);
                 }
                 ServerMessageGeneric::PlayerChangeClass(message) => {
                     Self::event_player_change_class(message, world).await?;

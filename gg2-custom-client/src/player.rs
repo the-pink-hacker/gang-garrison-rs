@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+pub const PLAYER_SCALE: f32 = 64.0;
+
 #[derive(Debug, Default)]
 pub struct Player {
     pub name: GGStringShort,
@@ -15,7 +17,7 @@ impl Player {
         Self {
             name,
             transform: Transform {
-                scale: Vec2::splat(64.0),
+                scale: Vec2::splat(PLAYER_SCALE),
                 ..Default::default()
             },
             ..Default::default()
@@ -101,6 +103,15 @@ impl Players {
         } else {
             Err(CommonError::PlayerLookup(id))
         }
+    }
+
+    pub fn flat_zip_mut<T, I>(&mut self, iterator: I) -> impl Iterator<Item = (&mut Player, T)>
+    where
+        I: IntoIterator<Item = Option<T>>,
+    {
+        self.into_iter()
+            .zip(iterator)
+            .flat_map(|(player, item)| item.map(|item| (player, item)))
     }
 
     #[inline]
