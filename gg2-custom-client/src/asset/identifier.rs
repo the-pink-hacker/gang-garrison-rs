@@ -10,7 +10,7 @@ mod serde;
 
 const DEFAULT_NAMESPACE: &str = "gg2";
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum AssetType {
     Texture,
     Map,
@@ -35,7 +35,7 @@ impl AssetType {
     }
 }
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct AssetPath(Vec<String>);
 
@@ -110,7 +110,7 @@ impl From<&str> for AssetPath {
     }
 }
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct AssetId {
     namespace: String,
     path: AssetPath,

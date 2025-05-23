@@ -13,8 +13,6 @@ pub enum ClientError {
     WgpuCreateSurface(#[from] wgpu::CreateSurfaceError),
     #[error("Network Error: {0}")]
     Network(#[from] NetworkError),
-    #[error("Atlas Error: {0}")]
-    Atlas(#[from] image_atlas::AtlasError),
     #[error("Asset Error: {0}")]
     Asset(#[from] AssetError),
     #[error("Common Error: {0}")]

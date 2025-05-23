@@ -83,7 +83,7 @@ impl State {
         ))
     }
 
-    pub async fn update_texture_atlas(&self, world: &World) {
+    pub async fn update_texture_atlas(&mut self, world: &World) {
         let textures = {
             let mut asset_server = world.asset_server.write().await;
 
@@ -94,12 +94,14 @@ impl State {
             asset_server.take_textures()
         };
 
-        let diffuse_rgba =
-            atlas::create_atlas(ATLAS_SIZE, textures).expect("Failed to construct texture atlas");
+        let (texture_atlas, diffuse_rgba) =
+            TextureAtlas::new(ATLAS_SIZE, textures).expect("Failed to construct texture atlas");
+
+        self.sprite_atlas = texture_atlas;
 
         self.queue.write_texture(
             wgpu::TexelCopyTextureInfo {
-                texture: &self.texture_atlas,
+                texture: &self.sprite_atlas_texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,

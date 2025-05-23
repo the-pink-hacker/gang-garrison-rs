@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::prelude::AssetId;
+
 pub type Result<T> = std::result::Result<T, AssetError>;
 
 #[derive(Debug, thiserror::Error)]
@@ -20,4 +22,10 @@ pub enum AssetError {
     IdNamespace(String),
     #[error("Toml Error: {0}")]
     TomlDe(#[from] toml::de::Error),
+    #[error("Atlas Error: {0}")]
+    Atlas(#[from] image_atlas::AtlasError),
+    #[error("Texture atlas is empty")]
+    AtlasEmpty,
+    #[error("Failed to lookup sprite {0} in atlas")]
+    AtlasLookup(AssetId),
 }

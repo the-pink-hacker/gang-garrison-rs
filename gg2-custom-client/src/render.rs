@@ -58,7 +58,8 @@ pub struct State {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     texture_bind_group: wgpu::BindGroup,
-    texture_atlas: wgpu::Texture,
+    sprite_atlas_texture: wgpu::Texture,
+    sprite_atlas: TextureAtlas,
     /// Store the camera's matrix
     camera_uniform_buffer: wgpu::Buffer,
     camera_uniform_bind_group: wgpu::BindGroup,
@@ -107,16 +108,7 @@ impl State {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let sprite_instances = vec![Instance::from_transform_origin(
-            Transform {
-                translation: Vec3::ZERO,
-                rotation: 0.0,
-                scale: Vec2::splat(128.0),
-            },
-            Vec2::new(0.5, 0.5),
-            Vec4::new(0.0, 0.0, 1.0, 1.0),
-        )];
-
+        let sprite_instances = Vec::default();
         let sprite_instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Sprite Instance Buffer"),
             size: std::mem::size_of::<Instance>() as wgpu::BufferAddress * MAX_SPRITE_INSTANCES,
@@ -127,8 +119,9 @@ impl State {
         let (camera_uniform_bind_group_layout, camera_uniform_bind_group, camera_uniform_buffer) =
             Self::create_camera_buffer(&device);
 
-        let (texture_bind_group_layout, texture_bind_group, texture_atlas) =
+        let (texture_bind_group_layout, texture_bind_group, sprite_atlas_texture) =
             Self::create_texture_bind_group(&device)?;
+        let sprite_atlas = TextureAtlas::default();
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -189,7 +182,8 @@ impl State {
             vertex_buffer,
             index_buffer,
             texture_bind_group,
-            texture_atlas,
+            sprite_atlas_texture,
+            sprite_atlas,
             camera_uniform_buffer,
             camera_uniform_bind_group,
             sprite_instances,
@@ -218,6 +212,31 @@ impl State {
     async fn render(&mut self, world: &World) {
         self.update_camera_uniform_buffer(world).await;
         self.update_texture_atlas(world).await;
+
+        self.sprite_instances = vec![
+            Instance::from_transform_origin(
+                Transform {
+                    translation: Vec3::new(-64.0, 0.0, 0.0),
+                    rotation: 0.0,
+                    scale: Vec2::splat(128.0),
+                },
+                Vec2::new(0.5, 0.5),
+                self.sprite_atlas
+                    .lookup_sprite(&AssetId::gg2("character/scout/blu/stand/0"))
+                    .unwrap(),
+            ),
+            Instance::from_transform_origin(
+                Transform {
+                    translation: Vec3::new(64.0, 0.0, 0.0),
+                    rotation: 0.0,
+                    scale: Vec2::splat(128.0),
+                },
+                Vec2::new(0.5, 0.5),
+                self.sprite_atlas
+                    .lookup_sprite(&AssetId::gg2("character/scout/red/stand/0"))
+                    .unwrap(),
+            ),
+        ];
 
         self.queue.write_buffer(
             &self.sprite_instance_buffer,
