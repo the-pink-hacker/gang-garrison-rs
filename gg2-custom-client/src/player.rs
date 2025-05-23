@@ -39,6 +39,11 @@ impl SpriteRenderable for Player {
     fn get_team(&self) -> Option<Team> {
         Some(self.team)
     }
+
+    #[inline]
+    fn get_class(&self) -> Option<ClassGeneric> {
+        Some(self.class)
+    }
 }
 
 #[derive(Debug, Default)]

@@ -23,6 +23,7 @@ impl SpriteContextBranch {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -35,6 +36,28 @@ pub enum SpriteContextCondition {
         #[serde(default)]
         spectator: Option<SpriteContextBranch>,
     },
+    Class {
+        #[serde(default)]
+        scout: Option<SpriteContextBranch>,
+        #[serde(default)]
+        soldier: Option<SpriteContextBranch>,
+        #[serde(default)]
+        sniper: Option<SpriteContextBranch>,
+        #[serde(default)]
+        demoman: Option<SpriteContextBranch>,
+        #[serde(default)]
+        medic: Option<SpriteContextBranch>,
+        #[serde(default)]
+        engineer: Option<SpriteContextBranch>,
+        #[serde(default)]
+        heavy: Option<SpriteContextBranch>,
+        #[serde(default)]
+        spy: Option<SpriteContextBranch>,
+        #[serde(default)]
+        pyro: Option<SpriteContextBranch>,
+        #[serde(default)]
+        quote: Option<SpriteContextBranch>,
+    },
 }
 
 impl SpriteContextCondition {
@@ -44,15 +67,36 @@ impl SpriteContextCondition {
                 red,
                 blu,
                 spectator,
-            } => renderable
-                .get_team()
-                .map(|team| match team {
-                    Team::Red => red,
-                    Team::Blu => blu,
-                    Team::Spectator => spectator,
-                })
-                .and_then(Option::as_ref),
+            } => renderable.get_team().map(|team| match team {
+                Team::Red => red,
+                Team::Blu => blu,
+                Team::Spectator => spectator,
+            }),
+            Self::Class {
+                scout,
+                soldier,
+                sniper,
+                demoman,
+                medic,
+                engineer,
+                heavy,
+                spy,
+                pyro,
+                quote,
+            } => renderable.get_class().map(|class| match class {
+                ClassGeneric::Scout => scout,
+                ClassGeneric::Soldier => soldier,
+                ClassGeneric::Sniper => sniper,
+                ClassGeneric::Demoman => demoman,
+                ClassGeneric::Medic => medic,
+                ClassGeneric::Engineer => engineer,
+                ClassGeneric::Heavy => heavy,
+                ClassGeneric::Spy => spy,
+                ClassGeneric::Pyro => pyro,
+                ClassGeneric::Quote => quote,
+            }),
         }
+        .and_then(Option::as_ref)
         .and_then(|branch| branch.evaluate(renderable))
     }
 }
@@ -84,7 +128,13 @@ pub trait SpriteRenderable {
 
     fn get_transform(&self) -> Transform;
 
-    fn get_team(&self) -> Option<Team>;
+    fn get_team(&self) -> Option<Team> {
+        None
+    }
+
+    fn get_class(&self) -> Option<ClassGeneric> {
+        None
+    }
 }
 
 #[cfg(test)]

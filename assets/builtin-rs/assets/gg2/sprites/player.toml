@@ -1,4 +1,52 @@
 [branch]
+type = "class"
+
+[branch.scout]
 type = "team"
 blu = "gg2:character/scout/blu/stand"
 red = "gg2:character/scout/red/stand"
+
+[branch.soldier]
+type = "team"
+blu = "gg2:character/soldier/blu/stand"
+red = "gg2:character/soldier/red/stand"
+
+[branch.sniper]
+type = "team"
+blu = "gg2:character/sniper/blu/stand"
+red = "gg2:character/sniper/red/stand"
+
+[branch.demoman]
+type = "team"
+blu = "gg2:character/demoman/blu/stand"
+red = "gg2:character/demoman/red/stand"
+
+[branch.medic]
+type = "team"
+blu = "gg2:character/medic/blu/stand"
+red = "gg2:character/medic/red/stand"
+
+[branch.engineer]
+type = "team"
+blu = "gg2:character/engineer/blu/stand"
+red = "gg2:character/engineer/red/stand"
+
+[branch.heavy]
+type = "team"
+blu = "gg2:character/heavy/blu/stand"
+red = "gg2:character/heavy/red/stand"
+
+[branch.spy]
+type = "team"
+blu = "gg2:character/spy/blu/stand"
+red = "gg2:character/spy/red/stand"
+
+[branch.pyro]
+type = "team"
+blu = "gg2:character/pyro/blu/stand"
+red = "gg2:character/pyro/red/stand"
+
+[branch.quote]
+type = "team"
+blu = "gg2:character/quote/blu/stand"
+red = "gg2:character/quote/red/stand"
