@@ -219,6 +219,14 @@ impl GGMessage for ServerMessageString {
     const KIND: PacketKind = PacketKind::MessageString;
 }
 
+/// Heavy used the Omnom special ability
+#[derive(Debug, Clone)]
+pub struct ServerOmnom;
+
+impl GGMessage for ServerOmnom {
+    const KIND: PacketKind = PacketKind::Omnom;
+}
+
 /// The server is requesting a password
 #[derive(Debug, Clone, Default)]
 pub struct ServerPasswordRequest;

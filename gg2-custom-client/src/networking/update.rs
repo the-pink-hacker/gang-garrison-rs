@@ -165,6 +165,7 @@ impl NetworkClient {
                 ServerMessageGeneric::MessageString(message) => {
                     info!("Server Message: {:?}", message.message);
                 }
+                ServerMessageGeneric::Omnom(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::PlayerChangeClass(message) => {
                     Self::event_player_change_class(message, world).await?;
                 }

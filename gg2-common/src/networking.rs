@@ -37,7 +37,7 @@ pub enum PacketKind {
     DropIntel = 21,
     UberCharged = 22,
     Uber = 23,
-    Omnomnomnom = 24,
+    Omnom = 24,
     PasswordRequest = 25,
     PasswordWrong = 27,
     CaptureUpdate = 28,

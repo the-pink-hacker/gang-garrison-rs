@@ -12,16 +12,38 @@ use gg2_common::{
 
 use super::ClientNetworkDeserialize;
 
-macro_rules! generic_enum {
+macro_rules! generic_message {
     (pub enum $name:ident {$($case:ident),+$(,)?}) => {
         #[derive(Debug, Clone)]
         pub enum $name {
             $($case(${concat(Server, $case)})),+,
         }
+
+        impl ServerMessageGeneric {
+            pub fn take<I: Iterator<Item = u8>>(buffer: &mut I) -> Result<Self> {
+                let raw_kind = buffer.read_u8()?;
+                let kind = raw_kind
+                    .try_into()
+                    .map_err(|_| Error::PacketKind(raw_kind))?;
+
+                match kind {
+                    $(PacketKind::$case => Ok(ServerMessageGeneric::$case(${concat(Server, $case)}::deserialize(buffer)?))),+,
+                    _ => Err(Error::IncorrectMessage(kind)),
+                }
+            }
+        }
+
+        impl From<ServerMessageGeneric> for PacketKind {
+            fn from(value: ServerMessageGeneric) -> Self {
+                match value {
+                    $(ServerMessageGeneric::$case(_) => PacketKind::$case),+,
+                }
+            }
+        }
     };
 }
 
-generic_enum!(
+generic_message!(
     pub enum ServerMessageGeneric {
         Hello,
         PlayerJoin,
@@ -47,7 +69,7 @@ generic_enum!(
         DropIntel,
         //UberCharged = 22,
         //Uber = 23,
-        //Omnomnomnom = 24,
+        Omnom,
         PasswordRequest,
         PasswordWrong,
         CaptureUpdate,
@@ -82,102 +104,6 @@ generic_enum!(
         ReserveSlot,
     }
 );
-
-/// Significantly reduce vebosity with `ServerMessageGeneric::take`
-macro_rules! generic_match {
-    ($buffer:ident, $kind:ident, [$($case:ident),+$(,)?]$(,)?) => {
-        match $kind {
-            $(PacketKind::$case => Ok(ServerMessageGeneric::$case(${concat(Server, $case)}::deserialize($buffer)?))),+,
-            _ => Err(Error::IncorrectMessage($kind)),
-        }
-    };
-}
-
-impl ServerMessageGeneric {
-    pub fn take<I: Iterator<Item = u8>>(buffer: &mut I) -> Result<Self> {
-        let raw_kind = buffer.read_u8()?;
-        let kind = raw_kind
-            .try_into()
-            .map_err(|_| Error::PacketKind(raw_kind))?;
-
-        generic_match!(
-            buffer,
-            kind,
-            [
-                Hello,
-                PlayerJoin,
-                PlayerLeave,
-                PlayerChangeTeam,
-                PlayerChangeClass,
-                PlayerSpawn,
-                InputState,
-                ChangeMap,
-                FullUpdate,
-                QuickUpdate,
-                PlayerDeath,
-                ServerFull,
-                ChatBubble,
-                GrabIntel,
-                ScoreIntel,
-                DropIntel,
-                PasswordRequest,
-                PasswordWrong,
-                CaptureUpdate,
-                PlayerChangeName,
-                ReturnIntel,
-                IncompatibleProtocol,
-                JoinUpdate,
-                MessageString,
-                WeaponFire,
-                ReserveSlot,
-            ],
-        )
-    }
-}
-
-macro_rules! generic_kind_match {
-    ($value:ident, [$($case:ident),+$(,)?]$(,)?) => {
-        match $value {
-            $(ServerMessageGeneric::$case(_) => PacketKind::$case),+,
-        }
-    };
-}
-
-impl From<ServerMessageGeneric> for PacketKind {
-    fn from(value: ServerMessageGeneric) -> Self {
-        generic_kind_match!(
-            value,
-            [
-                Hello,
-                PlayerJoin,
-                PlayerLeave,
-                PlayerChangeTeam,
-                PlayerChangeClass,
-                PlayerSpawn,
-                InputState,
-                ChangeMap,
-                FullUpdate,
-                QuickUpdate,
-                PlayerDeath,
-                ServerFull,
-                ChatBubble,
-                GrabIntel,
-                ScoreIntel,
-                DropIntel,
-                PasswordRequest,
-                PasswordWrong,
-                CaptureUpdate,
-                PlayerChangeName,
-                ReturnIntel,
-                IncompatibleProtocol,
-                JoinUpdate,
-                MessageString,
-                WeaponFire,
-                ReserveSlot,
-            ],
-        )
-    }
-}
 
 impl ClientNetworkDeserialize for Captures {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
@@ -232,9 +158,10 @@ impl ClientNetworkDeserialize for ServerChatBubble {
         // TODO: What does this byte do?
         let _unknown = payload.read_u8()?;
 
-        let bubble = payload.read_u8()?;
-        dbg!(bubble);
-        let bubble = bubble.try_into().map_err(|_| Error::PacketPayload)?;
+        let bubble = payload
+            .read_u8()?
+            .try_into()
+            .map_err(|_| Error::PacketPayload)?;
 
         Ok(Self { bubble })
     }
@@ -499,6 +426,13 @@ impl ClientNetworkDeserialize for ServerMessageString {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
         let message = payload.read_utf8_short_string()?;
         Ok(Self { message })
+    }
+}
+
+impl ClientNetworkDeserialize for ServerOmnom {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        let _unknown = payload.read_u8()?;
+        Ok(Self)
     }
 }
 
