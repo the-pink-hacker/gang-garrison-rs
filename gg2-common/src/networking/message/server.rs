@@ -1,4 +1,5 @@
 use crate::{
+    chat::bubble::ChatBubble,
     damage::source::DamageSource,
     intel::RawIntel,
     networking::PacketKind,
@@ -37,6 +38,15 @@ pub struct ServerChangeMap {
 
 impl GGMessage for ServerChangeMap {
     const KIND: PacketKind = PacketKind::ChangeMap;
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerChatBubble {
+    pub bubble: ChatBubble,
+}
+
+impl GGMessage for ServerChatBubble {
+    const KIND: PacketKind = PacketKind::ChatBubble;
 }
 
 /// Intel was dropped by a player

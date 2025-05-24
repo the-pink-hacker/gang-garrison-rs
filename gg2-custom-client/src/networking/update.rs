@@ -155,6 +155,7 @@ impl NetworkClient {
             match generic_message {
                 ServerMessageGeneric::CaptureUpdate(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::ChangeMap(message) => debug!("{message:#?}"),
+                ServerMessageGeneric::ChatBubble(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::DropIntel(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::GrabIntel(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::FullUpdate(message) => debug!("{message:#?}"),

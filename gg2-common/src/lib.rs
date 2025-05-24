@@ -1,3 +1,4 @@
+pub mod chat;
 pub mod damage;
 pub mod error;
 pub mod intel;

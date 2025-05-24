@@ -38,7 +38,7 @@ generic_enum!(
         //RedTeamCap = 12,
         //BlueTeamCap = 13,
         //MapEnd = 14,
-        //ChatBubble = 15,
+        ChatBubble,
         //BuildSentry = 16,
         //DestroySentry = 17,
         //Balance = 18,
@@ -116,6 +116,7 @@ impl ServerMessageGeneric {
                 QuickUpdate,
                 PlayerDeath,
                 ServerFull,
+                ChatBubble,
                 GrabIntel,
                 ScoreIntel,
                 DropIntel,
@@ -159,6 +160,7 @@ impl From<ServerMessageGeneric> for PacketKind {
                 QuickUpdate,
                 PlayerDeath,
                 ServerFull,
+                ChatBubble,
                 GrabIntel,
                 ScoreIntel,
                 DropIntel,
@@ -222,6 +224,19 @@ impl ClientNetworkDeserialize for ServerChangeMap {
         } else {
             Ok(Self { map_name, map_md5 })
         }
+    }
+}
+
+impl ClientNetworkDeserialize for ServerChatBubble {
+    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+        // TODO: What does this byte do?
+        let _unknown = payload.read_u8()?;
+
+        let bubble = payload.read_u8()?;
+        dbg!(bubble);
+        let bubble = bubble.try_into().map_err(|_| Error::PacketPayload)?;
+
+        Ok(Self { bubble })
     }
 }
 
