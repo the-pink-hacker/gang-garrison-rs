@@ -12,8 +12,8 @@ pub struct TextureAtlas {
 impl TextureAtlas {
     pub fn new(
         size: u32,
-        mut textures: Vec<(AssetId, ImageBufferU8)>,
-    ) -> Result<(Self, ImageBufferU8), AssetError> {
+        mut textures: Vec<(AssetId, ImageBufferRGBA8)>,
+    ) -> Result<(Self, ImageBufferRGBA8), AssetError> {
         // Sort to keep animations in order
         textures.sort_by(|(id, _), (other_id, _)| id.cmp(other_id));
 

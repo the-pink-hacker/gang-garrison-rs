@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use crate::prelude::AssetId;
+use gg2_custom_common::prelude::MapIoError;
+
+use crate::prelude::*;
 
 pub type Result<T> = std::result::Result<T, AssetError>;
 
@@ -28,4 +30,8 @@ pub enum AssetError {
     AtlasEmpty,
     #[error("Failed to lookup sprite {0} in atlas")]
     AtlasLookup(AssetId),
+    #[error("Map Error: {0}")]
+    MapIo(#[from] MapIoError),
+    #[error("Asset, of type {0:?}, isn't loaded: {1}")]
+    Unloaded(AssetType, AssetId),
 }

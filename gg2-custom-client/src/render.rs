@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use tokio::sync::mpsc::UnboundedReceiver;
 use wgpu::util::DeviceExt;
 use winit::{
     application::ApplicationHandler,
@@ -206,9 +207,21 @@ impl State {
         self.configure_surface();
     }
 
-    async fn render(&mut self, world: &World) {
+    async fn render(
+        &mut self,
+        world: &World,
+        game_to_render_channel: &mut UnboundedReceiver<GameToRenderMessage>,
+    ) {
         self.update_camera_uniform_buffer(world).await;
-        self.update_texture_atlas(world).await;
+
+        if let Ok(message) = game_to_render_channel.try_recv() {
+            match message {
+                GameToRenderMessage::UpdateSpriteAtlas(textures) => {
+                    self.update_texture_atlas(textures);
+                }
+                GameToRenderMessage::ChangeMap(_image) => todo!("MAP CHANGE"),
+            }
+        }
 
         self.sprite_instances = {
             let players = world.players.read().await;
@@ -307,12 +320,16 @@ impl State {
 
 impl App {
     /// Initializes render loop
-    pub fn init_render(&self, runtime: tokio::runtime::Runtime) -> Result<(), ClientError> {
+    pub fn init_render(self, runtime: tokio::runtime::Runtime) -> Result<(), ClientError> {
         let event_loop = EventLoop::new()?;
 
         event_loop.set_control_flow(ControlFlow::Wait);
 
-        event_loop.run_app(&mut RenderApp::new(self.get_world(), runtime))?;
+        event_loop.run_app(&mut RenderApp::new(
+            self.get_world(),
+            runtime,
+            self.game_to_render_channel_receiver,
+        ))?;
 
         Ok(())
     }
@@ -322,14 +339,20 @@ pub struct RenderApp {
     world: Arc<World>,
     state: Option<State>,
     runtime: tokio::runtime::Runtime,
+    game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
 }
 
 impl RenderApp {
-    fn new(world: Arc<World>, runtime: tokio::runtime::Runtime) -> Self {
+    fn new(
+        world: Arc<World>,
+        runtime: tokio::runtime::Runtime,
+        game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
+    ) -> Self {
         Self {
             world,
             state: None,
             runtime,
+            game_to_render_channel,
         }
     }
 }
@@ -367,7 +390,9 @@ impl ApplicationHandler for RenderApp {
             }
             WindowEvent::RedrawRequested => {
                 self.runtime.block_on(async {
-                    state.render(&self.world).await;
+                    state
+                        .render(&self.world, &mut self.game_to_render_channel)
+                        .await;
 
                     state.get_window().request_redraw();
                 });

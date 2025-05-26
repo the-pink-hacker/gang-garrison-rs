@@ -43,6 +43,7 @@ impl AssetPack {
         &self,
         texture_map: &mut HashMap<AssetId, Arc<PathBuf>>,
         sprite_map: &mut HashMap<AssetId, Arc<PathBuf>>,
+        map_map: &mut HashMap<AssetId, Arc<PathBuf>>,
     ) -> Result<(), AssetError> {
         for asset_path in walkdir::WalkDir::new(&*self.asset_root)
             .follow_links(false)
@@ -69,7 +70,9 @@ impl AssetPack {
                 AssetType::Texture => {
                     texture_map.insert(asset_id, Arc::clone(&self.asset_root));
                 }
-                AssetType::Map => (),
+                AssetType::Map => {
+                    map_map.insert(asset_id, Arc::clone(&self.asset_root));
+                }
                 AssetType::Sprite => {
                     sprite_map.insert(asset_id, Arc::clone(&self.asset_root));
                 }

@@ -1,6 +1,12 @@
 use std::{path::PathBuf, sync::Arc};
 
-use tokio::{sync::RwLock, time::Duration};
+use tokio::{
+    sync::{
+        RwLock,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+    },
+    time::Duration,
+};
 
 use crate::{
     config::{ClientConfig, ClientConfigLock},
@@ -17,6 +23,7 @@ pub mod cli;
 
 pub struct App {
     world: Arc<World>,
+    pub game_to_render_channel_receiver: UnboundedReceiver<GameToRenderMessage>,
 }
 
 impl App {
@@ -35,8 +42,12 @@ impl App {
             ClientConfig::load(&executable_directory).expect("Failed to load client config");
         config.save().expect("Failed to save client config");
 
+        let (game_to_render_channel_sender, game_to_render_channel_receiver) =
+            tokio::sync::mpsc::unbounded_channel();
+
         Self {
             world: Arc::new(World {
+                game_to_render_channel: game_to_render_channel_sender,
                 asset_server: AssetServer::default().into(),
                 camera: Camera::default().into(),
                 client_cli_arguments,
@@ -44,7 +55,9 @@ impl App {
                 network_client: NetworkClient::default().into(),
                 executable_directory,
                 players: Players::default().into(),
+                map: MapInfo::default().into(),
             }),
+            game_to_render_channel_receiver,
         }
     }
 
@@ -71,6 +84,7 @@ impl App {
         let mut asset_server = self.world.asset_server.write().await;
 
         asset_server.load_packs(&packs).await?;
+        asset_server.push_textures(&self.world)?;
 
         Ok(())
     }
@@ -97,9 +111,7 @@ impl App {
             }
         });
 
-        self.init_render(runtime)?;
-
-        Ok(())
+        self.init_render(runtime)
     }
 
     pub fn get_world(&self) -> Arc<World> {
@@ -123,12 +135,14 @@ impl App {
 
 /// The world is used to pass data between threads
 pub struct World {
+    pub game_to_render_channel: UnboundedSender<GameToRenderMessage>,
     pub asset_server: RwLock<AssetServer>,
     pub camera: RwLock<Camera>,
     pub client_cli_arguments: ClientCliArguments,
     pub config: ClientConfigLock,
-    pub network_client: RwLock<NetworkClient>,
     pub executable_directory: PathBuf,
+    pub map: RwLock<MapInfo>,
+    pub network_client: RwLock<NetworkClient>,
     pub players: RwLock<Players>,
 }
 

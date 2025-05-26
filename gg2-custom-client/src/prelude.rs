@@ -7,14 +7,16 @@ pub use crate::{
         error::AssetError,
         identifier::{AssetId, AssetType},
         pack::AssetPack,
-        sprite::SpriteRenderable,
+        sprite::{SpriteContextAsset, SpriteRenderable},
     },
     camera::Camera,
     error::ClientError,
     init::{App, UpdateMutRunnable, World, cli::ClientCliSubcommand},
+    map::MapInfo,
     networking::io::NetworkClient,
     player::{Player, Players},
     render::{instance::SpriteInstance, texture::atlas::TextureAtlas},
+    sync::GameToRenderMessage,
 };
 
-pub type ImageBufferU8 = image::ImageBuffer<image::Rgba<u8>, Vec<u8>>;
+pub type ImageBufferRGBA8 = image::ImageBuffer<image::Rgba<u8>, Vec<u8>>;

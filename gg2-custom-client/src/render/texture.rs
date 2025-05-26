@@ -83,17 +83,8 @@ impl State {
         ))
     }
 
-    pub async fn update_texture_atlas(&mut self, world: &World) {
-        let textures = {
-            let mut asset_server = world.asset_server.write().await;
-
-            if asset_server.is_textures_empty() {
-                return;
-            }
-
-            asset_server.take_textures()
-        };
-
+    pub fn update_texture_atlas(&mut self, textures: Vec<(AssetId, ImageBufferRGBA8)>) {
+        debug!("Updating texture atlas...");
         let (texture_atlas, diffuse_rgba) =
             TextureAtlas::new(ATLAS_SIZE, textures).expect("Failed to construct texture atlas");
 

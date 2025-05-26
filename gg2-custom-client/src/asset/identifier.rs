@@ -18,7 +18,7 @@ pub enum AssetType {
 }
 
 impl AssetType {
-    pub fn as_path(&self) -> &Path {
+    pub fn into_path(&self) -> &Path {
         match self {
             Self::Texture => Path::new("textures"),
             Self::Map => Path::new("maps"),
@@ -145,9 +145,9 @@ impl AssetId {
         Self::new(DEFAULT_NAMESPACE.to_string(), path)
     }
 
-    pub fn as_path(&self, mut base: PathBuf, asset_type: AssetType) -> PathBuf {
+    pub fn into_path(&self, mut base: PathBuf, asset_type: AssetType) -> PathBuf {
         base.push(&self.namespace);
-        base.push(asset_type.as_path());
+        base.push(asset_type.into_path());
         base.extend(&self.path);
         base.set_extension(asset_type.extension());
 

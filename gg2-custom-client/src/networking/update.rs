@@ -26,6 +26,22 @@ impl NetworkClient {
         Ok(())
     }
 
+    async fn event_change_map(message: ServerChangeMap, world: &World) -> Result<(), ClientError> {
+        let map_id = AssetId::gg2((*message.map_name).clone());
+        info!("Map loading: {map_id}");
+
+        let (image, data) = world.asset_server.read().await.load_map(&map_id).await?;
+
+        debug!("{data:#?}");
+        world.map.write().await.current_map = Some((map_id, data));
+
+        world
+            .game_to_render_channel
+            .send(GameToRenderMessage::ChangeMap(image))?;
+
+        Ok(())
+    }
+
     async fn event_input_state(
         message: ServerInputState,
         world: &World,
@@ -154,7 +170,9 @@ impl NetworkClient {
         if let Some(generic_message) = self.pop_message().await? {
             match generic_message {
                 ServerMessageGeneric::CaptureUpdate(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::ChangeMap(message) => debug!("{message:#?}"),
+                ServerMessageGeneric::ChangeMap(message) => {
+                    Self::event_change_map(message, world).await?;
+                }
                 ServerMessageGeneric::ChatBubble(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::DropIntel(message) => debug!("{message:#?}"),
                 ServerMessageGeneric::GrabIntel(message) => debug!("{message:#?}"),

@@ -1,11 +1,11 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
-use sprite::SpriteContextAsset;
-
 use crate::prelude::*;
+use error::Result;
 
 pub mod error;
 pub mod identifier;
@@ -16,65 +16,81 @@ pub mod sprite;
 pub struct AssetServer {
     /// All loaded packs in ascending priority
     loaded_packs: Vec<AssetPack>,
-    textures: HashMap<AssetId, ImageBufferU8>,
+    textures: HashMap<AssetId, ImageBufferRGBA8>,
     sprites: HashMap<AssetId, SpriteContextAsset>,
+    /// All scanned maps with the base pack path
+    maps: HashMap<AssetId, Arc<PathBuf>>,
 }
 
 impl AssetServer {
-    async fn read_texture(raw: &[u8]) -> error::Result<ImageBufferU8> {
-        let image = image::load_from_memory_with_format(raw, image::ImageFormat::Png)?;
-
-        Ok(image.to_rgba8())
+    async fn read_texture(buf: &[u8]) -> error::Result<ImageBufferRGBA8> {
+        Ok(image::load_from_memory_with_format(buf, image::ImageFormat::Png)?.to_rgba8())
     }
 
-    async fn load_asset(path: &Path) -> error::Result<Vec<u8>> {
+    async fn load_asset(path: impl AsRef<Path>) -> Result<Vec<u8>> {
         Ok(tokio::fs::read(path).await?)
     }
 
-    async fn load_asset_string(path: &Path) -> error::Result<String> {
+    async fn load_asset_string(path: impl AsRef<Path>) -> Result<String> {
         Ok(tokio::fs::read_to_string(path).await?)
     }
 
-    async fn load_texture(base: PathBuf, id: AssetId) -> error::Result<(AssetId, ImageBufferU8)> {
-        let path = id.as_path(base, AssetType::Texture);
+    async fn load_texture(base: PathBuf, id: &AssetId) -> error::Result<ImageBufferRGBA8> {
+        let path = id.into_path(base, AssetType::Texture);
         trace!("Loading texture {} from: {}", id, path.display());
 
         let image_raw = Self::load_asset(&path).await?;
-        Ok((id, Self::read_texture(&image_raw).await?))
+        Self::read_texture(&image_raw).await
     }
 
-    async fn load_sprite(
-        base: PathBuf,
-        id: AssetId,
-    ) -> error::Result<(AssetId, SpriteContextAsset)> {
-        let path = id.as_path(base, AssetType::Sprite);
+    async fn load_sprite(base: PathBuf, id: &AssetId) -> Result<SpriteContextAsset> {
+        let path = id.into_path(base, AssetType::Sprite);
         trace!("Loading sprite {} from {}", id, path.display());
 
         let sprite_raw = Self::load_asset_string(&path).await?;
-        let sprite = toml::from_str(&sprite_raw)?;
 
-        Ok((id, sprite))
+        Ok(toml::from_str(&sprite_raw)?)
     }
 
-    // TODO: Replace with signal to render thread
-    pub fn is_textures_empty(&self) -> bool {
-        self.textures.is_empty()
+    // TODO: Check map MD5
+    pub async fn load_map(&self, id: &AssetId) -> Result<(ImageBufferRGBA8, MapData)> {
+        let base_path = self
+            .maps
+            .get(id)
+            .ok_or_else(|| AssetError::Unloaded(AssetType::Map, id.clone()))?
+            .as_ref()
+            .clone();
+        let path = id.into_path(base_path, AssetType::Map);
+        let map_buffer = Self::load_asset(path).await?;
+
+        let map_data = MapData::load_from_memory(&map_buffer)?;
+        let image =
+            image::load_from_memory_with_format(&map_buffer, image::ImageFormat::Png)?.to_rgba8();
+
+        Ok((image, map_data))
     }
 
-    pub fn take_textures(&mut self) -> Vec<(AssetId, ImageBufferU8)> {
-        let mut old_textures = HashMap::new();
-        std::mem::swap(&mut self.textures, &mut old_textures);
+    pub fn push_textures(&mut self, world: &World) -> std::result::Result<(), ClientError> {
+        let textures = std::mem::take(&mut self.textures).into_iter().collect();
+        debug!("SENDING MESSAGE");
 
-        old_textures.into_iter().collect()
+        world
+            .game_to_render_channel
+            .send(GameToRenderMessage::UpdateSpriteAtlas(textures))?;
+
+        Ok(())
     }
 
-    pub fn get_sprite(&self, id: &AssetId) -> Result<&SpriteContextAsset, AssetError> {
+    pub fn get_sprite(&self, id: &AssetId) -> Result<&SpriteContextAsset> {
         self.sprites
             .get(id)
             .ok_or_else(|| AssetError::AtlasLookup(id.clone()))
     }
 
-    pub async fn load_packs(&mut self, packs: &[PathBuf]) -> error::Result<()> {
+    pub async fn load_packs(&mut self, packs: &[PathBuf]) -> Result<()> {
+        //let map = AssetId::gg2("ctf_eiger");
+        //MapData::load_from_memory(&tokio::fs::read(map_path).await.unwrap())?;
+
         self.loaded_packs.reserve(packs.len());
 
         for path in packs {
@@ -97,19 +113,27 @@ impl AssetServer {
         let mut sprite_map = HashMap::new();
 
         for pack in &self.loaded_packs {
-            pack.scan_files(&mut texture_map, &mut sprite_map)?;
+            pack.scan_files(&mut texture_map, &mut sprite_map, &mut self.maps)?;
         }
 
         let mut texture_set = tokio::task::JoinSet::new();
 
         for (asset_id, pack_path) in texture_map {
-            texture_set.spawn(Self::load_texture(pack_path.as_ref().clone(), asset_id));
+            texture_set.spawn(async move {
+                Self::load_texture(pack_path.as_ref().clone(), &asset_id)
+                    .await
+                    .map(|texture| (asset_id, texture))
+            });
         }
 
         let mut sprite_set = tokio::task::JoinSet::new();
 
         for (asset_id, pack_path) in sprite_map {
-            sprite_set.spawn(Self::load_sprite(pack_path.as_ref().clone(), asset_id));
+            sprite_set.spawn(async move {
+                Self::load_sprite(pack_path.as_ref().clone(), &asset_id)
+                    .await
+                    .map(|sprite| (asset_id, sprite))
+            });
         }
 
         while let Some(Ok(sprite)) = sprite_set.join_next().await {

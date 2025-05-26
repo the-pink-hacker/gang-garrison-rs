@@ -1,5 +1,6 @@
 pub use gg2_common::{
     error::CommonError,
+    map::{data::MapData, entity::MapEntity, io::error::MapIoError},
     networking::error::NetworkError,
     player::{PlayerId, RawInput, class::ClassGeneric, team::Team},
     string::GGStringShort,

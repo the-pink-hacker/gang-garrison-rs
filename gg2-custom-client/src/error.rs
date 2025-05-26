@@ -19,4 +19,6 @@ pub enum ClientError {
     Common(#[from] CommonError),
     #[error("Client player unset")]
     ClientPlayerLookup,
+    #[error("Failed to send message: Game => Render")]
+    ChannelGameRender(#[from] tokio::sync::mpsc::error::SendError<GameToRenderMessage>),
 }
