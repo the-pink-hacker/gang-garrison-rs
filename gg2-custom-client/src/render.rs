@@ -13,14 +13,16 @@ use winit::{
 };
 
 use crate::prelude::*;
-use vertex::Vertex;
+use vertex::{Vertex, VertexTextureUV};
 
 pub mod camera;
 pub mod instance;
+pub mod pipeline;
 pub mod texture;
 pub mod vertex;
 
-const MAX_SPRITE_INSTANCES: wgpu::BufferAddress = 1_024;
+const MAX_SPRITE_INSTANCES: wgpu::BufferAddress = u16::MAX as wgpu::BufferAddress;
+const MAP_SCALE: f32 = 6.0;
 
 const QUAD_VERTICES: &[Vertex] = &[
     Vertex {
@@ -44,6 +46,7 @@ const QUAD_INDICES: &[u16] = &[
 ];
 
 /// Holds all rendering structs such as the window
+#[derive(Debug)]
 pub struct State {
     window: Arc<Window>,
     device: wgpu::Device,
@@ -51,12 +54,11 @@ pub struct State {
     size: winit::dpi::PhysicalSize<u32>,
     surface: wgpu::Surface<'static>,
     surface_config: wgpu::SurfaceConfiguration,
-    render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
+    pipelines: pipeline::RenderPipelines,
+    sprite_vertex_buffer: wgpu::Buffer,
+    map_vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    texture_bind_group: wgpu::BindGroup,
-    sprite_atlas_texture: wgpu::Texture,
-    sprite_atlas: TextureAtlas,
+    textures: texture::RenderTextures,
     /// Store the camera's matrix
     camera_uniform_buffer: wgpu::Buffer,
     camera_uniform_bind_group: wgpu::BindGroup,
@@ -91,12 +93,17 @@ impl State {
             present_mode: wgpu::PresentMode::Immediate,
         };
 
-        let shader = device.create_shader_module(wgpu::include_wgsl!("render/shaders/shader.wgsl"));
-
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
+        let sprite_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Sprite Vertex Buffer"),
             contents: bytemuck::cast_slice(QUAD_VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let map_vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Map Vertex Buffer"),
+            size: std::mem::size_of::<VertexTextureUV>() as wgpu::BufferAddress * 4,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -117,57 +124,14 @@ impl State {
         let (camera_uniform_bind_group_layout, camera_uniform_bind_group, camera_uniform_buffer) =
             Self::create_camera_buffer(&device);
 
-        let (texture_bind_group_layout, texture_bind_group, sprite_atlas_texture) =
-            Self::create_texture_bind_group(&device)?;
-        let sprite_atlas = TextureAtlas::default();
+        let textures = texture::RenderTextures::new(&device)?;
 
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[
-                    &texture_bind_group_layout,
-                    &camera_uniform_bind_group_layout,
-                ],
-                push_constant_ranges: &[],
-            });
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                buffers: &[Vertex::layout(), SpriteInstance::layout()],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_main"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: surface_config.format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: None,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            multiview: None,
-            cache: None,
-        });
+        let pipelines = pipeline::RenderPipelines::new(
+            &device,
+            &textures.layout,
+            &camera_uniform_bind_group_layout,
+            &surface_config,
+        );
 
         let state = State {
             window,
@@ -176,12 +140,11 @@ impl State {
             size,
             surface,
             surface_config,
-            render_pipeline,
-            vertex_buffer,
+            pipelines,
+            sprite_vertex_buffer,
+            map_vertex_buffer,
             index_buffer,
-            texture_bind_group,
-            sprite_atlas_texture,
-            sprite_atlas,
+            textures,
             camera_uniform_buffer,
             camera_uniform_bind_group,
             sprite_instances,
@@ -217,9 +180,38 @@ impl State {
         if let Ok(message) = game_to_render_channel.try_recv() {
             match message {
                 GameToRenderMessage::UpdateSpriteAtlas(textures) => {
-                    self.update_texture_atlas(textures);
+                    self.textures.update_texture_atlas(&self.queue, textures);
                 }
-                GameToRenderMessage::ChangeMap(_image) => todo!("MAP CHANGE"),
+                GameToRenderMessage::ChangeMap(image) => {
+                    let width = image.width() as f32 * MAP_SCALE;
+                    let height = image.height() as f32 * MAP_SCALE;
+
+                    self.queue.write_buffer(
+                        &self.map_vertex_buffer,
+                        0,
+                        bytemuck::cast_slice(&[
+                            VertexTextureUV {
+                                position: Vec3::new(width, -height, 0.0),
+                                texture_uv: Vec2::new(1.0, 1.0),
+                            },
+                            VertexTextureUV {
+                                position: Vec3::new(0.0, -height, 0.0),
+                                texture_uv: Vec2::new(0.0, 1.0),
+                            },
+                            VertexTextureUV {
+                                position: Vec3::new(0.0, 0.0, 0.0),
+                                texture_uv: Vec2::new(0.0, 0.0),
+                            },
+                            VertexTextureUV {
+                                position: Vec3::new(width, 0.0, 0.0),
+                                texture_uv: Vec2::new(1.0, 0.0),
+                            },
+                        ]),
+                    );
+
+                    self.textures
+                        .update_texture_map(&self.device, &self.queue, image);
+                }
             }
         }
 
@@ -229,7 +221,7 @@ impl State {
 
             players
                 .iter()
-                .map(|player| player.render(&self.sprite_atlas, &asset_server))
+                .map(|player| player.render(&self.textures.sprite_atlas, &asset_server))
                 .flat_map(|player| match player {
                     Ok(player) => player,
                     Err(error) => {
@@ -240,6 +232,7 @@ impl State {
                 .collect()
         };
 
+        // ATLAS TEST
         self.sprite_instances
             .push(SpriteInstance::from_transform_origin(
                 Transform {
@@ -294,15 +287,21 @@ impl State {
                 occlusion_query_set: None,
             });
 
-            render_pass.set_pipeline(&self.render_pipeline);
-
-            render_pass.set_bind_group(0, &self.texture_bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_uniform_bind_group, &[]);
-
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_vertex_buffer(1, self.sprite_instance_buffer.slice(..));
-
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+            if let Some(map_bind_group) = &self.textures.map_bind_group {
+                render_pass.set_bind_group(0, map_bind_group, &[]);
+                render_pass.set_pipeline(&self.pipelines.map_pipeline);
+                render_pass.set_vertex_buffer(0, self.map_vertex_buffer.slice(..));
+
+                render_pass.draw_indexed(0..(QUAD_INDICES.len() as u32), 0, 0..1);
+            }
+
+            render_pass.set_bind_group(0, &self.textures.sprite_atlas_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, self.sprite_vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, self.sprite_instance_buffer.slice(..));
+            render_pass.set_pipeline(&self.pipelines.sprite_pipeline);
 
             render_pass.draw_indexed(
                 0..(QUAD_INDICES.len() as u32),
@@ -398,8 +397,6 @@ impl ApplicationHandler for RenderApp {
                 });
             }
             WindowEvent::Resized(size) => {
-                //let state = Arc::clone(self.state.as_ref().expect("Render state is uninitialized"));
-
                 self.runtime.block_on(async {
                     state.resize(size);
                 });

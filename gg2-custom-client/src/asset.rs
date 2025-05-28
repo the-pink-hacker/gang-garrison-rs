@@ -72,7 +72,6 @@ impl AssetServer {
 
     pub fn push_textures(&mut self, world: &World) -> std::result::Result<(), ClientError> {
         let textures = std::mem::take(&mut self.textures).into_iter().collect();
-        debug!("SENDING MESSAGE");
 
         world
             .game_to_render_channel
