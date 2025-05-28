@@ -10,13 +10,18 @@ pub use crate::{
         sprite::{SpriteContextAsset, SpriteRenderable},
     },
     camera::Camera,
+    config::{ClientConfig, ClientConfigLock},
     error::ClientError,
-    init::{App, UpdateMutRunnable, World, cli::ClientCliSubcommand},
+    init::{
+        App, UpdateMutRunnable,
+        cli::{ClientCliArguments, ClientCliSubcommand},
+    },
     map::MapInfo,
     networking::io::NetworkClient,
-    player::{Player, Players},
+    player::ClientPlayers,
     render::{instance::SpriteInstance, texture::atlas::TextureAtlas},
     sync::GameToRenderMessage,
+    world::ClientWorld,
 };
 
 pub type ImageBufferRGBA8 = image::ImageBuffer<image::Rgba<u8>, Vec<u8>>;

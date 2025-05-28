@@ -70,11 +70,11 @@ impl AssetServer {
         Ok((image, map_data))
     }
 
-    pub fn push_textures(&mut self, world: &World) -> std::result::Result<(), ClientError> {
+    pub fn push_textures(&mut self, world: &ClientWorld) -> std::result::Result<(), ClientError> {
         let textures = std::mem::take(&mut self.textures).into_iter().collect();
 
         world
-            .game_to_render_channel
+            .game_to_render_channel()
             .send(GameToRenderMessage::UpdateSpriteAtlas(textures))?;
 
         Ok(())
@@ -87,9 +87,6 @@ impl AssetServer {
     }
 
     pub async fn load_packs(&mut self, packs: &[PathBuf]) -> Result<()> {
-        //let map = AssetId::gg2("ctf_eiger");
-        //MapData::load_from_memory(&tokio::fs::read(map_path).await.unwrap())?;
-
         self.loaded_packs.reserve(packs.len());
 
         for path in packs {

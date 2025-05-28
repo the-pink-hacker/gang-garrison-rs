@@ -172,7 +172,7 @@ impl State {
 
     async fn render(
         &mut self,
-        world: &World,
+        world: &ClientWorld,
         game_to_render_channel: &mut UnboundedReceiver<GameToRenderMessage>,
     ) {
         self.update_camera_uniform_buffer(world).await;
@@ -216,8 +216,8 @@ impl State {
         }
 
         self.sprite_instances = {
-            let players = world.players.read().await;
-            let asset_server = world.asset_server.read().await;
+            let players = world.players().read().await;
+            let asset_server = world.asset_server().read().await;
 
             players
                 .iter()
@@ -335,7 +335,7 @@ impl App {
 }
 
 pub struct RenderApp {
-    world: Arc<World>,
+    world: Arc<ClientWorld>,
     state: Option<State>,
     runtime: tokio::runtime::Runtime,
     game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
@@ -343,7 +343,7 @@ pub struct RenderApp {
 
 impl RenderApp {
     fn new(
-        world: Arc<World>,
+        world: Arc<ClientWorld>,
         runtime: tokio::runtime::Runtime,
         game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
     ) -> Self {

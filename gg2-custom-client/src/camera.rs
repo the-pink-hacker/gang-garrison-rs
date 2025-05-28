@@ -22,9 +22,9 @@ impl Default for Camera {
 }
 
 impl UpdateMutRunnable for Camera {
-    async fn update_mut(&mut self, world: &World) -> Result<(), ClientError> {
+    async fn update_mut(&mut self, world: &ClientWorld) -> Result<(), ClientError> {
         if let Ok(player) = world
-            .players
+            .players()
             .read()
             .await
             .get(PlayerId::from_u8(0).unwrap())

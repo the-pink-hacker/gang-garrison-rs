@@ -9,6 +9,7 @@ mod player;
 mod prelude;
 mod render;
 mod sync;
+mod world;
 
 use prelude::*;
 

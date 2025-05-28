@@ -1,30 +1,5 @@
 use crate::prelude::*;
 
-pub const PLAYER_SCALE: f32 = 64.0;
-
-#[derive(Debug, Default)]
-pub struct Player {
-    pub name: GGStringShort,
-    pub transform: Transform,
-    pub velocity: Vec2,
-    pub input_state: RawInput,
-    pub class: ClassGeneric,
-    pub team: Team,
-}
-
-impl Player {
-    pub fn from_name(name: GGStringShort) -> Self {
-        Self {
-            name,
-            transform: Transform {
-                scale: Vec2::splat(PLAYER_SCALE),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    }
-}
-
 impl SpriteRenderable for Player {
     fn get_context_id() -> AssetId {
         AssetId::gg2("player")
@@ -47,49 +22,15 @@ impl SpriteRenderable for Player {
 }
 
 #[derive(Debug, Default)]
-pub struct Players {
+pub struct ClientPlayers {
     players: Vec<Player>,
     client_player: Option<PlayerId>,
 }
 
-impl Players {
-    pub fn player_join(&mut self, player: Player) -> Result<PlayerId, CommonError> {
-        let next_id = self.next_id()?;
-
-        self.players.push(player);
-
-        Ok(next_id)
-    }
-
-    pub fn next_id(&self) -> Result<PlayerId, CommonError> {
-        PlayerId::try_from(self.players.len())
-    }
-
-    #[inline]
-    pub fn len(&self) -> u8 {
-        self.players.len() as u8
-    }
-
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.players.is_empty()
-    }
-
+impl ClientPlayers {
     #[inline]
     pub fn set_client_player(&mut self, id: PlayerId) {
         self.client_player = Some(id);
-    }
-
-    pub fn get(&self, id: PlayerId) -> Result<&Player, CommonError> {
-        self.players
-            .get(usize::from(id))
-            .ok_or(CommonError::PlayerLookup(id))
-    }
-
-    pub fn get_mut(&mut self, id: PlayerId) -> Result<&mut Player, CommonError> {
-        self.players
-            .get_mut(usize::from(id))
-            .ok_or(CommonError::PlayerLookup(id))
     }
 
     pub fn get_client(&self) -> Result<&Player, ClientError> {
@@ -101,31 +42,26 @@ impl Players {
         let id = self.client_player.ok_or(ClientError::ClientPlayerLookup)?;
         Ok(self.get_mut(id)?)
     }
+}
 
-    pub fn remove(&mut self, id: PlayerId) -> Result<Player, CommonError> {
-        if u8::from(id) < self.len() {
-            Ok(self.players.remove(usize::from(id)))
-        } else {
-            Err(CommonError::PlayerLookup(id))
-        }
-    }
-
-    pub fn flat_zip_mut<T, I>(&mut self, iterator: I) -> impl Iterator<Item = (&mut Player, T)>
-    where
-        I: IntoIterator<Item = Option<T>>,
-    {
-        self.into_iter()
-            .zip(iterator)
-            .flat_map(|(player, item)| item.map(|item| (player, item)))
+impl Players for ClientPlayers {
+    #[inline]
+    fn as_vec(&self) -> &Vec<Player> {
+        &self.players
     }
 
     #[inline]
-    pub fn iter(&self) -> std::slice::Iter<'_, Player> {
-        self.into_iter()
+    fn as_vec_mut(&mut self) -> &mut Vec<Player> {
+        &mut self.players
+    }
+
+    #[inline]
+    fn into_vec(self) -> Vec<Player> {
+        self.players
     }
 }
 
-impl IntoIterator for Players {
+impl IntoIterator for ClientPlayers {
     type Item = Player;
     type IntoIter = std::vec::IntoIter<Player>;
 
@@ -135,7 +71,7 @@ impl IntoIterator for Players {
     }
 }
 
-impl<'a> IntoIterator for &'a Players {
+impl<'a> IntoIterator for &'a ClientPlayers {
     type Item = &'a Player;
     type IntoIter = std::slice::Iter<'a, Player>;
 
@@ -145,7 +81,7 @@ impl<'a> IntoIterator for &'a Players {
     }
 }
 
-impl<'a> IntoIterator for &'a mut Players {
+impl<'a> IntoIterator for &'a mut ClientPlayers {
     type Item = &'a mut Player;
     type IntoIter = std::slice::IterMut<'a, Player>;
 

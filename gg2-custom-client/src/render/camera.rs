@@ -1,7 +1,7 @@
 use super::State;
 use crate::prelude::*;
 
-const GAME_HEIGHT: u32 = 96 * 3;
+const GAME_HEIGHT: u32 = 128 * 6;
 
 impl Camera {
     /// Genrates a matrix to project world space into screen space
@@ -65,8 +65,8 @@ impl State {
         )
     }
 
-    pub async fn update_camera_uniform_buffer(&mut self, world: &World) {
-        let camera = world.camera.read().await;
+    pub async fn update_camera_uniform_buffer(&mut self, world: &ClientWorld) {
+        let camera = world.camera().read().await;
         let matrix =
             camera.build_view_projection_matrix(UVec2::new(self.size.width, self.size.height));
         self.queue.write_buffer(

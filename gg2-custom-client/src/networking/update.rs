@@ -26,17 +26,20 @@ impl NetworkClient {
         Ok(())
     }
 
-    async fn event_change_map(message: ServerChangeMap, world: &World) -> Result<(), ClientError> {
+    async fn event_change_map(
+        message: ServerChangeMap,
+        world: &ClientWorld,
+    ) -> Result<(), ClientError> {
         let map_id = AssetId::gg2((*message.map_name).clone());
         info!("Map loading: {map_id}");
 
-        let (image, data) = world.asset_server.read().await.load_map(&map_id).await?;
+        let (image, data) = world.asset_server().read().await.load_map(&map_id).await?;
 
         debug!("{data:#?}");
-        world.map.write().await.current_map = Some((map_id, data));
+        world.map_info().write().await.current_map = Some((map_id, data));
 
         world
-            .game_to_render_channel
+            .game_to_render_channel()
             .send(GameToRenderMessage::ChangeMap(image))?;
 
         Ok(())
@@ -44,19 +47,19 @@ impl NetworkClient {
 
     async fn event_input_state(
         message: ServerInputState,
-        world: &World,
+        world: &ClientWorld,
     ) -> Result<(), ClientError> {
         trace!("{message:#?}");
 
-        let mut players = world.players.write().await;
+        let mut players = world.players().write().await;
 
         for (player, input) in players.flat_zip_mut(message.inputs) {
             player.input_state = input;
 
             let scale_x = if player.input_state.looking_left() {
-                -crate::player::PLAYER_SCALE
+                -gg2_custom_common::player::PLAYER_SCALE
             } else {
-                crate::player::PLAYER_SCALE
+                gg2_custom_common::player::PLAYER_SCALE
             };
 
             player.transform.scale.x = scale_x;
@@ -67,9 +70,9 @@ impl NetworkClient {
 
     async fn event_player_change_class(
         message: ServerPlayerChangeClass,
-        world: &World,
+        world: &ClientWorld,
     ) -> Result<(), ClientError> {
-        let mut players = world.players.write().await;
+        let mut players = world.players().write().await;
         let player = players.get_mut(message.player_id)?;
 
         debug!(
@@ -84,9 +87,9 @@ impl NetworkClient {
 
     async fn event_player_change_name(
         message: ServerPlayerChangeName,
-        world: &World,
+        world: &ClientWorld,
     ) -> Result<(), ClientError> {
-        let mut players = world.players.write().await;
+        let mut players = world.players().write().await;
         let player = players.get_mut(message.player_id)?;
 
         debug!("Player {:?} name change: {}", player.name, message.name);
@@ -98,9 +101,9 @@ impl NetworkClient {
 
     async fn event_player_change_team(
         message: ServerPlayerChangeTeam,
-        world: &World,
+        world: &ClientWorld,
     ) -> Result<(), ClientError> {
-        let mut players = world.players.write().await;
+        let mut players = world.players().write().await;
         let player = players.get_mut(message.player_id)?;
 
         debug!(
@@ -115,11 +118,11 @@ impl NetworkClient {
 
     async fn event_player_join(
         message: ServerPlayerJoin,
-        world: &World,
+        world: &ClientWorld,
     ) -> Result<(), ClientError> {
-        let mut players = world.players.write().await;
+        let mut players = world.players().write().await;
 
-        let player_id = players.player_join(Player::from_name(message.player_name))?;
+        let player_id = players.push(Player::from_name(message.player_name))?;
 
         debug!(
             "Player {:?} joined with id {}",
@@ -132,9 +135,9 @@ impl NetworkClient {
 
     async fn event_player_leave(
         message: ServerPlayerLeave,
-        world: &World,
+        world: &ClientWorld,
     ) -> Result<(), ClientError> {
-        let player = world.players.write().await.remove(message.player_id)?;
+        let player = world.players().write().await.remove(message.player_id)?;
 
         debug!("Player {:?} left", player.name);
 
@@ -143,9 +146,9 @@ impl NetworkClient {
 
     async fn event_quick_update(
         message: ServerQuickUpdate,
-        world: &World,
+        world: &ClientWorld,
     ) -> Result<(), ClientError> {
-        let mut players = world.players.write().await;
+        let mut players = world.players().write().await;
 
         for (player, (character_input, character_info)) in
             players.flat_zip_mut(message.player_characters)
@@ -155,9 +158,9 @@ impl NetworkClient {
             player.input_state = character_input;
 
             let scale_x = if player.input_state.looking_left() {
-                -crate::player::PLAYER_SCALE
+                -gg2_custom_common::player::PLAYER_SCALE
             } else {
-                crate::player::PLAYER_SCALE
+                gg2_custom_common::player::PLAYER_SCALE
             };
 
             player.transform.scale.x = scale_x;
@@ -166,7 +169,7 @@ impl NetworkClient {
         Ok(())
     }
 
-    async fn update_in_game(&mut self, world: &World) -> Result<(), ClientError> {
+    async fn update_in_game(&mut self, world: &ClientWorld) -> Result<(), ClientError> {
         if let Some(generic_message) = self.pop_message().await? {
             match generic_message {
                 ServerMessageGeneric::CaptureUpdate(message) => debug!("{message:#?}"),
@@ -216,19 +219,24 @@ impl NetworkClient {
 }
 
 impl UpdateMutRunnable for NetworkClient {
-    async fn update_mut(&mut self, world: &World) -> Result<(), ClientError> {
+    async fn update_mut(&mut self, world: &ClientWorld) -> Result<(), ClientError> {
         self.handle_connection_event();
         self.handle_network_events()?;
 
         match self.connection_state {
             NetworkingState::Disconnected => {
-                if let Some(command) = &world.client_cli_arguments.command {
+                if let Some(command) = &world.client_cli_arguments().command {
                     match command {
                         ClientCliSubcommand::JoinServer(join_server) => {
                             let url = match &join_server.server_url {
                                 Some(url) => url,
                                 None => {
-                                    &world.config.read().await.networking.default_server_address
+                                    &world
+                                        .config()
+                                        .read()
+                                        .await
+                                        .networking
+                                        .default_server_address
                                 }
                             };
 
@@ -248,7 +256,7 @@ impl UpdateMutRunnable for NetworkClient {
                             debug!("Reserving player slot");
 
                             let player_name = {
-                                let config = world.config.read().await;
+                                let config = world.config().read().await;
                                 config.game.player_name.clone()
                             };
 
@@ -297,7 +305,7 @@ impl UpdateMutRunnable for NetworkClient {
                             debug!("{message:#?}");
 
                             world
-                                .players
+                                .players()
                                 .write()
                                 .await
                                 .set_client_player(message.client_player_id);

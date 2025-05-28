@@ -14,7 +14,7 @@ gg2-client = { path = "../gg2-client" }
 glam = { version = "0.30.3", features = ["bytemuck", "fast-math"] }
 log = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
 thiserror = "2.0.12"
-tokio = { version = "1.44.2", features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.44.2", features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"], default-features = false }
 wgpu = "25.0.0"
 winit = { version = "0.30.9", features = ["serde"] }
 bytemuck = { version = "1.22.0", features = ["derive"] }

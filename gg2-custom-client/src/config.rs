@@ -3,9 +3,10 @@ use std::{
     path::PathBuf,
 };
 
-use gg2_common::string::GGStringShort;
 use serde::{Deserialize, Serialize};
 use winit::keyboard::KeyCode;
+
+use crate::prelude::*;
 
 mod error;
 mod io;
@@ -103,7 +104,7 @@ pub struct ClientConfigAssets {
     pub enabled_packs: Vec<String>,
 }
 
-pub struct ClientConfigLock(tokio::sync::RwLock<ClientConfig>);
+pub struct ClientConfigLock(RwLock<ClientConfig>);
 
 impl ClientConfigLock {
     pub async fn read(&self) -> tokio::sync::RwLockReadGuard<'_, ClientConfig> {
@@ -118,7 +119,7 @@ impl ClientConfigLock {
 
 impl From<ClientConfig> for ClientConfigLock {
     fn from(value: ClientConfig) -> Self {
-        Self(tokio::sync::RwLock::new(value))
+        Self(RwLock::new(value))
     }
 }
 

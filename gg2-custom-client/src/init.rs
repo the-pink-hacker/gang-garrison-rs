@@ -1,19 +1,8 @@
 use std::{path::PathBuf, sync::Arc};
 
-use tokio::{
-    sync::{
-        RwLock,
-        mpsc::{UnboundedReceiver, UnboundedSender},
-    },
-    time::Duration,
-};
+use tokio::{sync::mpsc::UnboundedReceiver, time::Duration};
 
-use crate::{
-    config::{ClientConfig, ClientConfigLock},
-    networking::io::NetworkClient,
-    prelude::*,
-};
-use cli::ClientCliArguments;
+use crate::prelude::*;
 
 const GAME_TPS: f32 = 60.0;
 const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
@@ -22,7 +11,7 @@ const BUILTIN_ASSET_PACKS: [&str; 2] = ["builtin", "builtin-rs"];
 pub mod cli;
 
 pub struct App {
-    world: Arc<World>,
+    world: Arc<ClientWorld>,
     pub game_to_render_channel_receiver: UnboundedReceiver<GameToRenderMessage>,
 }
 
@@ -46,17 +35,12 @@ impl App {
             tokio::sync::mpsc::unbounded_channel();
 
         Self {
-            world: Arc::new(World {
-                game_to_render_channel: game_to_render_channel_sender,
-                asset_server: AssetServer::default().into(),
-                camera: Camera::default().into(),
+            world: Arc::new(ClientWorld::new(
+                game_to_render_channel_sender,
                 client_cli_arguments,
-                config: config.into(),
-                network_client: NetworkClient::default().into(),
+                config,
                 executable_directory,
-                players: Players::default().into(),
-                map: MapInfo::default().into(),
-            }),
+            )),
             game_to_render_channel_receiver,
         }
     }
@@ -67,12 +51,12 @@ impl App {
         let asset_root = std::env::var("GG2_ASSET_ROOT")
             .ok()
             .map(PathBuf::from)
-            .unwrap_or_else(|| self.world.executable_directory.join("assets"));
+            .unwrap_or_else(|| self.world.executable_directory().join("assets"));
 
         let mut enabled_packs = BUILTIN_ASSET_PACKS.map(str::to_string).to_vec();
 
         {
-            let config = self.world.config.read().await;
+            let config = self.world.config().read().await;
             enabled_packs.extend(config.assets.enabled_packs.iter().cloned());
         }
 
@@ -81,7 +65,7 @@ impl App {
             .map(|pack_name| asset_root.join(pack_name))
             .collect::<Vec<_>>();
 
-        let mut asset_server = self.world.asset_server.write().await;
+        let mut asset_server = self.world.asset_server().write().await;
 
         asset_server.load_packs(&packs).await?;
         asset_server.push_textures(&self.world)?;
@@ -114,18 +98,18 @@ impl App {
         self.init_render(runtime)
     }
 
-    pub fn get_world(&self) -> Arc<World> {
+    pub fn get_world(&self) -> Arc<ClientWorld> {
         Arc::clone(&self.world)
     }
 
-    async fn update(world: &World) -> Result<(), ClientError> {
+    async fn update(world: &ClientWorld) -> Result<(), ClientError> {
         {
-            let mut networking_client = world.network_client.write().await;
+            let mut networking_client = world.network_client().write().await;
             networking_client.update_mut(world).await?;
         }
 
         {
-            let mut camera = world.camera.write().await;
+            let mut camera = world.camera().write().await;
             camera.update_mut(world).await?;
         }
 
@@ -133,19 +117,6 @@ impl App {
     }
 }
 
-/// The world is used to pass data between threads
-pub struct World {
-    pub game_to_render_channel: UnboundedSender<GameToRenderMessage>,
-    pub asset_server: RwLock<AssetServer>,
-    pub camera: RwLock<Camera>,
-    pub client_cli_arguments: ClientCliArguments,
-    pub config: ClientConfigLock,
-    pub executable_directory: PathBuf,
-    pub map: RwLock<MapInfo>,
-    pub network_client: RwLock<NetworkClient>,
-    pub players: RwLock<Players>,
-}
-
 pub trait UpdateMutRunnable {
-    async fn update_mut(&mut self, world: &World) -> Result<(), ClientError>;
+    async fn update_mut(&mut self, world: &ClientWorld) -> Result<(), ClientError>;
 }
