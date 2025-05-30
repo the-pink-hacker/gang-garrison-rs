@@ -1,7 +1,4 @@
-use gg2_common::{
-    networking::{error::*, message::MessageWriter},
-    string::GGStringShort,
-};
+use gg2_common::{error::Result, networking::message::MessageWriter, string::GGStringShort};
 
 pub mod client;
 pub mod server;

@@ -18,4 +18,6 @@ pub enum CommonError {
     SpawnLookup(TeamSpawnable, u8, u8),
     #[error("Failed to lookup map data")]
     MapDataLookup,
+    #[error("Network Error: {0}")]
+    Network(#[from] crate::networking::error::NetworkError),
 }

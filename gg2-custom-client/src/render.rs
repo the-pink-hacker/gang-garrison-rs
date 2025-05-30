@@ -48,6 +48,7 @@ const QUAD_INDICES: &[u16] = &[
 /// Holds all rendering structs such as the window
 #[derive(Debug)]
 pub struct State {
+    world: &'static ClientWorld,
     window: Arc<Window>,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -67,7 +68,7 @@ pub struct State {
 }
 
 impl State {
-    async fn new(window: Arc<Window>) -> Result<State, ClientError> {
+    async fn new(window: Arc<Window>, world: &'static ClientWorld) -> Result<State, ClientError> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions::default())
@@ -134,6 +135,7 @@ impl State {
         );
 
         let state = State {
+            world,
             window,
             device,
             queue,
@@ -172,10 +174,9 @@ impl State {
 
     async fn render(
         &mut self,
-        world: &ClientWorld,
         game_to_render_channel: &mut UnboundedReceiver<GameToRenderMessage>,
     ) {
-        self.update_camera_uniform_buffer(world).await;
+        self.update_camera_uniform_buffer().await;
 
         if let Ok(message) = game_to_render_channel.try_recv() {
             match message {
@@ -216,8 +217,8 @@ impl State {
         }
 
         self.sprite_instances = {
-            let players = world.players().read().await;
-            let asset_server = world.asset_server().read().await;
+            let players = self.world.players().read().await;
+            let asset_server = self.world.asset_server().read().await;
 
             players
                 .iter()
@@ -325,7 +326,7 @@ impl App {
         event_loop.set_control_flow(ControlFlow::Wait);
 
         event_loop.run_app(&mut RenderApp::new(
-            self.get_world(),
+            self.world,
             runtime,
             self.game_to_render_channel_receiver,
         ))?;
@@ -335,7 +336,7 @@ impl App {
 }
 
 pub struct RenderApp {
-    world: Arc<ClientWorld>,
+    world: &'static ClientWorld,
     state: Option<State>,
     runtime: tokio::runtime::Runtime,
     game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
@@ -343,7 +344,7 @@ pub struct RenderApp {
 
 impl RenderApp {
     fn new(
-        world: Arc<ClientWorld>,
+        world: &'static ClientWorld,
         runtime: tokio::runtime::Runtime,
         game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
     ) -> Self {
@@ -367,7 +368,7 @@ impl ApplicationHandler for RenderApp {
 
         let state = self
             .runtime
-            .block_on(State::new(Arc::clone(&window)))
+            .block_on(State::new(Arc::clone(&window), self.world))
             .expect("Failed to create render state");
 
         self.state = Some(state);
@@ -389,9 +390,7 @@ impl ApplicationHandler for RenderApp {
             }
             WindowEvent::RedrawRequested => {
                 self.runtime.block_on(async {
-                    state
-                        .render(&self.world, &mut self.game_to_render_channel)
-                        .await;
+                    state.render(&mut self.game_to_render_channel).await;
 
                     state.get_window().request_redraw();
                 });

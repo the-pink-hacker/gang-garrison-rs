@@ -1,109 +1,91 @@
 use std::time::Duration;
 
 use gg2_common::{
+    error::{CommonError, Result},
     intel::RawIntel,
-    networking::{
-        PacketKind,
-        error::{NetworkError as Error, Result},
-        message::*,
-    },
+    networking::{PacketKind, error::NetworkError as Error, message::*},
     player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, team::Captures},
 };
 
 use super::ClientNetworkDeserialize;
 
 macro_rules! generic_message {
-    (pub enum $name:ident {$($case:ident),+$(,)?}) => {
-        #[derive(Debug, Clone)]
-        pub enum $name {
-            $($case(${concat(Server, $case)})),+,
-        }
-
-        impl ServerMessageGeneric {
-            pub fn take<I: Iterator<Item = u8>>(buffer: &mut I) -> Result<Self> {
-                let raw_kind = buffer.read_u8()?;
+    ($name:ident {$($case:ident),+$(,)?}) => {
+        impl ClientNetworkDeserialize for ServerMessageGeneric {
+            fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
+                let raw_kind = payload.read_u8()?;
                 let kind = raw_kind
                     .try_into()
                     .map_err(|_| Error::PacketKind(raw_kind))?;
 
                 match kind {
-                    $(PacketKind::$case => Ok(ServerMessageGeneric::$case(${concat(Server, $case)}::deserialize(buffer)?))),+,
-                    _ => Err(Error::IncorrectMessage(kind)),
-                }
-            }
-        }
-
-        impl From<ServerMessageGeneric> for PacketKind {
-            fn from(value: ServerMessageGeneric) -> Self {
-                match value {
-                    $(ServerMessageGeneric::$case(_) => PacketKind::$case),+,
+                    $(PacketKind::$case => Ok(ServerMessageGeneric::$case(${concat(Server, $case)}::deserialize(payload)?))),+,
+                    _ => Err(CommonError::Network(Error::IncorrectMessage(kind))),
                 }
             }
         }
     };
 }
 
-generic_message!(
-    pub enum ServerMessageGeneric {
-        Hello,
-        PlayerJoin,
-        PlayerLeave,
-        PlayerChangeTeam,
-        PlayerChangeClass,
-        PlayerSpawn,
-        InputState,
-        ChangeMap,
-        FullUpdate,
-        QuickUpdate,
-        PlayerDeath,
-        ServerFull,
-        //RedTeamCap = 12,
-        //BlueTeamCap = 13,
-        //MapEnd = 14,
-        ChatBubble,
-        //BuildSentry = 16,
-        //DestroySentry = 17,
-        //Balance = 18,
-        GrabIntel,
-        ScoreIntel,
-        DropIntel,
-        //UberCharged = 22,
-        //Uber = 23,
-        Omnom,
-        PasswordRequest,
-        PasswordWrong,
-        CaptureUpdate,
-        //CpCaptured = 30,
-        PlayerChangeName,
-        //GeneratorDestroy = 32,
-        //ArenaWaitForPlayers = 33,
-        //ArenaEndround = 34,
-        //ArenaRestart = 35,
-        //UnlockCp = 36,
-        //ServerKick = 37,
-        //Kick = 38,
-        //KickName = 39,
-        //ArenaStartround = 40,
-        //ToggleZoom = 41,
-        ReturnIntel,
-        IncompatibleProtocol,
-        JoinUpdate,
-        //DownloadMap = 45,
-        //SentryPosition = 46,
-        //RewardUpdate = 47,
-        //RewardRequest = 50,
-        //RewardChallengeCode = 51,
-        //RewardChallengeResponse = 52,
-        MessageString,
-        WeaponFire,
-        //PluginPacket = 55,
-        //KickBadPluginPacket = 56,
-        //Ping = 57,
-        //ClientSettings = 58,
-        //KickMultiClient = 59,
-        ReserveSlot,
-    }
-);
+generic_message!(ServerMessageGeneric {
+    Hello,
+    PlayerJoin,
+    PlayerLeave,
+    PlayerChangeTeam,
+    PlayerChangeClass,
+    PlayerSpawn,
+    InputState,
+    ChangeMap,
+    FullUpdate,
+    QuickUpdate,
+    PlayerDeath,
+    ServerFull,
+    //RedTeamCap = 12,
+    //BlueTeamCap = 13,
+    //MapEnd = 14,
+    ChatBubble,
+    //BuildSentry = 16,
+    //DestroySentry = 17,
+    //Balance = 18,
+    GrabIntel,
+    ScoreIntel,
+    DropIntel,
+    //UberCharged = 22,
+    //Uber = 23,
+    Omnom,
+    PasswordRequest,
+    PasswordWrong,
+    CaptureUpdate,
+    //CpCaptured = 30,
+    PlayerChangeName,
+    //GeneratorDestroy = 32,
+    //ArenaWaitForPlayers = 33,
+    //ArenaEndround = 34,
+    //ArenaRestart = 35,
+    //UnlockCp = 36,
+    //ServerKick = 37,
+    //Kick = 38,
+    //KickName = 39,
+    //ArenaStartround = 40,
+    //ToggleZoom = 41,
+    ReturnIntel,
+    IncompatibleProtocol,
+    JoinUpdate,
+    //DownloadMap = 45,
+    //SentryPosition = 46,
+    //RewardUpdate = 47,
+    //RewardRequest = 50,
+    //RewardChallengeCode = 51,
+    //RewardChallengeResponse = 52,
+    MessageString,
+    WeaponFire,
+    //PluginPacket = 55,
+    //KickBadPluginPacket = 56,
+    //Ping = 57,
+    //ClientSettings = 58,
+    //KickMultiClient = 59,
+    ReserveSlot,
+});
 
 impl ClientNetworkDeserialize for Captures {
     fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self> {
@@ -146,7 +128,7 @@ impl ClientNetworkDeserialize for ServerChangeMap {
         let map_md5 = payload.read_md5()?;
 
         if map_name.chars().by_ref().all(char::is_alphanumeric) {
-            Err(Error::UnsanitizedString)
+            Err(CommonError::Network(Error::UnsanitizedString))
         } else {
             Ok(Self { map_name, map_md5 })
         }

@@ -1,4 +1,4 @@
-use gg2_common::networking::{error::Result, message::*};
+use gg2_common::{error::Result, networking::message::*};
 
 use super::ClientNetworkSerialize;
 

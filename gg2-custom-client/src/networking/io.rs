@@ -6,11 +6,7 @@ use std::{
 };
 
 use crossbeam_channel::{Receiver, Sender};
-use gg2_client::networking::{
-    message::{ClientNetworkSerialize, server::ServerMessageGeneric},
-    state::NetworkingState,
-};
-use gg2_common::networking::message::*;
+use gg2_client::networking::{message::ClientNetworkSerialize, state::NetworkingState};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -74,7 +70,7 @@ pub struct NetworkClient {
 
 impl NetworkClient {
     // Connects to a new server
-    pub async fn connect(&mut self, url: &str) -> Result<(), ClientError> {
+    pub async fn connect(&mut self, url: &str) -> Result<(), NetworkError> {
         info!("Connecting to server: {url}");
 
         if self.server_connection.is_some() {
@@ -97,16 +93,13 @@ impl NetworkClient {
         let stream = match TcpStream::connect(address).await {
             Ok(stream) => stream,
             Err(error) => {
-                return Err(ClientError::Network(NetworkError::Connection(
-                    error,
-                    url.to_string(),
-                )));
+                return Err(NetworkError::Connection(error, url.to_string()));
             }
         };
 
         connection_event_sender
             .send(stream)
-            .map_err(|_| ClientError::Network(NetworkError::ConnectSend))
+            .map_err(|_| NetworkError::ConnectSend)
     }
 
     pub fn disconnect(&mut self) {
@@ -121,32 +114,32 @@ impl NetworkClient {
         }
     }
 
-    fn send_raw(&self, buffer: Vec<u8>) -> Result<(), ClientError> {
+    fn send_raw(&self, buffer: Vec<u8>) -> Result<(), NetworkError> {
         trace!("Sending message to server.");
         self.server_connection
             .as_ref()
             .ok_or(NetworkError::NotConnected)?
             .send_message
             .send(buffer)
-            .map_err(|_| ClientError::Network(NetworkError::NotConnected))
+            .map_err(|_| NetworkError::NotConnected)
     }
 
-    pub fn send<T: ClientNetworkSerialize>(&self, message: T) -> Result<(), ClientError> {
+    pub fn send<T: ClientNetworkSerialize>(&self, message: T) -> Result<(), CommonError> {
         let mut buffer = Vec::with_capacity(256);
         message.serialize(&mut buffer)?;
 
-        self.send_raw(buffer)
+        Ok(self.send_raw(buffer)?)
     }
 
     pub fn send_message<T: ClientNetworkSerialize + GGMessage>(
         &self,
         message: T,
-    ) -> Result<(), ClientError> {
+    ) -> Result<(), CommonError> {
         let mut buffer = Vec::with_capacity(256);
         buffer.push(T::KIND.into());
         message.serialize(&mut buffer)?;
 
-        self.send_raw(buffer)
+        Ok(self.send_raw(buffer)?)
     }
 
     /// Sets up send and receive threads when connecting
@@ -176,7 +169,7 @@ impl NetworkClient {
         };
     }
 
-    pub async fn pop_message(&self) -> Result<Option<ServerMessageGeneric>, ClientError> {
+    pub async fn pop_message(&self) -> Result<Option<ServerMessageGeneric>, CommonError> {
         let generic_message = {
             let queue = &mut *self.receive_message.lock().await;
 
@@ -185,7 +178,8 @@ impl NetworkClient {
             }
 
             // Forces queue to be dropped preventing dead lock on error
-            ServerMessageGeneric::take(queue)
+            use gg2_client::networking::message::ClientNetworkDeserialize;
+            ServerMessageGeneric::deserialize(queue)
         };
 
         match generic_message {
@@ -193,7 +187,7 @@ impl NetworkClient {
             Err(error) => {
                 // Dead lock would happen here
                 self.purge_queue().await;
-                Err(ClientError::Network(error))
+                Err(error)
             }
         }
     }

@@ -2,6 +2,7 @@ mod asset;
 mod camera;
 mod config;
 mod error;
+mod game;
 mod init;
 mod map;
 mod networking;

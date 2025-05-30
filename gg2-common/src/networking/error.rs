@@ -26,8 +26,6 @@ pub enum NetworkError {
     StringLength(std::num::TryFromIntError),
     #[error("Unsanitized string")]
     UnsanitizedString,
-    #[error("{0}")]
-    CommonError(#[from] crate::error::CommonError),
     #[error("Message not allowed at this time: {0:?}")]
     IncorrectMessage(crate::networking::PacketKind),
     #[error("Failed to send packet")]

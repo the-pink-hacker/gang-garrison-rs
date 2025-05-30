@@ -13,6 +13,83 @@ use glam::Vec2;
 
 use super::{GGMessage, GGStringLong, GGStringShort};
 
+macro_rules! generic_message {
+    ($name:ident {$($case:ident),+$(,)?}) => {
+        #[derive(Debug, Clone)]
+        pub enum $name {
+            $($case(${concat(Server, $case)})),+,
+        }
+
+        impl From<ServerMessageGeneric> for PacketKind {
+            fn from(value: ServerMessageGeneric) -> Self {
+                match value {
+                    $(ServerMessageGeneric::$case(_) => PacketKind::$case),+,
+                }
+            }
+        }
+    };
+}
+
+generic_message!(ServerMessageGeneric {
+    Hello,
+    PlayerJoin,
+    PlayerLeave,
+    PlayerChangeTeam,
+    PlayerChangeClass,
+    PlayerSpawn,
+    InputState,
+    ChangeMap,
+    FullUpdate,
+    QuickUpdate,
+    PlayerDeath,
+    ServerFull,
+    //RedTeamCap = 12,
+    //BlueTeamCap = 13,
+    //MapEnd = 14,
+    ChatBubble,
+    //BuildSentry = 16,
+    //DestroySentry = 17,
+    //Balance = 18,
+    GrabIntel,
+    ScoreIntel,
+    DropIntel,
+    //UberCharged = 22,
+    //Uber = 23,
+    Omnom,
+    PasswordRequest,
+    PasswordWrong,
+    CaptureUpdate,
+    //CpCaptured = 30,
+    PlayerChangeName,
+    //GeneratorDestroy = 32,
+    //ArenaWaitForPlayers = 33,
+    //ArenaEndround = 34,
+    //ArenaRestart = 35,
+    //UnlockCp = 36,
+    //ServerKick = 37,
+    //Kick = 38,
+    //KickName = 39,
+    //ArenaStartround = 40,
+    //ToggleZoom = 41,
+    ReturnIntel,
+    IncompatibleProtocol,
+    JoinUpdate,
+    //DownloadMap = 45,
+    //SentryPosition = 46,
+    //RewardUpdate = 47,
+    //RewardRequest = 50,
+    //RewardChallengeCode = 51,
+    //RewardChallengeResponse = 52,
+    MessageString,
+    WeaponFire,
+    //PluginPacket = 55,
+    //KickBadPluginPacket = 56,
+    //Ping = 57,
+    //ClientSettings = 58,
+    //KickMultiClient = 59,
+    ReserveSlot,
+});
+
 /// Updates the client about captures
 #[derive(Debug, Clone)]
 pub struct ServerCaptureUpdate {

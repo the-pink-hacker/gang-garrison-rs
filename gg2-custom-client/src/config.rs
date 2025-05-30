@@ -104,6 +104,7 @@ pub struct ClientConfigAssets {
     pub enabled_packs: Vec<String>,
 }
 
+#[derive(Debug)]
 pub struct ClientConfigLock(RwLock<ClientConfig>);
 
 impl ClientConfigLock {
@@ -123,6 +124,7 @@ impl From<ClientConfig> for ClientConfigLock {
     }
 }
 
+#[derive(Debug)]
 pub struct ClientConfigLockWriteGuard<'a>(tokio::sync::RwLockWriteGuard<'a, ClientConfig>);
 
 impl Drop for ClientConfigLockWriteGuard<'_> {

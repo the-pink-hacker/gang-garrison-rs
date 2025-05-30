@@ -4,6 +4,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::prelude::*;
 
+#[derive(Debug)]
 pub struct ClientWorld {
     game_to_render_channel: UnboundedSender<GameToRenderMessage>,
     asset_server: RwLock<AssetServer>,

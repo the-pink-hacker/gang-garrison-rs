@@ -1,3 +1,4 @@
+pub use gg2_client::networking::state::NetworkingState;
 pub use gg2_custom_common::prelude::*;
 pub use serde_with::skip_serializing_none;
 
@@ -12,8 +13,9 @@ pub use crate::{
     camera::Camera,
     config::{ClientConfig, ClientConfigLock},
     error::ClientError,
+    game::ClientGame,
     init::{
-        App, UpdateMutRunnable,
+        App,
         cli::{ClientCliArguments, ClientCliSubcommand},
     },
     map::MapInfo,

@@ -1,6 +1,3 @@
-use gg2_client::networking::{message::server::ServerMessageGeneric, state::NetworkingState};
-use gg2_common::{networking::message::*, string::GGStringShort};
-
 use crate::prelude::*;
 
 use super::io::ClientNetworkEvent;
@@ -25,213 +22,24 @@ impl NetworkClient {
 
         Ok(())
     }
-
-    async fn event_change_map(
-        message: ServerChangeMap,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        let map_id = AssetId::gg2((*message.map_name).clone());
-        info!("Map loading: {map_id}");
-
-        let (image, data) = world.asset_server().read().await.load_map(&map_id).await?;
-
-        debug!("{data:#?}");
-        world.map_info().write().await.current_map = Some((map_id, data));
-
-        world
-            .game_to_render_channel()
-            .send(GameToRenderMessage::ChangeMap(image))?;
-
-        Ok(())
-    }
-
-    async fn event_input_state(
-        message: ServerInputState,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        trace!("{message:#?}");
-
-        let mut players = world.players().write().await;
-
-        for (player, input) in players.flat_zip_mut(message.inputs) {
-            player.input_state = input;
-
-            let scale_x = if player.input_state.looking_left() {
-                -gg2_custom_common::player::PLAYER_SCALE
-            } else {
-                gg2_custom_common::player::PLAYER_SCALE
-            };
-
-            player.transform.scale.x = scale_x;
-        }
-
-        Ok(())
-    }
-
-    async fn event_player_change_class(
-        message: ServerPlayerChangeClass,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        let mut players = world.players().write().await;
-        let player = players.get_mut(message.player_id)?;
-
-        debug!(
-            "Player {:?} class change: {} => {}",
-            player.name, player.class, message.player_class
-        );
-
-        player.class = message.player_class;
-
-        Ok(())
-    }
-
-    async fn event_player_change_name(
-        message: ServerPlayerChangeName,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        let mut players = world.players().write().await;
-        let player = players.get_mut(message.player_id)?;
-
-        debug!("Player {:?} name change: {}", player.name, message.name);
-
-        player.name = message.name;
-
-        Ok(())
-    }
-
-    async fn event_player_change_team(
-        message: ServerPlayerChangeTeam,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        let mut players = world.players().write().await;
-        let player = players.get_mut(message.player_id)?;
-
-        debug!(
-            "Player {:?} team change: {} => {}",
-            player.name, player.team, message.player_team
-        );
-
-        player.team = message.player_team;
-
-        Ok(())
-    }
-
-    async fn event_player_join(
-        message: ServerPlayerJoin,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        let mut players = world.players().write().await;
-
-        let player_id = players.push(Player::from_name(message.player_name))?;
-
-        debug!(
-            "Player {:?} joined with id {}",
-            players.get(player_id).unwrap().name,
-            player_id
-        );
-
-        Ok(())
-    }
-
-    async fn event_player_leave(
-        message: ServerPlayerLeave,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        let player = world.players().write().await.remove(message.player_id)?;
-
-        debug!("Player {:?} left", player.name);
-
-        Ok(())
-    }
-
-    async fn event_quick_update(
-        message: ServerQuickUpdate,
-        world: &ClientWorld,
-    ) -> Result<(), ClientError> {
-        let mut players = world.players().write().await;
-
-        for (player, (character_input, character_info)) in
-            players.flat_zip_mut(message.player_characters)
-        {
-            player.velocity = character_info.velocity;
-            player.transform.translation = Vec3::from((character_info.translation, 0.0));
-            player.input_state = character_input;
-
-            let scale_x = if player.input_state.looking_left() {
-                -gg2_custom_common::player::PLAYER_SCALE
-            } else {
-                gg2_custom_common::player::PLAYER_SCALE
-            };
-
-            player.transform.scale.x = scale_x;
-        }
-
-        Ok(())
-    }
-
-    async fn update_in_game(&mut self, world: &ClientWorld) -> Result<(), ClientError> {
-        if let Some(generic_message) = self.pop_message().await? {
-            match generic_message {
-                ServerMessageGeneric::CaptureUpdate(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::ChangeMap(message) => {
-                    Self::event_change_map(message, world).await?;
-                }
-                ServerMessageGeneric::ChatBubble(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::DropIntel(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::GrabIntel(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::FullUpdate(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::InputState(message) => {
-                    Self::event_input_state(message, world).await?;
-                }
-                ServerMessageGeneric::MessageString(message) => {
-                    info!("Server Message: {:?}", message.message);
-                }
-                ServerMessageGeneric::Omnom(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::PlayerChangeClass(message) => {
-                    Self::event_player_change_class(message, world).await?;
-                }
-                ServerMessageGeneric::PlayerChangeName(message) => {
-                    Self::event_player_change_name(message, world).await?;
-                }
-                ServerMessageGeneric::PlayerChangeTeam(message) => {
-                    Self::event_player_change_team(message, world).await?;
-                }
-                ServerMessageGeneric::PlayerDeath(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::PlayerJoin(message) => {
-                    Self::event_player_join(message, world).await?;
-                }
-                ServerMessageGeneric::PlayerLeave(message) => {
-                    Self::event_player_leave(message, world).await?;
-                }
-                ServerMessageGeneric::PlayerSpawn(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::QuickUpdate(message) => {
-                    Self::event_quick_update(message, world).await?;
-                }
-                ServerMessageGeneric::ReturnIntel(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::ScoreIntel(message) => debug!("{message:#?}"),
-                ServerMessageGeneric::WeaponFire(message) => trace!("{message:#?}"),
-                _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
-            }
-        }
-
-        Ok(())
-    }
 }
 
-impl UpdateMutRunnable for NetworkClient {
-    async fn update_mut(&mut self, world: &ClientWorld) -> Result<(), ClientError> {
-        self.handle_connection_event();
-        self.handle_network_events()?;
+impl ClientGame {
+    pub async fn update_network_client(&self) -> Result<(), ClientError> {
+        let mut network_client = self.world.network_client().write().await;
+        network_client.handle_connection_event();
+        network_client.handle_network_events()?;
 
-        match self.connection_state {
+        match network_client.connection_state {
             NetworkingState::Disconnected => {
-                if let Some(command) = &world.client_cli_arguments().command {
+                if let Some(command) = &self.world.client_cli_arguments().command {
                     match command {
                         ClientCliSubcommand::JoinServer(join_server) => {
                             let url = match &join_server.server_url {
                                 Some(url) => url,
                                 None => {
-                                    &world
+                                    &self
+                                        .world
                                         .config()
                                         .read()
                                         .await
@@ -240,8 +48,8 @@ impl UpdateMutRunnable for NetworkClient {
                                 }
                             };
 
-                            self.connect(url).await?;
-                            self.connection_state = NetworkingState::AttemptingConnection;
+                            network_client.connect(url).await?;
+                            network_client.connection_state = NetworkingState::AttemptingConnection;
                         }
                     }
                 }
@@ -249,74 +57,78 @@ impl UpdateMutRunnable for NetworkClient {
             // Handled in `Self::handle_network_events`
             NetworkingState::AttemptingConnection => (),
             NetworkingState::AwaitingHello => {
-                if let Some(generic_message) = self.pop_message().await? {
+                if let Some(generic_message) = network_client.pop_message().await? {
                     match generic_message {
                         ServerMessageGeneric::Hello(message) => {
                             debug!("{message:#?}");
                             debug!("Reserving player slot");
 
                             let player_name = {
-                                let config = world.config().read().await;
+                                let config = self.world.config().read().await;
                                 config.game.player_name.clone()
                             };
 
-                            self.send_message(ClientReserveSlot { player_name })?;
-                            self.connection_state = NetworkingState::ReserveSlot;
+                            network_client.send_message(ClientReserveSlot { player_name })?;
+                            network_client.connection_state = NetworkingState::ReserveSlot;
                         }
                         ServerMessageGeneric::IncompatibleProtocol(_) => {
                             error!("Server doesn't support client's protocol; disconnecting...");
-                            self.disconnect();
+                            network_client.disconnect();
                         }
                         ServerMessageGeneric::PasswordRequest(_) => {
                             // TODO: Add password prompt
                             let password = GGStringShort::try_from("1234".to_string()).unwrap();
                             debug!("Sending password to server...");
-                            self.send(&password)?;
+                            network_client.send(&password)?;
                         }
                         ServerMessageGeneric::PasswordWrong(_) => {
                             error!("Server password is wrong");
-                            self.disconnect();
+                            network_client.disconnect();
                         }
                         _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
                     }
                 }
             }
             NetworkingState::ReserveSlot => {
-                if let Some(generic_message) = self.pop_message().await? {
+                if let Some(generic_message) = network_client.pop_message().await? {
                     match generic_message {
                         ServerMessageGeneric::ServerFull(_) => {
                             info!("Server full");
-                            self.disconnect();
+                            network_client.disconnect();
                         }
                         ServerMessageGeneric::ReserveSlot(_) => {
                             debug!("Reserved player slot; joining");
-                            self.send_message(ClientPlayerJoin)?;
-                            self.connection_state = NetworkingState::PlayerJoining;
+                            network_client.send_message(ClientPlayerJoin)?;
+                            network_client.connection_state = NetworkingState::PlayerJoining;
                         }
                         _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
                     }
                 }
             }
             NetworkingState::PlayerJoining => {
-                if let Some(generic_message) = self.pop_message().await? {
+                if let Some(generic_message) = network_client.pop_message().await? {
                     match generic_message {
                         ServerMessageGeneric::JoinUpdate(message) => {
                             info!("Successfully joined server");
                             debug!("{message:#?}");
 
-                            world
+                            self.world
                                 .players()
                                 .write()
                                 .await
                                 .set_client_player(message.client_player_id);
 
-                            self.connection_state = NetworkingState::InGame;
+                            network_client.connection_state = NetworkingState::InGame;
                         }
                         _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
                     }
                 }
             }
-            NetworkingState::InGame => self.update_in_game(world).await?,
+            NetworkingState::InGame => {
+                if let Some(generic_message) = network_client.pop_message().await? {
+                    self.event_in_game(generic_message).await?;
+                }
+            }
         }
 
         Ok(())

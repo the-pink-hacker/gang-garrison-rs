@@ -10,7 +10,7 @@ pub mod error;
 
 pub const DATA_HEADER_KEYWORD: &str = "Gang Garrison 2 Level Data";
 
-const BITMASK_SHIFT: u8 = b' ' as u8;
+const BITMASK_SHIFT: u8 = b' ';
 const BITMASK_BITS_PER_BYTE: u8 = 6;
 const BITMASK_MAX_BYTE: u8 = 2u8.pow(BITMASK_BITS_PER_BYTE as u32) - 1;
 
@@ -159,11 +159,11 @@ impl MapData {
     }
 
     fn read_walk_mask<'a, I: Iterator<Item = &'a str>>(data_lines: &mut I) -> Result<Vec<u8>> {
-        let width = data_lines
+        let _width = data_lines
             .next()
             .ok_or(MapIoError::DataEOF)?
             .parse::<u32>()?;
-        let height = data_lines
+        let _height = data_lines
             .next()
             .ok_or(MapIoError::DataEOF)?
             .parse::<u32>()?;

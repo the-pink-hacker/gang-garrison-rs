@@ -11,8 +11,6 @@ pub enum ClientError {
     WgpuRequestDevice(#[from] wgpu::RequestDeviceError),
     #[error("WGPU Error: {0}")]
     WgpuCreateSurface(#[from] wgpu::CreateSurfaceError),
-    #[error("Network Error: {0}")]
-    Network(#[from] NetworkError),
     #[error("Asset Error: {0}")]
     Asset(#[from] AssetError),
     #[error("Common Error: {0}")]
@@ -21,4 +19,6 @@ pub enum ClientError {
     ClientPlayerLookup,
     #[error("Failed to send message: Game => Render")]
     ChannelGameRender(#[from] tokio::sync::mpsc::error::SendError<GameToRenderMessage>),
+    #[error("Network Error: {0}")]
+    Network(#[from] NetworkError),
 }

@@ -1,17 +1,17 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::OnceLock};
 
-use tokio::{sync::mpsc::UnboundedReceiver, time::Duration};
+use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::prelude::*;
 
-const GAME_TPS: f32 = 60.0;
-const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 const BUILTIN_ASSET_PACKS: [&str; 2] = ["builtin", "builtin-rs"];
+
+static WORLD: OnceLock<ClientWorld> = OnceLock::new();
 
 pub mod cli;
 
 pub struct App {
-    world: Arc<ClientWorld>,
+    pub world: &'static ClientWorld,
     pub game_to_render_channel_receiver: UnboundedReceiver<GameToRenderMessage>,
 }
 
@@ -34,13 +34,17 @@ impl App {
         let (game_to_render_channel_sender, game_to_render_channel_receiver) =
             tokio::sync::mpsc::unbounded_channel();
 
+        let world = ClientWorld::new(
+            game_to_render_channel_sender,
+            client_cli_arguments,
+            config,
+            executable_directory,
+        );
+
+        let world = WORLD.get_or_init(|| world);
+
         Self {
-            world: Arc::new(ClientWorld::new(
-                game_to_render_channel_sender,
-                client_cli_arguments,
-                config,
-                executable_directory,
-            )),
+            world,
             game_to_render_channel_receiver,
         }
     }
@@ -82,41 +86,14 @@ impl App {
 
         runtime.block_on(self.setup())?;
 
-        let world = Arc::clone(&self.world);
-
-        runtime.spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs_f32(GAME_LOOP_INTERVAL));
-            loop {
-                interval.tick().await;
-
-                if let Err(error) = Self::update(&world).await {
-                    error!("{error}");
-                }
+        runtime.spawn(
+            ClientGame {
+                world: self.world,
+                game: CommonGame { world: self.world },
             }
-        });
+            .start_update(),
+        );
 
         self.init_render(runtime)
     }
-
-    pub fn get_world(&self) -> Arc<ClientWorld> {
-        Arc::clone(&self.world)
-    }
-
-    async fn update(world: &ClientWorld) -> Result<(), ClientError> {
-        {
-            let mut networking_client = world.network_client().write().await;
-            networking_client.update_mut(world).await?;
-        }
-
-        {
-            let mut camera = world.camera().write().await;
-            camera.update_mut(world).await?;
-        }
-
-        Ok(())
-    }
-}
-
-pub trait UpdateMutRunnable {
-    async fn update_mut(&mut self, world: &ClientWorld) -> Result<(), ClientError>;
 }

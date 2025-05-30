@@ -1,3 +1,4 @@
+#![feature(macro_metavar_expr_concat)]
 pub mod chat;
 pub mod damage;
 pub mod error;
