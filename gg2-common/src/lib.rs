@@ -2,6 +2,7 @@
 pub mod chat;
 pub mod damage;
 pub mod error;
+pub mod gamemode;
 pub mod intel;
 pub mod map;
 pub mod networking;
