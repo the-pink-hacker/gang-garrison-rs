@@ -14,7 +14,7 @@ struct CameraUniform {
 var<uniform> camera: CameraUniform;
 
 struct VertexInput {
-    @location(0) position: vec3<f32>,
+    @location(0) position: vec2<f32>,
 };
 
 struct InstanceInput {
@@ -46,7 +46,7 @@ fn vs_main(
 
     out.clip_position = camera.view_projection
         * transform_matrix
-        * vec4<f32>(model.position, 1.0);
+        * vec4<f32>(model.position, 0.0, 1.0);
     out.texture_uv = vec2<f32>(model.position.x, 1.0 - model.position.y)
         * instance.texture_uv.zw
         + instance.texture_uv.xy;

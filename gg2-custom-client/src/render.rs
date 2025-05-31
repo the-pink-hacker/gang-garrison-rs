@@ -21,21 +21,25 @@ pub mod pipeline;
 pub mod texture;
 pub mod vertex;
 
+const GAME_ASPECT_RATIO: UVec2 = UVec2::new(4, 3);
+pub const GAME_WIDTH: u32 = 800;
+pub const GAME_HEIGHT: u32 = 600;
+
 const MAX_SPRITE_INSTANCES: wgpu::BufferAddress = u16::MAX as wgpu::BufferAddress;
 const MAP_SCALE: f32 = 6.0;
 
 const QUAD_VERTICES: &[Vertex] = &[
     Vertex {
-        position: Vec3::new(1.0, 1.0, 0.0),
+        position: Vec2::new(1.0, 1.0),
     },
     Vertex {
-        position: Vec3::new(0.0, 1.0, 0.0),
+        position: Vec2::new(0.0, 1.0),
     },
     Vertex {
-        position: Vec3::new(0.0, 0.0, 0.0),
+        position: Vec2::new(0.0, 0.0),
     },
     Vertex {
-        position: Vec3::new(1.0, 0.0, 0.0),
+        position: Vec2::new(1.0, 0.0),
     },
 ];
 
@@ -58,6 +62,7 @@ pub struct State {
     pipelines: pipeline::RenderPipelines,
     sprite_vertex_buffer: wgpu::Buffer,
     map_vertex_buffer: wgpu::Buffer,
+    game_vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     textures: texture::RenderTextures,
     /// Store the camera's matrix
@@ -78,6 +83,8 @@ impl State {
             .await?;
 
         let size = window.inner_size();
+        let window_size = UVec2::new(size.width, size.height);
+        let game_size = Self::calculate_game_size(window_size, GAME_ASPECT_RATIO);
 
         let surface = instance.create_surface(Arc::clone(&window))?;
         let capabilities = surface.get_capabilities(&adapter);
@@ -107,6 +114,12 @@ impl State {
             mapped_at_creation: false,
         });
 
+        let game_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Game Vertex Buffer"),
+            contents: bytemuck::cast_slice(&Self::calculate_game_vertex(window_size, game_size)),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        });
+
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
             contents: bytemuck::cast_slice(QUAD_INDICES),
@@ -125,7 +138,7 @@ impl State {
         let (camera_uniform_bind_group_layout, camera_uniform_bind_group, camera_uniform_buffer) =
             Self::create_camera_buffer(&device);
 
-        let textures = texture::RenderTextures::new(&device)?;
+        let textures = texture::RenderTextures::new(&device, UVec2::new(size.width, size.height))?;
 
         let pipelines = pipeline::RenderPipelines::new(
             &device,
@@ -145,6 +158,7 @@ impl State {
             pipelines,
             sprite_vertex_buffer,
             map_vertex_buffer,
+            game_vertex_buffer,
             index_buffer,
             textures,
             camera_uniform_buffer,
@@ -157,6 +171,43 @@ impl State {
 
         Ok(state)
     }
+
+    // I'm not fucking rewriting this: 35250c0fa8b5067df7efb5cd603047a228e5fd49
+    fn calculate_game_size(window_size: UVec2, aspect_ratio: UVec2) -> UVec2 {
+        let width =
+            ((window_size.y as f32 / aspect_ratio.y as f32) * aspect_ratio.x as f32).trunc() as u32;
+
+        if width > window_size.x {
+            let height = (window_size.x as f32 / aspect_ratio.x as f32) * aspect_ratio.y as f32;
+            UVec2::new(window_size.x, height.trunc() as u32)
+        } else {
+            UVec2::new(width, window_size.y)
+        }
+    }
+
+    fn calculate_game_vertex(window_size: UVec2, game_size: UVec2) -> [VertexTextureUV; 4] {
+        let half_game_normalized = game_size.as_vec2() / window_size.as_vec2();
+
+        [
+            VertexTextureUV {
+                position: half_game_normalized,
+                texture_uv: Vec2::new(1.0, 0.0),
+            },
+            VertexTextureUV {
+                position: Vec2::new(-half_game_normalized.x, half_game_normalized.y),
+                texture_uv: Vec2::new(0.0, 0.0),
+            },
+            VertexTextureUV {
+                position: -half_game_normalized,
+                texture_uv: Vec2::new(0.0, 1.0),
+            },
+            VertexTextureUV {
+                position: Vec2::new(half_game_normalized.x, -half_game_normalized.y),
+                texture_uv: Vec2::new(1.0, 1.0),
+            },
+        ]
+    }
+
     fn get_window(&self) -> &Window {
         &self.window
     }
@@ -170,6 +221,18 @@ impl State {
         self.surface_config.width = self.size.width;
         self.surface_config.height = self.size.height;
         self.configure_surface();
+
+        let window_size = UVec2::new(self.size.width, self.size.height);
+        let game_size = Self::calculate_game_size(window_size, GAME_ASPECT_RATIO);
+        let game_vertices = Self::calculate_game_vertex(window_size, game_size);
+
+        self.queue.write_buffer(
+            &self.game_vertex_buffer,
+            0,
+            bytemuck::cast_slice(&game_vertices),
+        );
+
+        self.textures.update_game_texture(&self.device, game_size);
     }
 
     async fn render(
@@ -192,19 +255,19 @@ impl State {
                         0,
                         bytemuck::cast_slice(&[
                             VertexTextureUV {
-                                position: Vec3::new(width, -height, 0.0),
+                                position: Vec2::new(width, -height),
                                 texture_uv: Vec2::new(1.0, 1.0),
                             },
                             VertexTextureUV {
-                                position: Vec3::new(0.0, -height, 0.0),
+                                position: Vec2::new(0.0, -height),
                                 texture_uv: Vec2::new(0.0, 1.0),
                             },
                             VertexTextureUV {
-                                position: Vec3::new(0.0, 0.0, 0.0),
+                                position: Vec2::new(0.0, 0.0),
                                 texture_uv: Vec2::new(0.0, 0.0),
                             },
                             VertexTextureUV {
-                                position: Vec3::new(width, 0.0, 0.0),
+                                position: Vec2::new(width, 0.0),
                                 texture_uv: Vec2::new(1.0, 0.0),
                             },
                         ]),
@@ -259,24 +322,22 @@ impl State {
             bytemuck::cast_slice(&self.sprite_instances),
         );
 
-        let surface_texture = self
-            .surface
-            .get_current_texture()
-            .expect("Failed to acquire next swapchain texture");
-        let texture_view = surface_texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor {
-                format: Some(self.surface_config.format.add_srgb_suffix()),
-                ..Default::default()
-            });
+        let texture_view_descriptor = wgpu::TextureViewDescriptor {
+            format: Some(self.surface_config.format.add_srgb_suffix()),
+            ..Default::default()
+        };
+        let game_view = self
+            .textures
+            .game_texture
+            .create_view(&texture_view_descriptor);
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
-        // Render pass
+        // Game View Pass
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
+                label: Some("Main Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &texture_view,
+                    view: &game_view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -309,6 +370,40 @@ impl State {
                 0,
                 0..(self.sprite_instances.len() as u32),
             );
+        }
+
+        let surface_texture = self
+            .surface
+            .get_current_texture()
+            .expect("Failed to acquire next swapchain texture");
+        let surface_view = surface_texture
+            .texture
+            .create_view(&texture_view_descriptor);
+
+        // Final Window Pass
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Aspect Ratio Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &surface_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+            render_pass.set_bind_group(0, &self.textures.game_bind_group, &[]);
+            render_pass.set_pipeline(&self.pipelines.screen_texture_pipeline);
+            render_pass.set_vertex_buffer(0, self.game_vertex_buffer.slice(..));
+
+            render_pass.draw_indexed(0..(QUAD_INDICES.len() as u32), 0, 0..1);
         }
 
         // Submit and queue the command

@@ -5,14 +5,6 @@ var texture_diffuse: texture_2d<f32>;
 @group(0) @binding(1)
 var sampler_diffuse: sampler;
 
-// Vertex shader
-struct CameraUniform {
-    view_projection: mat4x4<f32>,
-};
-
-@group(1) @binding(0)
-var<uniform> camera: CameraUniform;
-
 struct VertexInput {
     @location(0) position: vec2<f32>,
     @location(1) texture_uv: vec2<f32>,
@@ -29,12 +21,13 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
 
-    out.clip_position = camera.view_projection * vec4<f32>(model.position, 0.0, 1.0);
+    out.clip_position = vec4<f32>(model.position, 0.0, 1.0);
     out.texture_uv = model.texture_uv;
 
     return out;
 }
 
+// TODO: Consolidate fragment shaders
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(texture_diffuse, sampler_diffuse, in.texture_uv);

@@ -20,10 +20,12 @@ pub struct RenderTextures {
     pub sprite_atlas_texture: Texture,
     pub sprite_atlas: TextureAtlas,
     pub map_bind_group: Option<BindGroup>,
+    pub game_bind_group: BindGroup,
+    pub game_texture: Texture,
 }
 
 impl RenderTextures {
-    pub fn new(device: &wgpu::Device) -> Result<Self, ClientError> {
+    pub fn new(device: &wgpu::Device, game_size: UVec2) -> Result<Self, ClientError> {
         let sprite_atlas_texture = device.create_texture(&TextureDescriptor {
             label: Some("Sprite Atlas Texture"),
             size: ATLAS_EXTENT,
@@ -71,7 +73,7 @@ impl RenderTextures {
         });
 
         let sprite_atlas_bind_group = device.create_bind_group(&BindGroupDescriptor {
-            label: Some("Texture Bind Group"),
+            label: Some("Sprite Atlas Bind Group"),
             layout: &layout,
             entries: &[
                 BindGroupEntry {
@@ -86,6 +88,9 @@ impl RenderTextures {
         });
         let sprite_atlas = TextureAtlas::default();
 
+        let (game_bind_group, game_texture) =
+            Self::generate_game_texture(device, &layout, &sampler, game_size);
+
         Ok(Self {
             layout,
             sampler,
@@ -93,7 +98,63 @@ impl RenderTextures {
             sprite_atlas_texture,
             map_bind_group: None,
             sprite_atlas,
+            game_bind_group,
+            game_texture,
         })
+    }
+
+    fn generate_game_texture(
+        device: &Device,
+        layout: &BindGroupLayout,
+        sampler: &Sampler,
+        game_size: UVec2,
+    ) -> (BindGroup, Texture) {
+        let game_texture = device.create_texture(&TextureDescriptor {
+            label: Some("Game Texture"),
+            size: Extent3d {
+                width: game_size.x,
+                height: game_size.y,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Bgra8UnormSrgb,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST
+                | TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+
+        let game_texture_view = game_texture.create_view(&TextureViewDescriptor {
+            //format: Some(surface_config.format.add_srgb_suffix()),
+            ..Default::default()
+        });
+
+        let game_bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: Some("Game Texture Bind Group"),
+            layout,
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::TextureView(&game_texture_view),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::Sampler(sampler),
+                },
+            ],
+        });
+
+        (game_bind_group, game_texture)
+    }
+
+    pub fn update_game_texture(&mut self, device: &Device, game_size: UVec2) {
+        let (bind_group, texture) =
+            Self::generate_game_texture(device, &self.layout, &self.sampler, game_size);
+
+        self.game_bind_group = bind_group;
+        self.game_texture = texture;
     }
 
     pub fn update_texture_map(&mut self, device: &Device, queue: &Queue, image: ImageBufferRGBA8) {
@@ -122,7 +183,7 @@ impl RenderTextures {
         let map_view = map_texture.create_view(&TextureViewDescriptor::default());
 
         let map_bind_group = device.create_bind_group(&BindGroupDescriptor {
-            label: Some("Texture Bind Group"),
+            label: Some("Map Bind Group"),
             layout: &self.layout,
             entries: &[
                 BindGroupEntry {

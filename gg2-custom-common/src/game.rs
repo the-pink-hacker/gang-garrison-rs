@@ -17,7 +17,7 @@ impl<W: World + 'static> CommonGame<W> {
             ServerMessageGeneric::ChatBubble(message) => debug!("{message:#?}"),
             ServerMessageGeneric::DropIntel(message) => debug!("{message:#?}"),
             ServerMessageGeneric::GrabIntel(message) => debug!("{message:#?}"),
-            ServerMessageGeneric::FullUpdate(message) => println!("{message:#?}"),
+            ServerMessageGeneric::FullUpdate(message) => debug!("{message:#?}"),
             ServerMessageGeneric::InputState(message) => {
                 self.event_input_state(message).await?;
             }

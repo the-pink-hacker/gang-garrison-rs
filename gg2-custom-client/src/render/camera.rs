@@ -1,16 +1,11 @@
 use super::State;
 use crate::prelude::*;
 
-const GAME_HEIGHT: u32 = 128 * 6;
-
 impl Camera {
     /// Genrates a matrix to project world space into screen space
-    fn build_view_projection_matrix(&self, window_size: UVec2) -> Mat4 {
-        // TODO: Add aspect ratio crop
-        let ratio = window_size.x as f32 / window_size.y as f32;
-        let width = (GAME_HEIGHT as f32 * ratio).trunc();
-        let game_size = Vec2::new(width, GAME_HEIGHT as f32);
-        let (width_half, height_half) = (game_size / 2.0).into();
+    fn build_view_projection_matrix(&self) -> Mat4 {
+        let width_half = super::GAME_WIDTH as f32 / 2.0;
+        let height_half = super::GAME_HEIGHT as f32 / 2.0;
 
         Mat4::orthographic_rh_gl(
             self.translation.x - width_half,
@@ -67,8 +62,7 @@ impl State {
 
     pub async fn update_camera_uniform_buffer(&mut self) {
         let camera = self.world.camera().read().await;
-        let matrix =
-            camera.build_view_projection_matrix(UVec2::new(self.size.width, self.size.height));
+        let matrix = camera.build_view_projection_matrix();
         self.queue.write_buffer(
             &self.camera_uniform_buffer,
             0,
