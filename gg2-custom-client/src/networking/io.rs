@@ -280,6 +280,10 @@ impl<T> DerefMut for VecDequeIter<T> {
 }
 
 impl ClientNetworkDeserializationContext for ClientWorld {
+    async fn players_length(&self) -> u8 {
+        self.players().read().await.len()
+    }
+
     async fn current_map_gamemode(&self) -> Result<Gamemode, CommonError> {
         self.map_info()
             .read()
@@ -288,6 +292,16 @@ impl ClientNetworkDeserializationContext for ClientWorld {
             .as_ref()
             .ok_or(CommonError::MapUnloaded)
             .map(|(_, map_data)| map_data.gamemode)
+    }
+
+    async fn current_map_control_points_length(&self) -> Result<u8, CommonError> {
+        self.map_info()
+            .read()
+            .await
+            .current_map
+            .as_ref()
+            .ok_or(CommonError::MapUnloaded)
+            .map(|(_, map_data)| map_data.control_points_length)
     }
 }
 

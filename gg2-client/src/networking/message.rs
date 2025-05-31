@@ -20,7 +20,11 @@ pub trait ClientNetworkDeserialize: Sized {
 
 #[allow(async_fn_in_trait)]
 pub trait ClientNetworkDeserializationContext {
+    async fn players_length(&self) -> u8;
+
     async fn current_map_gamemode(&self) -> Result<Gamemode>;
+
+    async fn current_map_control_points_length(&self) -> Result<u8>;
 }
 
 impl ClientNetworkSerialize for &GGStringShort {

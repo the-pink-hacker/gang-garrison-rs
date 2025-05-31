@@ -10,6 +10,8 @@ pub struct MapData {
     /// A slice of all red spawn groups with list of spawn positions
     pub red_spawns: [Vec<Vec2>; 5],
     pub gamemode: Gamemode,
+    // TODO: Parse control points properly
+    pub control_points_length: u8,
 }
 
 impl MapData {

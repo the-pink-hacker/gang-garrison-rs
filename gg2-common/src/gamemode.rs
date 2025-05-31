@@ -15,15 +15,13 @@ pub enum Gamemode {
     DualKingOfTheHill,
     /// Abbreviation: Gen
     Generator,
-    //Inavsion,
+    // TODO: Figure out invasion conditions
+    Inavsion,
     /// Abbreviation: TDM
     TeamDeathmatch,
 }
 
-const CONTROL_POINTS_11111: [bool; 5] = [true, true, true, true, true];
-const CONTROL_POINTS_10000: [bool; 5] = [true, false, false, false, false];
-
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct GamemodeMapScan {
     red_intel: usize,
     blu_intel: usize,
@@ -71,24 +69,24 @@ impl Gamemode {
                 ..
             } => Ok(Self::CaptureTheFlag),
             GamemodeMapScan {
-                control_points: CONTROL_POINTS_11111,
+                control_points,
                 capture_point: true,
                 setup_gate: true,
                 ..
-            } => Ok(Self::AttackDefenceControlPoint),
+            } if control_points.into_iter().any(|point| point) => {
+                Ok(Self::AttackDefenceControlPoint)
+            }
             GamemodeMapScan {
-                control_points: CONTROL_POINTS_11111,
+                control_points,
                 capture_point: true,
                 ..
-            } => Ok(Self::ControlPoint),
+            } if control_points.into_iter().any(|point| point) => Ok(Self::ControlPoint),
             GamemodeMapScan {
-                control_points: CONTROL_POINTS_10000,
                 capture_point: true,
                 koth_control_point: 1,
                 ..
             } => Ok(Self::KingOfTheHill),
             GamemodeMapScan {
-                control_points: CONTROL_POINTS_10000,
                 capture_point: true,
                 koth_red_control_point: 1,
                 koth_blu_control_point: 1,

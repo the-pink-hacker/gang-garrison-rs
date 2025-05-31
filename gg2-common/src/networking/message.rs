@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use glam::Vec2;
 
 use crate::{
@@ -38,6 +40,8 @@ pub trait MessageReader {
     fn read_utf8_long_string(&mut self) -> Result<GGStringLong>;
 
     fn read_md5(&mut self) -> Result<Option<u128>>;
+
+    fn read_duration_u16_sec(&mut self) -> Result<Duration>;
 }
 
 impl<T> MessageReader for T
@@ -123,6 +127,10 @@ where
             }
             _ => Err(Error::PacketPayload),
         }
+    }
+
+    fn read_duration_u16_sec(&mut self) -> Result<Duration> {
+        self.read_u16().map(u64::from).map(Duration::from_secs)
     }
 }
 

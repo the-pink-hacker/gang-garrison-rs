@@ -113,7 +113,18 @@ impl MapData {
         let mut blu_spawns = <[Vec<Vec2>; 5]>::default();
         let mut red_spawns = <[Vec<Vec2>; 5]>::default();
 
+        let mut control_points_length = 0;
+
         for entity in entities {
+            match entity {
+                MapEntity::ControlPoint1(_) => control_points_length += 1,
+                MapEntity::ControlPoint2(_) => control_points_length += 1,
+                MapEntity::ControlPoint3(_) => control_points_length += 1,
+                MapEntity::ControlPoint4(_) => control_points_length += 1,
+                MapEntity::ControlPoint5(_) => control_points_length += 1,
+                _ => (),
+            }
+
             let (group, position, team) = match entity {
                 MapEntity::BluSpawn0(position) => (0, position, TeamSpawnable::Blu),
                 MapEntity::BluSpawn1(position) => (1, position, TeamSpawnable::Blu),
@@ -141,6 +152,7 @@ impl MapData {
             blu_spawns,
             red_spawns,
             gamemode,
+            control_points_length,
         })
     }
 

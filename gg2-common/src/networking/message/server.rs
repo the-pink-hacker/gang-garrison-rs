@@ -1,8 +1,8 @@
 use crate::{
     chat::bubble::ChatBubble,
     damage::source::DamageSource,
+    game::intel::RawIntel,
     hud::GamemodeHud,
-    intel::RawIntel,
     networking::PacketKind,
     player::{
         PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,

@@ -1,7 +1,7 @@
 pub use gg2_common::{
     error::CommonError,
     gamemode::Gamemode,
-    hud::GamemodeHud,
+    hud::{GamemodeHud, GamemodeHudArenaFull, HudMatchTimer},
     map::{data::MapData, entity::MapEntity, io::error::MapIoError},
     networking::{error::NetworkError, message::*},
     player::{PlayerId, RawInput, class::ClassGeneric, team::Team},
