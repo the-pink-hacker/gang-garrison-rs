@@ -3,13 +3,13 @@ use crate::prelude::*;
 use super::io::ClientNetworkEvent;
 
 impl NetworkClient {
-    fn handle_network_events(&mut self) -> Result<(), ClientError> {
+    async fn handle_network_events(&mut self) -> Result<(), ClientError> {
         if let Some(event) = self.network_events.receiver.try_iter().next() {
             match event {
                 ClientNetworkEvent::Connected => {
                     debug!("Network Event: Connected to server");
                     info!("Connected to server; sending hello");
-                    self.send_message(ClientHello::default())?;
+                    self.send_message(ClientHello::default()).await?;
                     self.connection_state = NetworkingState::AwaitingHello;
                 }
                 ClientNetworkEvent::Disconnected => {
@@ -28,7 +28,7 @@ impl ClientGame {
     pub async fn update_network_client(&self) -> Result<(), ClientError> {
         let mut network_client = self.world.network_client().write().await;
         network_client.handle_connection_event();
-        network_client.handle_network_events()?;
+        network_client.handle_network_events().await?;
 
         match network_client.connection_state {
             NetworkingState::Disconnected => {
@@ -57,7 +57,7 @@ impl ClientGame {
             // Handled in `Self::handle_network_events`
             NetworkingState::AttemptingConnection => (),
             NetworkingState::AwaitingHello => {
-                if let Some(generic_message) = network_client.pop_message().await? {
+                if let Some(generic_message) = network_client.pop_message(self.world).await? {
                     match generic_message {
                         ServerMessageGeneric::Hello(message) => {
                             debug!("{message:#?}");
@@ -68,7 +68,9 @@ impl ClientGame {
                                 config.game.player_name.clone()
                             };
 
-                            network_client.send_message(ClientReserveSlot { player_name })?;
+                            network_client
+                                .send_message(ClientReserveSlot { player_name })
+                                .await?;
                             network_client.connection_state = NetworkingState::ReserveSlot;
                         }
                         ServerMessageGeneric::IncompatibleProtocol(_) => {
@@ -79,7 +81,7 @@ impl ClientGame {
                             // TODO: Add password prompt
                             let password = GGStringShort::try_from("1234".to_string()).unwrap();
                             debug!("Sending password to server...");
-                            network_client.send(&password)?;
+                            network_client.send(&password).await?;
                         }
                         ServerMessageGeneric::PasswordWrong(_) => {
                             error!("Server password is wrong");
@@ -90,7 +92,7 @@ impl ClientGame {
                 }
             }
             NetworkingState::ReserveSlot => {
-                if let Some(generic_message) = network_client.pop_message().await? {
+                if let Some(generic_message) = network_client.pop_message(self.world).await? {
                     match generic_message {
                         ServerMessageGeneric::ServerFull(_) => {
                             info!("Server full");
@@ -98,7 +100,7 @@ impl ClientGame {
                         }
                         ServerMessageGeneric::ReserveSlot(_) => {
                             debug!("Reserved player slot; joining");
-                            network_client.send_message(ClientPlayerJoin)?;
+                            network_client.send_message(ClientPlayerJoin).await?;
                             network_client.connection_state = NetworkingState::PlayerJoining;
                         }
                         _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
@@ -106,7 +108,7 @@ impl ClientGame {
                 }
             }
             NetworkingState::PlayerJoining => {
-                if let Some(generic_message) = network_client.pop_message().await? {
+                if let Some(generic_message) = network_client.pop_message(self.world).await? {
                     match generic_message {
                         ServerMessageGeneric::JoinUpdate(message) => {
                             info!("Successfully joined server");
@@ -125,7 +127,7 @@ impl ClientGame {
                 }
             }
             NetworkingState::InGame => {
-                if let Some(generic_message) = network_client.pop_message().await? {
+                if let Some(generic_message) = network_client.pop_message(self.world).await? {
                     self.event_in_game(generic_message).await?;
                 }
             }

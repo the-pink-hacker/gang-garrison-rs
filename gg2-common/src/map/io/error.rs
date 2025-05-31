@@ -25,4 +25,6 @@ pub enum MapIoError {
     ParseEntity(#[from] serde_hjson::Error),
     #[error("Missing map data tag: {0}")]
     DataTagMissing(MapDataTag),
+    #[error("Couldn't determine map gamemode")]
+    Gamemode,
 }

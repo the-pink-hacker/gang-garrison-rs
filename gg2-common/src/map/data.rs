@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-use crate::{error::CommonError, player::team::TeamSpawnable};
+use crate::{error::CommonError, gamemode::Gamemode, player::team::TeamSpawnable};
 
 #[derive(Debug)]
 pub struct MapData {
@@ -9,6 +9,7 @@ pub struct MapData {
     pub blu_spawns: [Vec<Vec2>; 5],
     /// A slice of all red spawn groups with list of spawn positions
     pub red_spawns: [Vec<Vec2>; 5],
+    pub gamemode: Gamemode,
 }
 
 impl MapData {

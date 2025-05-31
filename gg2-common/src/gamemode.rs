@@ -1,7 +1,7 @@
-use crate::map::entity::MapEntity;
+use crate::map::{entity::MapEntity, io::error::MapIoError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Gamemodes {
+pub enum Gamemode {
     Arena,
     /// Abbreviation: CTF
     CaptureTheFlag,
@@ -38,9 +38,9 @@ struct GamemodeMapScan {
     generator_blu: usize,
 }
 
-impl Gamemodes {
+impl Gamemode {
     /// Figures out which gamemode the map entities are
-    pub fn scan_map_entities(entities: &[MapEntity]) -> Option<Self> {
+    pub fn scan_map_entities(entities: &[MapEntity]) -> Result<Self, MapIoError> {
         let mut scan = GamemodeMapScan::default();
 
         for entity in entities {
@@ -69,42 +69,42 @@ impl Gamemodes {
                 red_intel: 1,
                 blu_intel: 1,
                 ..
-            } => Some(Self::CaptureTheFlag),
+            } => Ok(Self::CaptureTheFlag),
             GamemodeMapScan {
                 control_points: CONTROL_POINTS_11111,
                 capture_point: true,
                 setup_gate: true,
                 ..
-            } => Some(Self::AttackDefenceControlPoint),
+            } => Ok(Self::AttackDefenceControlPoint),
             GamemodeMapScan {
                 control_points: CONTROL_POINTS_11111,
                 capture_point: true,
                 ..
-            } => Some(Self::ControlPoint),
+            } => Ok(Self::ControlPoint),
             GamemodeMapScan {
                 control_points: CONTROL_POINTS_10000,
                 capture_point: true,
                 koth_control_point: 1,
                 ..
-            } => Some(Self::KingOfTheHill),
+            } => Ok(Self::KingOfTheHill),
             GamemodeMapScan {
                 control_points: CONTROL_POINTS_10000,
                 capture_point: true,
                 koth_red_control_point: 1,
                 koth_blu_control_point: 1,
                 ..
-            } => Some(Self::DualKingOfTheHill),
+            } => Ok(Self::DualKingOfTheHill),
             GamemodeMapScan {
                 arena_control_poin: 1,
                 capture_point: true,
                 ..
-            } => Some(Self::Arena),
+            } => Ok(Self::Arena),
             GamemodeMapScan {
                 generator_red: 1,
                 generator_blu: 1,
                 ..
-            } => Some(Self::Generator),
-            _ => None,
+            } => Ok(Self::Generator),
+            _ => Err(MapIoError::Gamemode),
         }
     }
 }

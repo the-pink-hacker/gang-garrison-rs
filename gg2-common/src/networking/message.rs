@@ -21,6 +21,8 @@ pub trait MessageReader {
 
     fn read_u16(&mut self) -> Result<u16>;
 
+    fn read_u32(&mut self) -> Result<u32>;
+
     fn read_bool(&mut self) -> Result<bool>;
 
     fn read_fixed_point_u8(&mut self, scale: f32) -> Result<f32>;
@@ -47,9 +49,15 @@ where
     }
 
     fn read_u16(&mut self) -> Result<u16> {
-        let least_significant = self.read_u8()? as u16;
-        let most_significant = self.read_u8()? as u16;
-        Ok(least_significant | (most_significant << 8))
+        self.next_chunk()
+            .map(u16::from_le_bytes)
+            .map_err(|_| Error::UnexpectedEOF)
+    }
+
+    fn read_u32(&mut self) -> Result<u32> {
+        self.next_chunk()
+            .map(u32::from_le_bytes)
+            .map_err(|_| Error::UnexpectedEOF)
     }
 
     fn read_bool(&mut self) -> Result<bool> {

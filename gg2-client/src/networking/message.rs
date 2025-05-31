@@ -1,18 +1,30 @@
-use gg2_common::{error::Result, networking::message::MessageWriter, string::GGStringShort};
+use gg2_common::{
+    error::Result, gamemode::Gamemode, networking::message::MessageWriter, string::GGStringShort,
+};
 
 pub mod client;
 pub mod server;
 
+#[allow(async_fn_in_trait)]
 pub trait ClientNetworkSerialize: Sized {
-    fn serialize(self, buffer: &mut Vec<u8>) -> Result<()>;
+    async fn serialize(self, buffer: &mut Vec<u8>) -> Result<()>;
 }
 
+#[allow(async_fn_in_trait)]
 pub trait ClientNetworkDeserialize: Sized {
-    fn deserialize<I: Iterator<Item = u8>>(payload: &mut I) -> Result<Self>;
+    async fn deserialize<I, C>(payload: &mut I, context: &C) -> Result<Self>
+    where
+        I: Iterator<Item = u8>,
+        C: ClientNetworkDeserializationContext;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait ClientNetworkDeserializationContext {
+    async fn current_map_gamemode(&self) -> Result<Gamemode>;
 }
 
 impl ClientNetworkSerialize for &GGStringShort {
-    fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
+    async fn serialize(self, buffer: &mut Vec<u8>) -> Result<()> {
         buffer.write_utf8_short_string(self);
 
         Ok(())

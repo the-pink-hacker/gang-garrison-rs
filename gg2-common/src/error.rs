@@ -20,4 +20,6 @@ pub enum CommonError {
     MapDataLookup,
     #[error("Network Error: {0}")]
     Network(#[from] crate::networking::error::NetworkError),
+    #[error("Expected map to be loaded")]
+    MapUnloaded,
 }

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::player::team::TeamSpawnable;
+use crate::{gamemode::Gamemode, player::team::TeamSpawnable};
 
 use super::{data::MapData, entity::MapEntity};
 use error::{MapIoError, Result};
@@ -108,6 +108,8 @@ impl MapData {
         let entities = entities.ok_or(MapIoError::DataTagMissing(MapDataTag::Entities))?;
         let walk_mask = walk_mask.ok_or(MapIoError::DataTagMissing(MapDataTag::Entities))?;
 
+        let gamemode = Gamemode::scan_map_entities(&entities)?;
+
         let mut blu_spawns = <[Vec<Vec2>; 5]>::default();
         let mut red_spawns = <[Vec<Vec2>; 5]>::default();
 
@@ -138,6 +140,7 @@ impl MapData {
             walk_mask,
             blu_spawns,
             red_spawns,
+            gamemode,
         })
     }
 

@@ -18,7 +18,6 @@ impl ClientGame {
             .load_map(&map_id)
             .await?;
 
-        debug!("{data:#?}");
         self.world.map_info().write().await.current_map = Some((map_id.clone(), data));
 
         self.world

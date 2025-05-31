@@ -6,7 +6,10 @@ use std::{
 };
 
 use crossbeam_channel::{Receiver, Sender};
-use gg2_client::networking::{message::ClientNetworkSerialize, state::NetworkingState};
+use gg2_client::networking::{
+    message::{ClientNetworkDeserializationContext, ClientNetworkSerialize},
+    state::NetworkingState,
+};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{
@@ -124,20 +127,20 @@ impl NetworkClient {
             .map_err(|_| NetworkError::NotConnected)
     }
 
-    pub fn send<T: ClientNetworkSerialize>(&self, message: T) -> Result<(), CommonError> {
+    pub async fn send<T: ClientNetworkSerialize>(&self, message: T) -> Result<(), CommonError> {
         let mut buffer = Vec::with_capacity(256);
-        message.serialize(&mut buffer)?;
+        message.serialize(&mut buffer).await?;
 
         Ok(self.send_raw(buffer)?)
     }
 
-    pub fn send_message<T: ClientNetworkSerialize + GGMessage>(
+    pub async fn send_message<T: ClientNetworkSerialize + GGMessage>(
         &self,
         message: T,
     ) -> Result<(), CommonError> {
         let mut buffer = Vec::with_capacity(256);
         buffer.push(T::KIND.into());
-        message.serialize(&mut buffer)?;
+        message.serialize(&mut buffer).await?;
 
         Ok(self.send_raw(buffer)?)
     }
@@ -169,7 +172,10 @@ impl NetworkClient {
         };
     }
 
-    pub async fn pop_message(&self) -> Result<Option<ServerMessageGeneric>, CommonError> {
+    pub async fn pop_message(
+        &self,
+        context: &impl ClientNetworkDeserializationContext,
+    ) -> Result<Option<ServerMessageGeneric>, CommonError> {
         let generic_message = {
             let queue = &mut *self.receive_message.lock().await;
 
@@ -179,7 +185,7 @@ impl NetworkClient {
 
             // Forces queue to be dropped preventing dead lock on error
             use gg2_client::networking::message::ClientNetworkDeserialize;
-            ServerMessageGeneric::deserialize(queue)
+            ServerMessageGeneric::deserialize(queue, context).await
         };
 
         match generic_message {
@@ -270,6 +276,18 @@ impl<T> Deref for VecDequeIter<T> {
 impl<T> DerefMut for VecDequeIter<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl ClientNetworkDeserializationContext for ClientWorld {
+    async fn current_map_gamemode(&self) -> Result<Gamemode, CommonError> {
+        self.map_info()
+            .read()
+            .await
+            .current_map
+            .as_ref()
+            .ok_or(CommonError::MapUnloaded)
+            .map(|(_, map_data)| map_data.gamemode)
     }
 }
 

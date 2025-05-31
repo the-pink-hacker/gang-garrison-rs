@@ -1,6 +1,7 @@
 use crate::{
     chat::bubble::ChatBubble,
     damage::source::DamageSource,
+    hud::GamemodeHud,
     intel::RawIntel,
     networking::PacketKind,
     player::{
@@ -97,6 +98,8 @@ pub struct ServerCaptureUpdate {
     pub player_amount: u8,
     /// The server's current captures
     pub captures: Captures,
+    /// The hud specific to the current gamemode
+    pub hud: GamemodeHud,
 }
 
 impl GGMessage for ServerCaptureUpdate {
@@ -208,6 +211,8 @@ pub struct ServerFullUpdate {
     /// The max number of captures allowed
     pub capture_limit: u8,
     pub captures: Captures,
+    /// The hud specific to the current gamemode
+    pub hud: GamemodeHud,
     /// Scout class limit
     pub scout_limit: u8,
     /// Soldier class limit
