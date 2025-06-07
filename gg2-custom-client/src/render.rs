@@ -26,7 +26,7 @@ const GAME_ASPECT_RATIO: UVec2 = UVec2::new(4, 3);
 pub const GAME_WIDTH: u32 = 800;
 pub const GAME_HEIGHT: u32 = 600;
 
-pub const SCREEN_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
+pub const SCREEN_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
 const MAX_SPRITE_INSTANCES: wgpu::BufferAddress = u16::MAX as wgpu::BufferAddress;
@@ -395,7 +395,7 @@ impl State {
         let surface_view = surface_texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor {
-                format: Some(SCREEN_FORMAT.add_srgb_suffix()),
+                format: Some(self.surface_config.format),
                 ..Default::default()
             });
 

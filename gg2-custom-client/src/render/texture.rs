@@ -127,11 +127,11 @@ impl RenderTextures {
             usage: TextureUsages::TEXTURE_BINDING
                 | TextureUsages::COPY_DST
                 | TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
+            view_formats: &[super::SCREEN_FORMAT.add_srgb_suffix()],
         });
 
         let game_texture_view = game_texture.create_view(&TextureViewDescriptor {
-            //format: Some(surface_config.format.add_srgb_suffix()),
+            format: Some(super::SCREEN_FORMAT.add_srgb_suffix()),
             ..Default::default()
         });
 

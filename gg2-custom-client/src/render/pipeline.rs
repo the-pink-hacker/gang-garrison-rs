@@ -116,7 +116,7 @@ impl RenderPipelines {
                 entry_point: Some("fs_main"),
                 compilation_options: PipelineCompilationOptions::default(),
                 targets: &[Some(ColorTargetState {
-                    format: super::SCREEN_FORMAT.add_srgb_suffix(),
+                    format: surface_config.format,
                     blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
                 })],
