@@ -31,3 +31,4 @@ semver = { version = "1.0.26", features = ["serde"] }
 # I don't want to downgrade wgpu
 egui-wgpu = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
 egui = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
+egui-winit = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }

@@ -60,6 +60,9 @@ pub struct State {
     device: wgpu::Device,
     queue: wgpu::Queue,
     size: winit::dpi::PhysicalSize<u32>,
+    game_size: UVec2,
+    /// The size of the cropping black bars
+    size_difference_half: UVec2,
     surface: wgpu::Surface<'static>,
     surface_config: wgpu::SurfaceConfiguration,
     pipelines: pipeline::RenderPipelines,
@@ -89,6 +92,7 @@ impl State {
         let size = window.inner_size();
         let window_size = UVec2::new(size.width, size.height);
         let game_size = Self::calculate_game_size(window_size, GAME_ASPECT_RATIO);
+        let size_difference_half = Self::calculate_size_difference_half(window_size, game_size);
 
         let surface = instance.create_surface(Arc::clone(&window))?;
         let capabilities = surface.get_capabilities(&adapter);
@@ -151,7 +155,7 @@ impl State {
             &surface_config,
         );
 
-        let gui = gui::GuiRenderer::new(&device, game_size);
+        let gui = gui::GuiRenderer::new(&device, game_size, &window);
 
         let state = State {
             world,
@@ -159,6 +163,8 @@ impl State {
             device,
             queue,
             size,
+            game_size,
+            size_difference_half,
             surface,
             surface_config,
             pipelines,
@@ -190,6 +196,11 @@ impl State {
         } else {
             UVec2::new(width, window_size.y)
         }
+    }
+
+    #[inline]
+    fn calculate_size_difference_half(window_size: UVec2, game_size: UVec2) -> UVec2 {
+        (window_size - game_size) / 2
     }
 
     fn calculate_game_vertex(window_size: UVec2, game_size: UVec2) -> [VertexTextureUV; 4] {
@@ -230,8 +241,10 @@ impl State {
         self.configure_surface();
 
         let window_size = UVec2::new(self.size.width, self.size.height);
-        let game_size = Self::calculate_game_size(window_size, GAME_ASPECT_RATIO);
-        let game_vertices = Self::calculate_game_vertex(window_size, game_size);
+        self.game_size = Self::calculate_game_size(window_size, GAME_ASPECT_RATIO);
+        self.size_difference_half =
+            Self::calculate_size_difference_half(window_size, self.game_size);
+        let game_vertices = Self::calculate_game_vertex(window_size, self.game_size);
 
         self.queue.write_buffer(
             &self.game_vertex_buffer,
@@ -239,8 +252,9 @@ impl State {
             bytemuck::cast_slice(&game_vertices),
         );
 
-        self.textures.update_game_texture(&self.device, game_size);
-        self.gui.resize(game_size);
+        self.textures
+            .update_game_texture(&self.device, self.game_size);
+        self.gui.resize(self.game_size);
     }
 
     async fn render(
@@ -386,6 +400,7 @@ impl State {
             &mut encoder,
             &game_view,
             &self.textures.depth_texture,
+            &self.window,
         );
 
         let surface_texture = self
@@ -493,9 +508,16 @@ impl ApplicationHandler for RenderApp {
         &mut self,
         event_loop: &ActiveEventLoop,
         _window_id: WindowId,
-        event: WindowEvent,
+        mut event: WindowEvent,
     ) {
         let state = self.state.as_mut().expect("Render state uninitilized");
+
+        state.correct_cursor_position(&mut event);
+
+        let event_consumed = state.on_window_event(&event);
+        if event_consumed {
+            return;
+        }
 
         match event {
             WindowEvent::CloseRequested => {
@@ -515,6 +537,19 @@ impl ApplicationHandler for RenderApp {
                 });
             }
             _ => (),
+        }
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            let state = self.state.as_mut().expect("Render state uninitilized");
+
+            state.on_mouse_motion(delta);
         }
     }
 }
