@@ -53,7 +53,7 @@ impl RenderPipelines {
         };
 
         let targets = &[Some(ColorTargetState {
-            format: surface_config.format,
+            format: super::SCREEN_FORMAT,
             blend: Some(BlendState::ALPHA_BLENDING),
             write_mask: ColorWrites::ALL,
         })];
@@ -115,7 +115,11 @@ impl RenderPipelines {
                 module: &screen_texture_shader,
                 entry_point: Some("fs_main"),
                 compilation_options: PipelineCompilationOptions::default(),
-                targets,
+                targets: &[Some(ColorTargetState {
+                    format: super::SCREEN_FORMAT.add_srgb_suffix(),
+                    blend: Some(BlendState::ALPHA_BLENDING),
+                    write_mask: ColorWrites::ALL,
+                })],
             }),
             primitive,
             depth_stencil: None,

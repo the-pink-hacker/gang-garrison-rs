@@ -16,6 +16,7 @@ use crate::prelude::*;
 use vertex::{Vertex, VertexTextureUV};
 
 pub mod camera;
+pub mod gui;
 pub mod instance;
 pub mod pipeline;
 pub mod texture;
@@ -24,6 +25,9 @@ pub mod vertex;
 const GAME_ASPECT_RATIO: UVec2 = UVec2::new(4, 3);
 pub const GAME_WIDTH: u32 = 800;
 pub const GAME_HEIGHT: u32 = 600;
+
+pub const SCREEN_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
+pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
 const MAX_SPRITE_INSTANCES: wgpu::BufferAddress = u16::MAX as wgpu::BufferAddress;
 const MAP_SCALE: f32 = 6.0;
@@ -50,7 +54,6 @@ const QUAD_INDICES: &[u16] = &[
 ];
 
 /// Holds all rendering structs such as the window
-#[derive(Debug)]
 pub struct State {
     world: &'static ClientWorld,
     window: Arc<Window>,
@@ -70,6 +73,7 @@ pub struct State {
     camera_uniform_bind_group: wgpu::BindGroup,
     sprite_instances: Vec<SpriteInstance>,
     sprite_instance_buffer: wgpu::Buffer,
+    gui: gui::GuiRenderer,
 }
 
 impl State {
@@ -147,6 +151,8 @@ impl State {
             &surface_config,
         );
 
+        let gui = gui::GuiRenderer::new(&device, game_size);
+
         let state = State {
             world,
             window,
@@ -165,6 +171,7 @@ impl State {
             camera_uniform_bind_group,
             sprite_instances,
             sprite_instance_buffer,
+            gui,
         };
 
         state.configure_surface();
@@ -233,6 +240,7 @@ impl State {
         );
 
         self.textures.update_game_texture(&self.device, game_size);
+        self.gui.resize(game_size);
     }
 
     async fn render(
@@ -323,7 +331,7 @@ impl State {
         );
 
         let texture_view_descriptor = wgpu::TextureViewDescriptor {
-            format: Some(self.surface_config.format.add_srgb_suffix()),
+            format: Some(SCREEN_FORMAT),
             ..Default::default()
         };
         let game_view = self
@@ -372,13 +380,24 @@ impl State {
             );
         }
 
+        self.gui.render_pass(
+            &self.device,
+            &self.queue,
+            &mut encoder,
+            &game_view,
+            &self.textures.depth_texture,
+        );
+
         let surface_texture = self
             .surface
             .get_current_texture()
             .expect("Failed to acquire next swapchain texture");
         let surface_view = surface_texture
             .texture
-            .create_view(&texture_view_descriptor);
+            .create_view(&wgpu::TextureViewDescriptor {
+                format: Some(SCREEN_FORMAT.add_srgb_suffix()),
+                ..Default::default()
+            });
 
         // Final Window Pass
         {

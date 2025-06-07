@@ -22,6 +22,7 @@ pub struct RenderTextures {
     pub map_bind_group: Option<BindGroup>,
     pub game_bind_group: BindGroup,
     pub game_texture: Texture,
+    pub depth_texture: Texture,
 }
 
 impl RenderTextures {
@@ -32,7 +33,7 @@ impl RenderTextures {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8UnormSrgb,
+            format: super::SCREEN_FORMAT,
             usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -91,6 +92,8 @@ impl RenderTextures {
         let (game_bind_group, game_texture) =
             Self::generate_game_texture(device, &layout, &sampler, game_size);
 
+        let depth_texture = Self::generate_depth_texture(device, game_size);
+
         Ok(Self {
             layout,
             sampler,
@@ -100,6 +103,7 @@ impl RenderTextures {
             sprite_atlas,
             game_bind_group,
             game_texture,
+            depth_texture,
         })
     }
 
@@ -119,7 +123,7 @@ impl RenderTextures {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Bgra8UnormSrgb,
+            format: super::SCREEN_FORMAT,
             usage: TextureUsages::TEXTURE_BINDING
                 | TextureUsages::COPY_DST
                 | TextureUsages::RENDER_ATTACHMENT,
@@ -149,12 +153,34 @@ impl RenderTextures {
         (game_bind_group, game_texture)
     }
 
+    fn generate_depth_texture(device: &Device, game_size: UVec2) -> Texture {
+        device.create_texture(&TextureDescriptor {
+            label: Some("Depth Texture"),
+            size: Extent3d {
+                width: game_size.x,
+                height: game_size.y,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: super::DEPTH_FORMAT,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST
+                | TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        })
+    }
+
     pub fn update_game_texture(&mut self, device: &Device, game_size: UVec2) {
         let (bind_group, texture) =
             Self::generate_game_texture(device, &self.layout, &self.sampler, game_size);
 
+        let depth_texture = Self::generate_depth_texture(device, game_size);
+
         self.game_bind_group = bind_group;
         self.game_texture = texture;
+        self.depth_texture = depth_texture;
     }
 
     pub fn update_texture_map(&mut self, device: &Device, queue: &Queue, image: ImageBufferRGBA8) {
@@ -175,7 +201,7 @@ impl RenderTextures {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8UnormSrgb,
+            format: super::SCREEN_FORMAT,
             usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
             view_formats: &[],
         });
