@@ -1,34 +1,34 @@
 [package]
 name = "gg2-custom-client"
-edition = "2024"
+edition.workspace = true
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [dependencies]
-crossbeam-channel = "0.5.13"
-env_logger = "0.11.8"
-gg2-common = { version = "0.1.0", path = "../gg2-common", features = ["serde"] }
-gg2-client = { path = "../gg2-client" }
-glam = { version = "0.30.3", features = ["bytemuck", "fast-math"] }
-log = { version = "*", features = ["max_level_trace", "release_max_level_warn"] }
-thiserror = "2.0.12"
-tokio = { version = "1.44.2", features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"], default-features = false }
-wgpu = "25.0.0"
-winit = { version = "0.30.9", features = ["serde"] }
-bytemuck = { version = "1.22.0", features = ["derive"] }
-image = { version = "0.25.6", default-features = false, features = ["png"] }
-serde = { version = "1.0.219", features = ["derive"] }
-toml = { version = "0.8.22", features = ["preserve_order"] }
-gg2-custom-common = { version = "0.1.0", path = "../gg2-custom-common" }
-clap = { version = "4.5.37", features = ["derive"] }
-image-atlas = "0.4.1"
-enum-iterator = "2.1.0"
-serde_with = "3.12.0"
-walkdir = "2.5.0"
-semver = { version = "1.0.26", features = ["serde"] }
+bytemuck = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive"] }
+crossbeam-channel.workspace = true
 # I don't want to downgrade wgpu
-egui-wgpu = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
-egui = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
-egui-winit = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
+egui.workspace = true
+egui-wgpu.workspace = true
+egui-winit.workspace = true
+enum-iterator.workspace = true
+env_logger.workspace = true
+gg2-client.workspace = true
+gg2-common = { workspace = true, features = ["serde"] }
+gg2-custom-common.workspace = true
+glam = { workspace = true, features = ["bytemuck", "fast-math"] }
+image = { workspace = true, features = ["png"] }
+image-atlas.workspace = true
+log = { workspace = true, features = ["max_level_trace", "release_max_level_warn"] }
+semver = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
+serde_with.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"] }
+toml = { workspace = true, features = ["preserve_order"] }
+walkdir.workspace = true
+wgpu.workspace = true
+winit = { workspace = true, features = ["serde"] }

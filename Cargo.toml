@@ -12,6 +12,7 @@ version = "0.1.0"
 authors = [ "ThePinkHacker" ]
 license = "GPL-3.0-or-later"
 repository = "https://github.thepinkhacker.com/gang-garrison-rs"
+edition = "2024"
 
 [profile.dev]
 opt-level = 1
@@ -22,3 +23,38 @@ opt-level = 3
 [profile.release]
 codegen-units = 1
 lto = "thin"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.dependencies]
+bytemuck = "1.23.0"
+clap = "4.5.37"
+crossbeam-channel = "0.5.13" # TODO: Remove crossbeam
+enum-iterator = "2.1.0"
+env_logger = "0.11.8"
+# I don't want to downgrade wgpu
+egui = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
+egui-wgpu = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
+egui-winit = { git = "https://github.com/emilk/egui", rev = "417fdb1a43c7a1118126527f33825dc8162f0ed6" }
+gg2-client = { version = "0.1.0", path = "gg2-client" }
+gg2-common = { version = "0.1.0", path = "gg2-common" }
+gg2-custom-common = { version = "0.1.0", path = "gg2-custom-common" }
+glam = "0.30.3"
+hex = "0.4.3"
+image = { version = "0.25.6", default-features = false }
+image-atlas = "0.4.1"
+log = "*"
+num_enum = "0.7.3"
+png = "0.17.16"
+semver = "1.0.26"
+serde = "1.0.219"
+serde-hjson = "1.1.0"
+serde_with = "3.12.0"
+thiserror = "2.0.12"
+tokio = { version = "1.45.1", default-features = false }
+toml = "0.8.22"
+uuid = "1.10.0"
+walkdir = "2.5.0"
+wgpu = "25.0.0"
+winit = "0.30.9"

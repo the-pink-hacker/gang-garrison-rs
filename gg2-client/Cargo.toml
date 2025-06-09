@@ -1,10 +1,10 @@
 [package]
 name = "gg2-client"
-edition = "2024"
+edition.workspace = true
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [dependencies]
-gg2-common = { path = "../gg2-common" }
+gg2-common.workspace = true

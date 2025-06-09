@@ -1,18 +1,18 @@
 [package]
 name = "gg2-common"
-edition = "2024"
+edition.workspace = true
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [dependencies]
-enum-iterator = "2.1.0"
-glam = "0.30.3"
-hex = "0.4.3"
-num_enum = "0.7.3"
-png = "0.17.16"
-serde = { version = "1.0.219", features = ["derive"], optional = true }
-serde-hjson = "1.1.0"
-thiserror = "2.0.12"
-uuid = "1.10.0"
+enum-iterator.workspace = true
+glam.workspace = true
+hex.workspace = true
+num_enum.workspace = true
+png.workspace = true
+serde = { workspace = true, features = ["derive"], optional = true }
+serde-hjson.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
