@@ -4,7 +4,7 @@ use super::io::ClientNetworkEvent;
 
 impl NetworkClient {
     async fn handle_network_events(&mut self) -> Result<(), ClientError> {
-        if let Some(event) = self.network_events.receiver.try_iter().next() {
+        if let Ok(event) = self.network_events.receiver.try_recv() {
             match event {
                 ClientNetworkEvent::Connected => {
                     debug!("Network Event: Connected to server");

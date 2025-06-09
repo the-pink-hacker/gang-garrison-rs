@@ -30,7 +30,6 @@ unsafe_code = "deny"
 [workspace.dependencies]
 bytemuck = "1.23.1"
 clap = "4.5.40"
-crossbeam-channel = "0.5.15" # TODO: Remove crossbeam
 enum-iterator = "2.1.0"
 env_logger = "0.11.8"
 # I don't want to downgrade wgpu

@@ -5,7 +5,6 @@ use std::{
     sync::Arc,
 };
 
-use crossbeam_channel::{Receiver, Sender};
 use gg2_client::networking::{
     message::{ClientNetworkDeserializationContext, ClientNetworkSerialize},
     state::NetworkingState,
@@ -29,13 +28,13 @@ pub const MAX_PACKET_LENGTH: usize = 1024;
 
 #[derive(Debug)]
 pub struct SyncChannel<T> {
-    pub sender: Sender<T>,
-    pub receiver: Receiver<T>,
+    pub sender: UnboundedSender<T>,
+    pub receiver: UnboundedReceiver<T>,
 }
 
 impl<T> Default for SyncChannel<T> {
     fn default() -> Self {
-        let (sender, receiver) = crossbeam_channel::unbounded();
+        let (sender, receiver) = unbounded_channel();
 
         Self { sender, receiver }
     }
@@ -218,7 +217,7 @@ impl NetworkClient {
 async fn send_task(
     mut receive_message: UnboundedReceiver<Vec<u8>>,
     mut send_socket: OwnedWriteHalf,
-    network_event_sender: Sender<ClientNetworkEvent>,
+    network_event_sender: UnboundedSender<ClientNetworkEvent>,
 ) {
     while let Some(message) = receive_message.recv().await {
         trace!("Sending: {}", message.escape_ascii());
@@ -237,7 +236,7 @@ async fn send_task(
 async fn receive_task(
     mut read_socket: OwnedReadHalf,
     receive_messages: Arc<Mutex<VecDequeIter<u8>>>,
-    network_event_sender: Sender<ClientNetworkEvent>,
+    network_event_sender: UnboundedSender<ClientNetworkEvent>,
 ) {
     let mut buffer = [0; MAX_PACKET_LENGTH];
 

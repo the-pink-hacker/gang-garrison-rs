@@ -9,7 +9,6 @@ repository.workspace = true
 [dependencies]
 bytemuck = { workspace = true, features = ["derive"] }
 clap = { workspace = true, features = ["derive"] }
-crossbeam-channel.workspace = true
 # I don't want to downgrade wgpu
 egui.workspace = true
 egui-wgpu.workspace = true
