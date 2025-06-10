@@ -72,7 +72,7 @@ impl App {
         let mut asset_server = self.world.asset_server().write().await;
 
         asset_server.load_packs(&packs).await?;
-        asset_server.push_textures(&self.world)?;
+        asset_server.push_textures(self.world)?;
 
         Ok(())
     }

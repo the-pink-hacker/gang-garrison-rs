@@ -359,6 +359,7 @@ impl<'a> PartialEq for Components<'a> {
 
 impl Eq for Components<'_> {}
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl<'a> PartialOrd for Components<'a> {
     #[inline]
     fn partial_cmp(&self, other: &Components<'a>) -> Option<std::cmp::Ordering> {
@@ -673,6 +674,7 @@ impl std::hash::Hash for SPathBuf {
 
 impl Eq for SPathBuf {}
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for SPathBuf {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -942,6 +944,7 @@ impl std::hash::Hash for SPath {
 
 impl Eq for SPath {}
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for SPath {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
