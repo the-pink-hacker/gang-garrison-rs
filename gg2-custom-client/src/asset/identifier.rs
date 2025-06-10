@@ -4,6 +4,8 @@ use std::{
     str::FromStr,
 };
 
+use string_path::SPathBuf;
+
 use crate::prelude::*;
 
 mod serde;
@@ -36,100 +38,15 @@ impl AssetType {
 }
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(transparent)]
-pub struct AssetPath(Vec<String>);
-
-impl AssetPath {
-    pub fn strip_extension(&mut self) {
-        if let Some(last) = self.0.iter_mut().next_back()
-            && let Some(extension_index) = last.find('.')
-        {
-            let _extension = last.split_off(extension_index);
-        }
-    }
-
-    /// The last part of the asset path
-    #[must_use]
-    pub fn file_name(&self) -> Option<&str> {
-        self.0.last().map(String::as_str)
-    }
-
-    pub fn pop(&mut self) -> bool {
-        self.0.pop().is_some()
-    }
-}
-
-impl<P: ToString> FromIterator<P> for AssetPath {
-    #[inline]
-    fn from_iter<T: IntoIterator<Item = P>>(iter: T) -> Self {
-        Self(iter.into_iter().map(|x| x.to_string()).collect())
-    }
-}
-
-impl IntoIterator for AssetPath {
-    type IntoIter = std::vec::IntoIter<String>;
-    type Item = String;
-
-    #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a AssetPath {
-    type IntoIter = std::slice::Iter<'a, String>;
-    type Item = &'a String;
-
-    #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a mut AssetPath {
-    type IntoIter = std::slice::IterMut<'a, String>;
-    type Item = &'a mut String;
-
-    #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter_mut()
-    }
-}
-
-impl Display for AssetPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0.join("/"))
-    }
-}
-
-impl Debug for AssetPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\"", self.0.join("/"))
-    }
-}
-
-impl From<String> for AssetPath {
-    fn from(value: String) -> Self {
-        Self::from_iter(value.split('/'))
-    }
-}
-
-impl From<&str> for AssetPath {
-    fn from(value: &str) -> Self {
-        Self::from_iter(value.split('/'))
-    }
-}
-
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AssetId {
     namespace: String,
-    path: AssetPath,
+    path: SPathBuf,
 }
 
 impl AssetId {
     #[must_use]
     #[inline]
-    pub fn new(namespace: String, path: impl Into<AssetPath>) -> Self {
+    pub fn new(namespace: String, path: impl Into<SPathBuf>) -> Self {
         Self {
             namespace,
             path: path.into(),
@@ -137,15 +54,15 @@ impl AssetId {
     }
 
     #[must_use]
-    pub fn gg2(path: impl Into<AssetPath>) -> Self {
+    pub fn gg2(path: impl Into<SPathBuf>) -> Self {
         Self::_gg2(path.into())
     }
 
-    fn _gg2(path: AssetPath) -> Self {
+    fn _gg2(path: SPathBuf) -> Self {
         Self::new(DEFAULT_NAMESPACE.to_string(), path)
     }
 
-    pub fn into_path(&self, mut base: PathBuf, asset_type: AssetType) -> PathBuf {
+    pub fn as_path(&self, mut base: PathBuf, asset_type: AssetType) -> PathBuf {
         base.push(&self.namespace);
         base.push(asset_type.into_path());
         base.extend(&self.path);
@@ -167,14 +84,20 @@ impl AssetId {
             .ok_or_else(|| AssetError::InvalidAssetPath(path.to_path_buf()))?
             .to_string();
 
-        let (asset_type, mut path) = match path_parts.next() {
-            Some("textures") => Ok((AssetType::Texture, AssetPath::from_iter(path_parts))),
-            Some("maps") => Ok((AssetType::Map, AssetPath::from_iter(path_parts))),
-            Some("sprites") => Ok((AssetType::Sprite, AssetPath::from_iter(path_parts))),
+        let asset_type = match path_parts.next() {
+            Some("textures") => Ok(AssetType::Texture),
+            Some("maps") => Ok(AssetType::Map),
+            Some("sprites") => Ok(AssetType::Sprite),
             _ => Err(AssetError::InvalidAssetPath(path.to_path_buf())),
         }?;
 
-        path.strip_extension();
+        if let Some(full_file_name) = path_parts.as_mut_slice().last_mut()
+            && let Some((file_name, _extension)) = full_file_name.split_once(".")
+        {
+            *full_file_name = file_name;
+        }
+
+        let path = SPathBuf::from_iter(path_parts);
 
         Ok((asset_type, Self { namespace, path }))
     }
@@ -211,7 +134,7 @@ impl FromStr for AssetId {
             .split_once(':')
             .ok_or_else(|| AssetError::IdNamespace(s.to_string()))?;
 
-        let path = AssetPath::from_iter(path_raw.split('/'));
+        let path = SPathBuf::from(path_raw);
 
         Ok(Self::new(namespace.to_string(), path))
     }

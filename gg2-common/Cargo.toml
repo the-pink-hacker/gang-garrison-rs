@@ -16,3 +16,6 @@ serde = { workspace = true, features = ["derive"], optional = true }
 serde-hjson.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+
+[lints]
+workspace = true

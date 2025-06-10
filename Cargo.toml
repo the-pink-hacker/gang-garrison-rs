@@ -5,6 +5,7 @@ members = [
     "gg2-common",
     "gg2-custom-client",
     "gg2-custom-common",
+    "string-path",
 ]
 
 [workspace.package]
@@ -25,7 +26,7 @@ codegen-units = 1
 lto = "thin"
 
 [workspace.lints.rust]
-unsafe_code = "deny"
+#unsafe_code = "deny"
 
 [workspace.dependencies]
 bytemuck = "1.23.1"
@@ -50,6 +51,7 @@ semver = "1.0.26"
 serde = "1.0.219"
 serde-hjson = "1.1.0"
 serde_with = "3.12.0"
+string-path = { version = "0.1.0", path = "string-path" }
 thiserror = "2.0.12"
 tokio = { version = "1.45.1", default-features = false }
 toml = "0.8.23"

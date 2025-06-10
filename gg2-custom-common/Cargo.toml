@@ -13,3 +13,6 @@ gg2-common.workspace = true
 glam = { workspace = true, features = ["bytemuck"] }
 log.workspace = true
 tokio = { workspace = true, features = ["sync"] }
+
+[lints]
+workspace = true

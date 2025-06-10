@@ -8,3 +8,6 @@ repository.workspace = true
 
 [dependencies]
 gg2-common.workspace = true
+
+[lints]
+workspace = true

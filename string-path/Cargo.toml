@@ -1,0 +1,13 @@
+[package]
+name = "string-path"
+version = "0.1.0"
+description = "Path and PathBuf but implemented with str and String instead of OsStr and OsString"
+authors = [ "ThePinkHacker" ]
+license = "MIT/Apache-2.0"
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

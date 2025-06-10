@@ -25,9 +25,13 @@ log = { workspace = true, features = ["max_level_trace", "release_max_level_warn
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
+string-path.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"] }
 toml = { workspace = true, features = ["preserve_order"] }
 walkdir.workspace = true
 wgpu.workspace = true
 winit = { workspace = true, features = ["serde"] }
+
+[lints]
+workspace = true

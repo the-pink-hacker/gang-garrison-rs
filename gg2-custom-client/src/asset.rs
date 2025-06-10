@@ -36,7 +36,7 @@ impl AssetServer {
     }
 
     async fn load_texture(base: PathBuf, id: &AssetId) -> error::Result<ImageBufferRGBA8> {
-        let path = id.into_path(base, AssetType::Texture);
+        let path = id.as_path(base, AssetType::Texture);
         trace!("Loading texture {} from: {}", id, path.display());
 
         let image_raw = Self::load_asset(&path).await?;
@@ -44,7 +44,7 @@ impl AssetServer {
     }
 
     async fn load_sprite(base: PathBuf, id: &AssetId) -> Result<SpriteContextAsset> {
-        let path = id.into_path(base, AssetType::Sprite);
+        let path = id.as_path(base, AssetType::Sprite);
         trace!("Loading sprite {} from {}", id, path.display());
 
         let sprite_raw = Self::load_asset_string(&path).await?;
@@ -60,7 +60,7 @@ impl AssetServer {
             .ok_or_else(|| AssetError::Unloaded(AssetType::Map, id.clone()))?
             .as_ref()
             .clone();
-        let path = id.into_path(base_path, AssetType::Map);
+        let path = id.as_path(base_path, AssetType::Map);
         let map_buffer = Self::load_asset(path).await?;
 
         let map_data = MapData::load_from_memory(&map_buffer)?;
