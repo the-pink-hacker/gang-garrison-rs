@@ -5,6 +5,8 @@ use winit::{event::WindowEvent, window::Window};
 
 use crate::prelude::*;
 
+pub mod draw;
+
 const PIXELS_PER_POINT: f32 = 1.0;
 
 pub struct GuiRenderer {
@@ -12,10 +14,16 @@ pub struct GuiRenderer {
     screen_descriptor: ScreenDescriptor,
     egui_context: Context,
     egui_winit_state: egui_winit::State,
+    world: &'static ClientWorld,
 }
 
 impl GuiRenderer {
-    pub fn new(device: &Device, game_size: UVec2, window: &Window) -> Self {
+    pub fn new(
+        device: &Device,
+        game_size: UVec2,
+        window: &Window,
+        world: &'static ClientWorld,
+    ) -> Self {
         let renderer = Renderer::new(
             device,
             super::SCREEN_FORMAT,
@@ -41,6 +49,7 @@ impl GuiRenderer {
             screen_descriptor,
             egui_context,
             egui_winit_state,
+            world,
         }
     }
 
@@ -111,19 +120,10 @@ impl GuiRenderer {
         // Use update_viewport_info to update the info for each viewport.
         let raw_input = self.egui_winit_state.take_egui_input(window);
 
-        let full_output = self.egui_context.run(raw_input, |ctx| {
-            egui::SidePanel::left("left_panel").show(ctx, |ui| {
-                egui::ScrollArea::both()
-                    .auto_shrink([false; 2])
-                    .show(ui, |ui| {
-                        ui.label("Hello, World!");
-
-                        if ui.button("This is a button").clicked() {
-                            panic!("HL3 Confirmed!!!")
-                        }
-                    });
-            });
-        });
+        let full_output = self
+            .egui_context
+            .clone()
+            .run(raw_input, |ctx| self.draw(ctx));
 
         self.egui_winit_state
             .handle_platform_output(window, full_output.platform_output);
@@ -152,6 +152,14 @@ impl GuiRenderer {
 impl super::State {
     /// Returns true if event was consumed
     pub fn on_window_event(&mut self, event: &WindowEvent) -> bool {
+        let event = if let &WindowEvent::Resized(mut window_size) = event {
+            window_size.width -= self.size_difference_half.x * 2;
+            window_size.height -= self.size_difference_half.y * 2;
+            &WindowEvent::Resized(window_size)
+        } else {
+            event
+        };
+
         let response = self
             .gui
             .egui_winit_state

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub const PLAYER_SCALE: f32 = 64.0;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Player {
     pub name: GGStringShort,
     pub transform: Transform,

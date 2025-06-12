@@ -22,6 +22,7 @@ glam = { workspace = true, features = ["bytemuck", "fast-math"] }
 image = { workspace = true, features = ["png"] }
 image-atlas.workspace = true
 log = { workspace = true, features = ["max_level_trace", "release_max_level_warn"] }
+poll-promise = { workspace = true, features = ["tokio"] }
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true

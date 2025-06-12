@@ -77,6 +77,7 @@ pub struct State {
     sprite_instances: Vec<SpriteInstance>,
     sprite_instance_buffer: wgpu::Buffer,
     gui: gui::GuiRenderer,
+    exit_next_frame: bool,
 }
 
 impl State {
@@ -155,7 +156,7 @@ impl State {
             &surface_config,
         );
 
-        let gui = gui::GuiRenderer::new(&device, game_size, &window);
+        let gui = gui::GuiRenderer::new(&device, game_size, &window, world);
 
         let state = State {
             world,
@@ -178,6 +179,7 @@ impl State {
             sprite_instances,
             sprite_instance_buffer,
             gui,
+            exit_next_frame: false,
         };
 
         state.configure_surface();
@@ -298,6 +300,7 @@ impl State {
                     self.textures
                         .update_texture_map(&self.device, &self.queue, image);
                 }
+                GameToRenderMessage::ExitNextFrame => self.exit_next_frame = true,
             }
         }
 
@@ -511,6 +514,10 @@ impl ApplicationHandler for RenderApp {
         mut event: WindowEvent,
     ) {
         let state = self.state.as_mut().expect("Render state uninitilized");
+
+        if state.exit_next_frame {
+            event_loop.exit();
+        }
 
         state.correct_cursor_position(&mut event);
 
