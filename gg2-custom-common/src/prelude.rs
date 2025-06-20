@@ -15,5 +15,9 @@ pub use crate::{
     game::{CommonGame, world::World},
     init::cli::CommonCliJoinServer,
     player::{Player, Players},
+    resource::{
+        error::ResourceError,
+        identifier::{ResourceId, ResourceType},
+    },
     transform::Transform,
 };

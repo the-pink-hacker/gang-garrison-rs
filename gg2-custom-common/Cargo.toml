@@ -12,7 +12,11 @@ clap = { workspace = true, features = ["derive"] }
 gg2-common.workspace = true
 glam = { workspace = true, features = ["bytemuck"] }
 log.workspace = true
+serde = { workspace = true, features = ["derive"] }
+string-path.workspace = true
+thiserror.workspace = true
 tokio = { workspace = true, features = ["sync"] }
+toml.workspace = true
 
 [lints]
 workspace = true

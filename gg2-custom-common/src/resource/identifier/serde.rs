@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize, de::Visitor};
 
 use crate::prelude::*;
 
-impl Serialize for AssetId {
+impl Serialize for ResourceId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -13,7 +13,7 @@ impl Serialize for AssetId {
     }
 }
 
-impl<'de> Deserialize<'de> for AssetId {
+impl<'de> Deserialize<'de> for ResourceId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -25,7 +25,7 @@ impl<'de> Deserialize<'de> for AssetId {
 struct AssetIdVisitor;
 
 impl Visitor<'_> for AssetIdVisitor {
-    type Value = AssetId;
+    type Value = ResourceId;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("A namespaced asset identifier")
@@ -35,6 +35,6 @@ impl Visitor<'_> for AssetIdVisitor {
     where
         E: serde::de::Error,
     {
-        AssetId::from_str(v).map_err(E::custom)
+        ResourceId::from_str(v).map_err(E::custom)
     }
 }

@@ -6,7 +6,7 @@ pub use crate::{
     asset::{
         AssetServer,
         error::AssetError,
-        identifier::{AssetId, AssetType},
+        identifier::AssetType,
         pack::AssetPack,
         sprite::{SpriteContextAsset, SpriteRenderable},
     },

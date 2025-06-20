@@ -2,17 +2,17 @@ use std::collections::HashMap;
 
 use image_atlas::{AtlasDescriptor, AtlasEntry, AtlasEntryMipOption, AtlasMipOption};
 
-use crate::{asset::identifier::AssetId, prelude::*};
+use crate::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct TextureAtlas {
-    uv_lookup: HashMap<AssetId, Vec<Vec4>>,
+    uv_lookup: HashMap<ResourceId, Vec<Vec4>>,
 }
 
 impl TextureAtlas {
     pub fn new(
         size: u32,
-        mut textures: Vec<(AssetId, ImageBufferRGBA8)>,
+        mut textures: Vec<(ResourceId, ImageBufferRGBA8)>,
     ) -> Result<(Self, ImageBufferRGBA8), AssetError> {
         // Sort to keep animations in order
         textures.sort_by(|(id, _), (other_id, _)| id.cmp(other_id));
@@ -83,14 +83,14 @@ impl TextureAtlas {
         Ok((atlas, texture_buffer))
     }
 
-    pub fn lookup_sprite(&self, id: &AssetId) -> Result<Vec4, AssetError> {
+    pub fn lookup_sprite(&self, id: &ResourceId) -> Result<Vec4, AssetError> {
         Ok(*self
             .lookup_sprite_many(id)?
             .first()
             .unwrap_or_else(|| panic!("Sprite {id} has no frames")))
     }
 
-    pub fn lookup_sprite_many(&self, id: &AssetId) -> Result<&[Vec4], AssetError> {
+    pub fn lookup_sprite_many(&self, id: &ResourceId) -> Result<&[Vec4], AssetError> {
         Ok(self
             .uv_lookup
             .get(id)

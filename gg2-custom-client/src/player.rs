@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
 impl SpriteRenderable for Player {
-    fn get_context_id() -> AssetId {
-        AssetId::gg2("player")
+    fn get_context_id() -> ResourceId {
+        ResourceId::gg2("player")
     }
 
     #[inline]

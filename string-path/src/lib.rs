@@ -1,4 +1,4 @@
-use std::{error::Error, iter::FusedIterator, str::FromStr};
+use std::{error::Error, ffi::OsString, iter::FusedIterator, str::FromStr};
 
 pub const MAIN_SEPARATOR: char = '/';
 pub const MAIN_SEPARATOR_STR: &str = "/";
@@ -534,6 +534,16 @@ impl SPathBuf {
             None => false,
         }
     }
+
+    #[inline]
+    pub fn shrink_to_fit(&mut self) {
+        self.inner.shrink_to_fit()
+    }
+
+    #[inline]
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.inner.shrink_to(min_capacity)
+    }
 }
 
 impl Clone for SPathBuf {
@@ -686,6 +696,20 @@ impl Ord for SPathBuf {
     #[inline]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         compare_components(self.components(), other.components())
+    }
+}
+
+impl From<SPathBuf> for OsString {
+    #[inline]
+    fn from(value: SPathBuf) -> Self {
+        value.inner.into()
+    }
+}
+
+impl From<SPathBuf> for std::path::PathBuf {
+    #[inline]
+    fn from(value: SPathBuf) -> Self {
+        value.inner.into()
     }
 }
 

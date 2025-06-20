@@ -245,7 +245,7 @@ impl RenderTextures {
     pub fn update_texture_atlas(
         &mut self,
         queue: &Queue,
-        textures: Vec<(AssetId, ImageBufferRGBA8)>,
+        textures: Vec<(ResourceId, ImageBufferRGBA8)>,
     ) {
         debug!("Updating texture atlas buffer...");
         let (texture_atlas, diffuse_rgba) =

@@ -954,7 +954,11 @@ dependencies = [
  "gg2-common",
  "glam",
  "log",
+ "serde",
+ "string-path",
+ "thiserror 2.0.12",
  "tokio",
+ "toml",
 ]
 
 [[package]]

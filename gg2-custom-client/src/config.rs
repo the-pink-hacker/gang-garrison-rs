@@ -108,12 +108,14 @@ pub struct ClientConfigAssets {
 pub struct ClientConfigLock(RwLock<ClientConfig>);
 
 impl ClientConfigLock {
+    #[inline]
     pub async fn read(&self) -> tokio::sync::RwLockReadGuard<'_, ClientConfig> {
         self.0.read().await
     }
 
     /// Saves config after gaurd is dropped
-    pub async fn write(&self) -> ClientConfigLockWriteGuard {
+    #[inline]
+    pub async fn write(&self) -> ClientConfigLockWriteGuard<'_> {
         ClientConfigLockWriteGuard(self.0.write().await)
     }
 }

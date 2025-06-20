@@ -2,12 +2,12 @@ use crate::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct MapInfo {
-    pub current_map: Option<(AssetId, MapData)>,
+    pub current_map: Option<(ResourceId, MapData)>,
 }
 
 impl ClientGame {
     pub async fn event_map_change(&self, message: ServerChangeMap) -> Result<(), ClientError> {
-        let map_id = AssetId::gg2((*message.map_name).clone());
+        let map_id = ResourceId::gg2((*message.map_name).clone());
         info!("Map loading: {map_id}");
 
         let (image, data) = self

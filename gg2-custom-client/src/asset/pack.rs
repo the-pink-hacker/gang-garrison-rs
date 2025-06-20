@@ -5,6 +5,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use string_path::SPathBuf;
 
 use crate::prelude::*;
 
@@ -19,18 +20,18 @@ pub struct AssetPack {
 
 impl AssetPack {
     /// Constructs an `AssetPack` given the path that contains the `pack.toml`
-    pub async fn from_path(pack_path: &Path) -> Result<Self, AssetError> {
+    pub async fn from_path(pack_path: &Path) -> Result<Self, ResourceError> {
         let canon_path = pack_path
             .canonicalize()
-            .map_err(|_| AssetError::PackMeta(pack_path.to_path_buf()))?;
+            .map_err(|_| ResourceError::PackMeta(pack_path.to_path_buf()))?;
         let toml_path = canon_path.join(PACK_TOML);
 
         let toml_file = tokio::fs::read_to_string(&toml_path)
             .await
-            .map_err(|_| AssetError::PackMeta(toml_path.clone()))?;
+            .map_err(|_| ResourceError::PackMeta(toml_path.clone()))?;
 
         let metadata = toml::from_str::<AssetPackMetadataRoot>(&toml_file)
-            .map_err(|error| AssetError::PackMetaToml(toml_path, error))?
+            .map_err(|error| ResourceError::PackMetaToml(toml_path, error))?
             .pack;
 
         Ok(Self {
@@ -41,9 +42,9 @@ impl AssetPack {
 
     pub fn scan_files(
         &self,
-        texture_map: &mut HashMap<AssetId, Arc<PathBuf>>,
-        sprite_map: &mut HashMap<AssetId, Arc<PathBuf>>,
-        map_map: &mut HashMap<AssetId, Arc<PathBuf>>,
+        texture_map: &mut HashMap<ResourceId, Arc<PathBuf>>,
+        sprite_map: &mut HashMap<ResourceId, Arc<PathBuf>>,
+        map_map: &mut HashMap<ResourceId, Arc<PathBuf>>,
     ) -> Result<(), AssetError> {
         for asset_path in walkdir::WalkDir::new(&*self.asset_root)
             .follow_links(false)
@@ -62,9 +63,13 @@ impl AssetPack {
             .map(walkdir::DirEntry::into_path)
         {
             let relative_path = asset_path.strip_prefix(&*self.asset_root).map_err(|_| {
-                AssetError::StripPrefix((*self.asset_root).clone(), asset_path.clone())
+                ResourceError::StripPrefix((*self.asset_root).clone(), asset_path.clone())
             })?;
-            let (asset_type, asset_id) = AssetId::from_path(relative_path)?;
+            let relative_spath = relative_path
+                .to_str()
+                .map(SPathBuf::from)
+                .ok_or_else(|| ResourceError::InvalidStringPath(relative_path.to_path_buf()))?;
+            let (asset_type, asset_id) = AssetType::get_id(&relative_spath)?;
 
             match asset_type {
                 AssetType::Texture => {

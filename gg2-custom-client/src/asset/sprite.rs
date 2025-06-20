@@ -11,11 +11,11 @@ pub struct SpriteContextAsset {
 #[serde(untagged)]
 pub enum SpriteContextBranch {
     Condition(Box<SpriteContextCondition>),
-    Texture(AssetId),
+    Texture(ResourceId),
 }
 
 impl SpriteContextBranch {
-    fn evaluate<R: SpriteRenderable + ?Sized>(&self, renderable: &R) -> Option<&AssetId> {
+    fn evaluate<R: SpriteRenderable + ?Sized>(&self, renderable: &R) -> Option<&ResourceId> {
         match self {
             Self::Condition(condition) => condition.evaluate(renderable),
             Self::Texture(id) => Some(id),
@@ -61,7 +61,7 @@ pub enum SpriteContextCondition {
 }
 
 impl SpriteContextCondition {
-    fn evaluate<R: SpriteRenderable + ?Sized>(&self, renderable: &R) -> Option<&AssetId> {
+    fn evaluate<R: SpriteRenderable + ?Sized>(&self, renderable: &R) -> Option<&ResourceId> {
         match self {
             Self::Team {
                 red,
@@ -124,7 +124,7 @@ pub trait SpriteRenderable {
         }
     }
 
-    fn get_context_id() -> AssetId;
+    fn get_context_id() -> ResourceId;
 
     fn get_transform(&self) -> Transform;
 
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn serialize_root_texture() {
         let sprite = SpriteContextAsset {
-            branch: SpriteContextBranch::Texture(AssetId::gg2("test/path")),
+            branch: SpriteContextBranch::Texture(ResourceId::gg2("test/path")),
         };
 
         let expected = toml! {
@@ -163,9 +163,11 @@ mod tests {
     fn serialize_team() {
         let sprite = SpriteContextAsset {
             branch: SpriteContextBranch::Condition(Box::new(SpriteContextCondition::Team {
-                red: Some(SpriteContextBranch::Texture(AssetId::gg2("red/test"))),
-                blu: Some(SpriteContextBranch::Texture(AssetId::gg2("blu/test"))),
-                spectator: Some(SpriteContextBranch::Texture(AssetId::gg2("spectator/test"))),
+                red: Some(SpriteContextBranch::Texture(ResourceId::gg2("red/test"))),
+                blu: Some(SpriteContextBranch::Texture(ResourceId::gg2("blu/test"))),
+                spectator: Some(SpriteContextBranch::Texture(ResourceId::gg2(
+                    "spectator/test",
+                ))),
             })),
         };
 
@@ -187,8 +189,8 @@ mod tests {
     fn serialize_team_red_blu() {
         let sprite = SpriteContextAsset {
             branch: SpriteContextBranch::Condition(Box::new(SpriteContextCondition::Team {
-                red: Some(SpriteContextBranch::Texture(AssetId::gg2("red/test"))),
-                blu: Some(SpriteContextBranch::Texture(AssetId::gg2("blu/test"))),
+                red: Some(SpriteContextBranch::Texture(ResourceId::gg2("red/test"))),
+                blu: Some(SpriteContextBranch::Texture(ResourceId::gg2("blu/test"))),
                 spectator: None,
             })),
         };

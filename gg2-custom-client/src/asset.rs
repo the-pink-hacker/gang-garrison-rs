@@ -16,10 +16,10 @@ pub mod sprite;
 pub struct AssetServer {
     /// All loaded packs in ascending priority
     loaded_packs: Vec<AssetPack>,
-    textures: HashMap<AssetId, ImageBufferRGBA8>,
-    sprites: HashMap<AssetId, SpriteContextAsset>,
+    textures: HashMap<ResourceId, ImageBufferRGBA8>,
+    sprites: HashMap<ResourceId, SpriteContextAsset>,
     /// All scanned maps with the base pack path
-    maps: HashMap<AssetId, Arc<PathBuf>>,
+    maps: HashMap<ResourceId, Arc<PathBuf>>,
 }
 
 impl AssetServer {
@@ -35,7 +35,7 @@ impl AssetServer {
         Ok(tokio::fs::read_to_string(path).await?)
     }
 
-    async fn load_texture(base: PathBuf, id: &AssetId) -> error::Result<ImageBufferRGBA8> {
+    async fn load_texture(base: PathBuf, id: &ResourceId) -> error::Result<ImageBufferRGBA8> {
         let path = id.as_path(base, AssetType::Texture);
         trace!("Loading texture {} from: {}", id, path.display());
 
@@ -43,7 +43,7 @@ impl AssetServer {
         Self::read_texture(&image_raw).await
     }
 
-    async fn load_sprite(base: PathBuf, id: &AssetId) -> Result<SpriteContextAsset> {
+    async fn load_sprite(base: PathBuf, id: &ResourceId) -> Result<SpriteContextAsset> {
         let path = id.as_path(base, AssetType::Sprite);
         trace!("Loading sprite {} from {}", id, path.display());
 
@@ -53,11 +53,11 @@ impl AssetServer {
     }
 
     // TODO: Check map MD5
-    pub async fn load_map(&self, id: &AssetId) -> Result<(ImageBufferRGBA8, MapData)> {
+    pub async fn load_map(&self, id: &ResourceId) -> Result<(ImageBufferRGBA8, MapData)> {
         let base_path = self
             .maps
             .get(id)
-            .ok_or_else(|| AssetError::Unloaded(AssetType::Map, id.clone()))?
+            .ok_or_else(|| AssetError::Unloaded(AssetType::Map.to_string(), id.clone()))?
             .as_ref()
             .clone();
         let path = id.as_path(base_path, AssetType::Map);
@@ -80,7 +80,7 @@ impl AssetServer {
         Ok(())
     }
 
-    pub fn get_sprite(&self, id: &AssetId) -> Result<&SpriteContextAsset> {
+    pub fn get_sprite(&self, id: &ResourceId) -> Result<&SpriteContextAsset> {
         self.sprites
             .get(id)
             .ok_or_else(|| AssetError::AtlasLookup(id.clone()))
