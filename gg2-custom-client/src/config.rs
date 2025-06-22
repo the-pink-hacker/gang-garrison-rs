@@ -103,34 +103,3 @@ impl Default for ClientConfigControls {
 pub struct ClientConfigAssets {
     pub enabled_packs: Vec<String>,
 }
-
-#[derive(Debug)]
-pub struct ClientConfigLock(RwLock<ClientConfig>);
-
-impl ClientConfigLock {
-    #[inline]
-    pub async fn read(&self) -> tokio::sync::RwLockReadGuard<'_, ClientConfig> {
-        self.0.read().await
-    }
-
-    /// Saves config after gaurd is dropped
-    #[inline]
-    pub async fn write(&self) -> ClientConfigLockWriteGuard<'_> {
-        ClientConfigLockWriteGuard(self.0.write().await)
-    }
-}
-
-impl From<ClientConfig> for ClientConfigLock {
-    fn from(value: ClientConfig) -> Self {
-        Self(RwLock::new(value))
-    }
-}
-
-#[derive(Debug)]
-pub struct ClientConfigLockWriteGuard<'a>(tokio::sync::RwLockWriteGuard<'a, ClientConfig>);
-
-impl Drop for ClientConfigLockWriteGuard<'_> {
-    fn drop(&mut self) {
-        self.0.save().expect("Failed to save client config");
-    }
-}

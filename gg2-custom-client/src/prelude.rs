@@ -11,7 +11,7 @@ pub use crate::{
         sprite::{SpriteContextAsset, SpriteRenderable},
     },
     camera::Camera,
-    config::{ClientConfig, ClientConfigLock},
+    config::ClientConfig,
     error::ClientError,
     game::ClientGame,
     init::{

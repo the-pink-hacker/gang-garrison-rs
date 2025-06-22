@@ -10,7 +10,7 @@ pub struct ClientWorld {
     asset_server: RwLock<AssetServer>,
     camera: RwLock<Camera>,
     client_cli_arguments: ClientCliArguments,
-    config: ClientConfigLock,
+    config: RwLock<ClientConfig>,
     executable_directory: PathBuf,
     map_info: RwLock<MapInfo>,
     network_client: RwLock<NetworkClient>,
@@ -22,7 +22,7 @@ impl ClientWorld {
     pub fn new(
         game_to_render_channel: UnboundedSender<GameToRenderMessage>,
         client_cli_arguments: ClientCliArguments,
-        config: impl Into<ClientConfigLock>,
+        config: impl Into<RwLock<ClientConfig>>,
         executable_directory: PathBuf,
     ) -> Self {
         Self {
@@ -74,7 +74,7 @@ impl ClientWorld {
     }
 
     #[inline]
-    pub fn config(&self) -> &ClientConfigLock {
+    pub fn config(&self) -> &RwLock<ClientConfig> {
         &self.config
     }
 }
