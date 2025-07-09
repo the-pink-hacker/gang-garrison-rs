@@ -31,7 +31,9 @@ pub trait ResourceType: AsRef<Path> + Copy {
         if let Some(full_file_name) = path.file_name()
             && let Some(extension_index) = full_file_name.find(".")
         {
-            path.shrink_to(extension_index)
+            let truncated_file_name = full_file_name[..extension_index].to_string();
+            path.pop();
+            path.push(truncated_file_name);
         }
 
         Ok((asset_type, ResourceId { namespace, path }))

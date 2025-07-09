@@ -333,14 +333,6 @@ impl State {
                 Vec4::new(0.0, 0.0, 1.0, 1.0),
             ));
 
-        // Maybe this should be a compute shader?
-        // Sort by z
-        self.sprite_instances.sort_by(|instance, other_instance| {
-            instance
-                .translation_z()
-                .total_cmp(&other_instance.translation_z())
-        });
-
         self.queue.write_buffer(
             &self.sprite_instance_buffer,
             0,
@@ -359,6 +351,14 @@ impl State {
         let mut encoder = self.device.create_command_encoder(&Default::default());
         // Game View Pass
         {
+            let depth_view =
+                self.textures
+                    .depth_texture
+                    .create_view(&wgpu::TextureViewDescriptor {
+                        format: Some(DEPTH_FORMAT),
+                        ..Default::default()
+                    });
+
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Main Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -369,7 +369,14 @@ impl State {
                         store: wgpu::StoreOp::Store,
                     },
                 })],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth_view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });

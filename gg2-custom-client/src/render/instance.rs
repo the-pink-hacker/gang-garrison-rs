@@ -28,11 +28,6 @@ impl SpriteInstance {
         }
     }
 
-    #[inline]
-    pub fn translation_z(&self) -> f32 {
-        self.transform_matrix.w_axis.z
-    }
-
     pub fn layout() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
