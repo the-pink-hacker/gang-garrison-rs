@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-pub type Result<T> = std::result::Result<T, AssetError>;
-
 #[derive(Debug, thiserror::Error)]
 pub enum AssetError {
     #[error("Asset IO: {0}")]

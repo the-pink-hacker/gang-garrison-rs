@@ -7,6 +7,7 @@ pub enum AssetType {
     Texture,
     Map,
     Sprite,
+    Atlas,
 }
 
 impl AsRef<Path> for AssetType {
@@ -15,6 +16,7 @@ impl AsRef<Path> for AssetType {
             Self::Texture => Path::new("textures"),
             Self::Map => Path::new("maps"),
             Self::Sprite => Path::new("sprites"),
+            Self::Atlas => Path::new("atlases"),
         }
     }
 }
@@ -22,9 +24,8 @@ impl AsRef<Path> for AssetType {
 impl ResourceType for AssetType {
     fn extension(&self) -> &str {
         match self {
-            Self::Texture => "png",
-            Self::Sprite => "toml",
-            Self::Map => "png",
+            Self::Texture | Self::Map => "png",
+            Self::Sprite | Self::Atlas => "toml",
         }
     }
 
@@ -33,6 +34,7 @@ impl ResourceType for AssetType {
             "textures" => Some(Self::Texture),
             "sprites" => Some(Self::Sprite),
             "maps" => Some(Self::Map),
+            "atlases" => Some(Self::Atlas),
             _ => None,
         }
     }

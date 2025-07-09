@@ -8,6 +8,10 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
+serde = { workspace = true, features = ["derive"], optional = true }
 
 [lints]
 workspace = true
+
+[features]
+serde = ["dep:serde"]

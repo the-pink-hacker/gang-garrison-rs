@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize, de::Visitor};
 use crate::prelude::*;
 
 impl Serialize for ResourceId {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -14,11 +15,12 @@ impl Serialize for ResourceId {
 }
 
 impl<'de> Deserialize<'de> for ResourceId {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_str(AssetIdVisitor)
+        deserializer.deserialize_string(AssetIdVisitor)
     }
 }
 

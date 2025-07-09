@@ -1,0 +1,9 @@
+[metadata]
+size = 512
+
+[selector]
+type = "union"
+
+[[selector.values]]
+type = "path"
+path = "character"

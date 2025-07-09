@@ -5,8 +5,9 @@ use std::{
 };
 
 use crate::prelude::*;
-use error::Result;
+use tokio::task::JoinSet;
 
+pub mod atlas;
 pub mod error;
 pub mod identifier;
 pub mod pack;
@@ -16,6 +17,7 @@ pub mod sprite;
 pub struct AssetServer {
     /// All loaded packs in ascending priority
     loaded_packs: Vec<AssetPack>,
+    atlases: HashMap<ResourceId, AtlasDefinition>,
     textures: HashMap<ResourceId, ImageBufferRGBA8>,
     sprites: HashMap<ResourceId, SpriteContextAsset>,
     /// All scanned maps with the base pack path
@@ -23,37 +25,23 @@ pub struct AssetServer {
 }
 
 impl AssetServer {
-    async fn read_texture(buf: &[u8]) -> error::Result<ImageBufferRGBA8> {
+    async fn read_texture(buf: &[u8]) -> Result<ImageBufferRGBA8, AssetError> {
         Ok(image::load_from_memory_with_format(buf, image::ImageFormat::Png)?.to_rgba8())
     }
 
-    async fn load_asset(path: impl AsRef<Path>) -> Result<Vec<u8>> {
+    async fn load_asset(path: impl AsRef<Path>) -> Result<Vec<u8>, AssetError> {
         Ok(tokio::fs::read(path).await?)
     }
 
-    async fn load_asset_string(path: impl AsRef<Path>) -> Result<String> {
+    async fn load_asset_string(path: impl AsRef<Path>) -> Result<String, AssetError> {
         Ok(tokio::fs::read_to_string(path).await?)
     }
 
-    async fn load_texture(base: PathBuf, id: &ResourceId) -> error::Result<ImageBufferRGBA8> {
-        let path = id.as_path(base, AssetType::Texture);
-        trace!("Loading texture {} from: {}", id, path.display());
-
-        let image_raw = Self::load_asset(&path).await?;
-        Self::read_texture(&image_raw).await
-    }
-
-    async fn load_sprite(base: PathBuf, id: &ResourceId) -> Result<SpriteContextAsset> {
-        let path = id.as_path(base, AssetType::Sprite);
-        trace!("Loading sprite {} from {}", id, path.display());
-
-        let sprite_raw = Self::load_asset_string(&path).await?;
-
-        Ok(toml::from_str(&sprite_raw)?)
-    }
-
     // TODO: Check map MD5
-    pub async fn load_map(&self, id: &ResourceId) -> Result<(ImageBufferRGBA8, MapData)> {
+    pub async fn load_map(
+        &self,
+        id: &ResourceId,
+    ) -> Result<(ImageBufferRGBA8, MapData), AssetError> {
         let base_path = self
             .maps
             .get(id)
@@ -70,7 +58,7 @@ impl AssetServer {
         Ok((image, map_data))
     }
 
-    pub fn push_textures(&mut self, world: &ClientWorld) -> std::result::Result<(), ClientError> {
+    pub fn push_textures(&mut self, world: &ClientWorld) -> Result<(), ClientError> {
         let textures = std::mem::take(&mut self.textures).into_iter().collect();
 
         world
@@ -80,13 +68,13 @@ impl AssetServer {
         Ok(())
     }
 
-    pub fn get_sprite(&self, id: &ResourceId) -> Result<&SpriteContextAsset> {
+    pub fn get_sprite(&self, id: &ResourceId) -> Result<&SpriteContextAsset, AssetError> {
         self.sprites
             .get(id)
             .ok_or_else(|| AssetError::AtlasLookup(id.clone()))
     }
 
-    pub async fn load_packs(&mut self, packs: &[PathBuf]) -> Result<()> {
+    pub async fn load_packs(&mut self, packs: &[PathBuf]) -> Result<(), AssetError> {
         self.loaded_packs.reserve(packs.len());
 
         for path in packs {
@@ -107,50 +95,108 @@ impl AssetServer {
 
         let mut texture_map = HashMap::new();
         let mut sprite_map = HashMap::new();
+        let mut atlas_map = HashMap::new();
 
         for pack in &self.loaded_packs {
-            pack.scan_files(&mut texture_map, &mut sprite_map, &mut self.maps)?;
+            pack.scan_files(
+                &mut texture_map,
+                &mut sprite_map,
+                &mut self.maps,
+                &mut atlas_map,
+            )?;
         }
 
-        let mut texture_set = tokio::task::JoinSet::new();
+        let mut texture_set = Self::process_asset(texture_map).await;
+        let mut sprite_set = Self::process_asset(sprite_map).await;
+        let mut atlas_set = Self::process_asset(atlas_map).await;
 
-        for (asset_id, pack_path) in texture_map {
-            texture_set.spawn(async move {
-                Self::load_texture(pack_path.as_ref().clone(), &asset_id)
-                    .await
-                    .map(|texture| (asset_id, texture))
-            });
-        }
-
-        let mut sprite_set = tokio::task::JoinSet::new();
-
-        for (asset_id, pack_path) in sprite_map {
-            sprite_set.spawn(async move {
-                Self::load_sprite(pack_path.as_ref().clone(), &asset_id)
-                    .await
-                    .map(|sprite| (asset_id, sprite))
-            });
-        }
-
-        while let Some(Ok(sprite)) = sprite_set.join_next().await {
-            match sprite {
-                Ok((sprite_id, sprite_asset)) => {
-                    self.sprites.insert(sprite_id, sprite_asset);
-                }
-                Err(error) => error!("Asset Error: {error}"),
-            }
-        }
-
+        Self::store_assets(&mut sprite_set, &mut self.sprites).await;
+        Self::store_assets(&mut atlas_set, &mut self.atlases).await;
         // Textures will likely take the longest to load
-        while let Some(Ok(texture)) = texture_set.join_next().await {
-            match texture {
-                Ok((texture_id, texture_buffer)) => {
-                    self.textures.insert(texture_id, texture_buffer);
-                }
-                Err(error) => error!("Asset Error: {error}"),
-            }
-        }
+        Self::store_assets(&mut texture_set, &mut self.textures).await;
 
         Ok(())
+    }
+
+    async fn process_asset<T>(
+        asset_map: HashMap<ResourceId, Arc<PathBuf>>,
+    ) -> JoinSet<std::result::Result<(ResourceId, T), AssetError>>
+    where
+        T: Send + 'static,
+        Self: AssetLoader<T>,
+    {
+        let mut join_set = JoinSet::new();
+
+        asset_map.into_iter().for_each(|(asset_id, pack_path)| {
+            join_set.spawn(async move {
+                <Self as AssetLoader<T>>::load_asset(pack_path.to_path_buf(), &asset_id)
+                    .await
+                    .map(|asset| (asset_id, asset))
+            });
+        });
+
+        join_set
+    }
+
+    async fn store_assets<T: 'static>(
+        asset_set: &mut JoinSet<Result<(ResourceId, T), AssetError>>,
+        asset_store: &mut HashMap<ResourceId, T>,
+    ) {
+        while let Some(Ok(join_result)) = asset_set.join_next().await {
+            match join_result {
+                Ok((asset_id, asset)) => {
+                    asset_store.insert(asset_id, asset);
+                }
+                Err(error) => error!("Asset Error: {error}"),
+            }
+        }
+    }
+}
+
+trait AssetLoader<T> {
+    fn load_asset(
+        pack_path: PathBuf,
+        asset_id: &ResourceId,
+    ) -> impl Future<Output = Result<T, AssetError>> + Send;
+}
+
+impl AssetLoader<ImageBufferRGBA8> for AssetServer {
+    async fn load_asset(
+        pack_path: PathBuf,
+        asset_id: &ResourceId,
+    ) -> Result<ImageBufferRGBA8, AssetError> {
+        let path = asset_id.as_path(pack_path, AssetType::Texture);
+        trace!("Loading texture {} from: {}", asset_id, path.display());
+
+        let image_raw = Self::load_asset(&path).await?;
+        Self::read_texture(&image_raw).await
+    }
+}
+
+impl AssetLoader<SpriteContextAsset> for AssetServer {
+    async fn load_asset(
+        pack_path: PathBuf,
+        asset_id: &ResourceId,
+    ) -> Result<SpriteContextAsset, AssetError> {
+        let path = asset_id.as_path(pack_path, AssetType::Sprite);
+        trace!("Loading sprite {} from {}", asset_id, path.display());
+
+        let sprite_raw = Self::load_asset_string(&path).await?;
+
+        Ok(toml::from_str(&sprite_raw)?)
+    }
+}
+
+impl AssetLoader<AtlasDefinition> for AssetServer {
+    async fn load_asset(
+        pack_path: PathBuf,
+        asset_id: &ResourceId,
+    ) -> Result<AtlasDefinition, AssetError> {
+        let path = asset_id.as_path(pack_path, AssetType::Atlas);
+        trace!("Loading atlas {} from {}", asset_id, path.display());
+
+        let atlas_raw = Self::load_asset_string(&path).await?;
+
+        Ok(toml::from_str(&atlas_raw)?)
     }
 }
