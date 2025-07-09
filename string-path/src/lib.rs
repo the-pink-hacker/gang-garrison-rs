@@ -1,5 +1,8 @@
 use std::{error::Error, ffi::OsString, iter::FusedIterator, str::FromStr};
 
+#[cfg(feature = "serde")]
+mod serde;
+
 pub const MAIN_SEPARATOR: char = '/';
 pub const MAIN_SEPARATOR_STR: &str = "/";
 const MAIN_SEPARATOR_BYTE: u8 = b'/';

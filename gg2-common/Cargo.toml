@@ -19,3 +19,6 @@ uuid.workspace = true
 
 [lints]
 workspace = true
+
+[features]
+serde = ["dep:serde"]

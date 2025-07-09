@@ -5,6 +5,7 @@ pub use serde_with::skip_serializing_none;
 pub use crate::{
     asset::{
         AssetServer,
+        atlas::AtlasDefinition,
         error::AssetError,
         identifier::AssetType,
         pack::AssetPack,
