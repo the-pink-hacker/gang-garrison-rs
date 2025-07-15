@@ -6,7 +6,7 @@ const DEBUG_MENU_TRANSPARENCY_U8: u8 = (DEBUG_MENU_TRANSPARENCY * u8::MAX as f32
 
 impl GuiRenderer {
     pub fn draw(&mut self, ctx: &egui::Context) {
-        self.draw_debug(ctx);
+        //self.draw_debug(ctx);
     }
 
     fn draw_debug(&mut self, ctx: &egui::Context) {

@@ -73,6 +73,7 @@ impl App {
 
         asset_server.load_packs(&packs).await?;
         asset_server.push_textures(self.world)?;
+        asset_server.purge_textures();
 
         Ok(())
     }

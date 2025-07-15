@@ -5,19 +5,12 @@ use crate::prelude::*;
 pub mod atlas;
 
 const BITS_PER_PIXEL: u32 = 4;
-const ATLAS_SIZE: u32 = 512;
-const ATLAS_EXTENT: Extent3d = Extent3d {
-    width: ATLAS_SIZE,
-    height: ATLAS_SIZE,
-    depth_or_array_layers: 1,
-};
 
 #[derive(Debug)]
 pub struct RenderTextures {
     pub layout: BindGroupLayout,
     pub sampler: Sampler,
     pub sprite_atlas_bind_group: BindGroup,
-    pub sprite_atlas_texture: Texture,
     pub sprite_atlas: TextureAtlas,
     pub map_bind_group: Option<BindGroup>,
     pub game_bind_group: BindGroup,
@@ -27,19 +20,6 @@ pub struct RenderTextures {
 
 impl RenderTextures {
     pub fn new(device: &wgpu::Device, game_size: UVec2) -> Result<Self, ClientError> {
-        let sprite_atlas_texture = device.create_texture(&TextureDescriptor {
-            label: Some("Sprite Atlas Texture"),
-            size: ATLAS_EXTENT,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: super::SCREEN_FORMAT,
-            usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-
-        let sprite_atlas_view = sprite_atlas_texture.create_view(&TextureViewDescriptor::default());
-
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("Diffuse Sampler"),
             address_mode_u: AddressMode::ClampToEdge,
@@ -73,6 +53,50 @@ impl RenderTextures {
             ],
         });
 
+        let (_, sprite_atlas_bind_group) =
+            Self::generate_atlas_texture(device, &layout, &sampler, 1);
+        let sprite_atlas = TextureAtlas::default();
+
+        let (game_bind_group, game_texture) =
+            Self::generate_game_texture(device, &layout, &sampler, game_size);
+
+        let depth_texture = Self::generate_depth_texture(device, game_size);
+
+        Ok(Self {
+            layout,
+            sampler,
+            sprite_atlas_bind_group,
+            map_bind_group: None,
+            sprite_atlas,
+            game_bind_group,
+            game_texture,
+            depth_texture,
+        })
+    }
+
+    fn generate_atlas_texture(
+        device: &Device,
+        layout: &BindGroupLayout,
+        sampler: &Sampler,
+        size: u32,
+    ) -> (Texture, BindGroup) {
+        let sprite_atlas_texture = device.create_texture(&TextureDescriptor {
+            label: Some("Sprite Atlas Texture"),
+            size: Extent3d {
+                width: size,
+                height: size,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: super::SCREEN_FORMAT,
+            usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
+        let sprite_atlas_view = sprite_atlas_texture.create_view(&TextureViewDescriptor::default());
+
         let sprite_atlas_bind_group = device.create_bind_group(&BindGroupDescriptor {
             label: Some("Sprite Atlas Bind Group"),
             layout: &layout,
@@ -87,24 +111,8 @@ impl RenderTextures {
                 },
             ],
         });
-        let sprite_atlas = TextureAtlas::default();
 
-        let (game_bind_group, game_texture) =
-            Self::generate_game_texture(device, &layout, &sampler, game_size);
-
-        let depth_texture = Self::generate_depth_texture(device, game_size);
-
-        Ok(Self {
-            layout,
-            sampler,
-            sprite_atlas_bind_group,
-            sprite_atlas_texture,
-            map_bind_group: None,
-            sprite_atlas,
-            game_bind_group,
-            game_texture,
-            depth_texture,
-        })
+        (sprite_atlas_texture, sprite_atlas_bind_group)
     }
 
     fn generate_game_texture(
@@ -244,29 +252,37 @@ impl RenderTextures {
 
     pub fn update_texture_atlas(
         &mut self,
+        device: &Device,
         queue: &Queue,
-        textures: Vec<(ResourceId, ImageBufferRGBA8)>,
+        atlas: TextureAtlas,
+        atlas_texture: &ImageBufferRGBA8,
     ) {
         debug!("Updating texture atlas buffer...");
-        let (texture_atlas, diffuse_rgba) =
-            TextureAtlas::new(ATLAS_SIZE, textures).expect("Failed to construct texture atlas");
 
-        self.sprite_atlas = texture_atlas;
+        let (texture, bind_group) =
+            Self::generate_atlas_texture(device, &self.layout, &self.sampler, atlas.size);
+        self.sprite_atlas_bind_group = bind_group;
 
         queue.write_texture(
             TexelCopyTextureInfo {
-                texture: &self.sprite_atlas_texture,
+                texture: &texture,
                 mip_level: 0,
                 origin: Origin3d::ZERO,
                 aspect: TextureAspect::All,
             },
-            &diffuse_rgba,
+            atlas_texture,
             TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(BITS_PER_PIXEL * ATLAS_SIZE),
-                rows_per_image: Some(ATLAS_SIZE),
+                bytes_per_row: Some(BITS_PER_PIXEL * atlas.size),
+                rows_per_image: Some(atlas.size),
             },
-            ATLAS_EXTENT,
+            Extent3d {
+                width: atlas.size,
+                height: atlas.size,
+                depth_or_array_layers: 1,
+            },
         );
+
+        self.sprite_atlas = atlas;
     }
 }

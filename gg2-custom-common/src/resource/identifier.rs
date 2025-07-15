@@ -49,9 +49,9 @@ pub struct ResourceId {
 impl ResourceId {
     #[must_use]
     #[inline]
-    pub fn new(namespace: String, path: impl Into<SPathBuf>) -> Self {
+    pub fn new(namespace: impl Into<String>, path: impl Into<SPathBuf>) -> Self {
         Self {
-            namespace,
+            namespace: namespace.into(),
             path: path.into(),
         }
     }
@@ -84,6 +84,18 @@ impl ResourceId {
     #[inline]
     pub fn pop(&mut self) -> bool {
         self.path.pop()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn get_namespace(&self) -> &str {
+        &self.namespace
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn get_path(&self) -> &SPath {
+        &self.path
     }
 }
 

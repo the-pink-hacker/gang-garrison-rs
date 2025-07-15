@@ -267,8 +267,13 @@ impl State {
 
         if let Ok(message) = game_to_render_channel.try_recv() {
             match message {
-                GameToRenderMessage::UpdateSpriteAtlas(textures) => {
-                    self.textures.update_texture_atlas(&self.queue, textures);
+                GameToRenderMessage::UpdateSpriteAtlas(atlas, atlas_texture) => {
+                    self.textures.update_texture_atlas(
+                        &self.device,
+                        &self.queue,
+                        atlas,
+                        &atlas_texture,
+                    );
                 }
                 GameToRenderMessage::ChangeMap(image) => {
                     let width = image.width() as f32 * MAP_SCALE;

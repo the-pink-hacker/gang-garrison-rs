@@ -13,6 +13,8 @@ pub mod identifier;
 pub mod pack;
 pub mod sprite;
 
+const GAME_ATLAS_ID: &str = "game";
+
 #[derive(Debug, Default)]
 pub struct AssetServer {
     /// All loaded packs in ascending priority
@@ -59,13 +61,21 @@ impl AssetServer {
     }
 
     pub fn push_textures(&mut self, world: &ClientWorld) -> Result<(), ClientError> {
-        let textures = std::mem::take(&mut self.textures).into_iter().collect();
+        let (atlas, atlas_texture) = self
+            .atlases
+            .get(&ResourceId::gg2(GAME_ATLAS_ID))
+            .expect("Failed to load game texture atlas definition")
+            .build(&self.textures)?;
 
         world
             .game_to_render_channel()
-            .send(GameToRenderMessage::UpdateSpriteAtlas(textures))?;
+            .send(GameToRenderMessage::UpdateSpriteAtlas(atlas, atlas_texture))?;
 
         Ok(())
+    }
+
+    pub fn purge_textures(&mut self) {
+        self.textures.clear();
     }
 
     pub fn get_sprite(&self, id: &ResourceId) -> Result<&SpriteContextAsset, AssetError> {
