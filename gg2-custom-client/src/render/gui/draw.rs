@@ -1,3 +1,5 @@
+use poll_promise::Promise;
+
 use super::GuiRenderer;
 use crate::prelude::*;
 
@@ -6,7 +8,14 @@ const DEBUG_MENU_TRANSPARENCY_U8: u8 = (DEBUG_MENU_TRANSPARENCY * u8::MAX as f32
 
 impl GuiRenderer {
     pub fn draw(&mut self, ctx: &egui::Context) {
-        //self.draw_debug(ctx);
+        let debug_ui = Promise::spawn_async(self.world.config().read())
+            .block_and_take()
+            .debug
+            .gui;
+
+        if debug_ui {
+            self.draw_debug(ctx);
+        }
     }
 
     fn draw_debug(&mut self, ctx: &egui::Context) {
@@ -29,8 +38,7 @@ impl GuiRenderer {
     }
 
     fn draw_debug_player(&mut self, ui: &mut egui::Ui) {
-        let mut players =
-            poll_promise::Promise::spawn_async(self.world.players().write()).block_and_take();
+        let mut players = Promise::spawn_async(self.world.players().write()).block_and_take();
         let player = if let Ok(player) = players.get_client_mut() {
             player
         } else {

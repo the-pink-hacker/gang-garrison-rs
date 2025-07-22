@@ -19,6 +19,15 @@ pub use crate::{
         App,
         cli::{ClientCliArguments, ClientCliSubcommand},
     },
+    input::{
+        InputAxisResult, InputButtonResult, InputPoll, InputState,
+        bind::{InputAxisBind, InputButtonBind},
+        code::{InputAxisCode, InputButtonCode},
+        device::{
+            InputDevice,
+            winit::{WinitInputDevice, WinitInputState},
+        },
+    },
     map::MapInfo,
     networking::io::NetworkClient,
     player::ClientPlayers,

@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod game;
 mod init;
+mod input;
 mod map;
 mod networking;
 mod player;

@@ -75,6 +75,11 @@ impl App {
         asset_server.push_textures(self.world)?;
         asset_server.purge_textures();
 
+        {
+            let mut input = self.world.input_state().write().await;
+            input.register_device(WinitInputDevice);
+        }
+
         Ok(())
     }
 
@@ -87,13 +92,7 @@ impl App {
 
         runtime.block_on(self.setup())?;
 
-        runtime.spawn(
-            ClientGame {
-                world: self.world,
-                game: CommonGame { world: self.world },
-            }
-            .start_update(),
-        );
+        runtime.spawn(ClientGame::new(self.world, CommonGame { world: self.world }).start_update());
 
         self.init_render(runtime)
     }

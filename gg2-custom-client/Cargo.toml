@@ -9,6 +9,7 @@ repository.workspace = true
 [dependencies]
 bytemuck = { workspace = true, features = ["derive"] }
 clap = { workspace = true, features = ["derive"] }
+dyn-future.workspace = true
 # I don't want to downgrade wgpu
 egui.workspace = true
 egui-wgpu.workspace = true
@@ -19,6 +20,7 @@ gg2-client.workspace = true
 gg2-common = { workspace = true, features = ["serde"] }
 gg2-custom-common.workspace = true
 glam = { workspace = true, features = ["bytemuck", "fast-math"] }
+gilrs = { workspace = true, features = ["serde-serialize"] }
 image = { workspace = true, features = ["png"] }
 image-atlas.workspace = true
 log = { workspace = true, features = ["max_level_trace", "release_max_level_warn"] }
@@ -30,6 +32,7 @@ string-path = { workspace = true, features = ["serde"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"] }
 toml = { workspace = true, features = ["preserve_order"] }
+uuid = { workspace = true, features = ["v4"] }
 walkdir.workspace = true
 wgpu.workspace = true
 winit = { workspace = true, features = ["serde"] }

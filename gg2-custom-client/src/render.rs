@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use gilrs::Gilrs;
 use tokio::sync::mpsc::UnboundedReceiver;
 use wgpu::util::DeviceExt;
 use winit::{
@@ -55,7 +56,7 @@ const QUAD_INDICES: &[u16] = &[
 
 /// Holds all rendering structs such as the window
 pub struct State {
-    world: &'static ClientWorld,
+    pub world: &'static ClientWorld,
     window: Arc<Window>,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -533,30 +534,30 @@ impl ApplicationHandler for RenderApp {
 
         state.correct_cursor_position(&mut event);
 
-        let event_consumed = state.on_window_event(&event);
-        if event_consumed {
-            return;
-        }
+        self.runtime.block_on(async {
+            state.handle_window_event_input(&event).await;
 
-        match event {
-            WindowEvent::CloseRequested => {
-                info!("User closed window; stopping");
-                event_loop.exit();
+            let event_consumed = state.on_window_event(&event);
+            if event_consumed {
+                return;
             }
-            WindowEvent::RedrawRequested => {
-                self.runtime.block_on(async {
+
+            match event {
+                WindowEvent::CloseRequested => {
+                    info!("User closed window; stopping");
+                    event_loop.exit();
+                }
+                WindowEvent::RedrawRequested => {
                     state.render(&mut self.game_to_render_channel).await;
 
                     state.get_window().request_redraw();
-                });
-            }
-            WindowEvent::Resized(size) => {
-                self.runtime.block_on(async {
+                }
+                WindowEvent::Resized(size) => {
                     state.resize(size);
-                });
+                }
+                _ => (),
             }
-            _ => (),
-        }
+        });
     }
 
     fn device_event(

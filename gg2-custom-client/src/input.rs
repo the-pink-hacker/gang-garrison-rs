@@ -1,0 +1,98 @@
+pub mod bind;
+pub mod code;
+pub mod device;
+
+use std::{ops::Deref, pin::Pin};
+
+use dyn_future::DynFuture;
+
+use crate::prelude::*;
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[repr(transparent)]
+pub struct InputAxisResult(f32);
+
+impl From<f32> for InputAxisResult {
+    fn from(value: f32) -> Self {
+        assert!((-1.0..=1.0).contains(&value));
+
+        Self(value)
+    }
+}
+
+impl Deref for InputAxisResult {
+    type Target = f32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[repr(transparent)]
+pub struct InputButtonResult(f32);
+
+const BUTTON_PRESSED: InputButtonResult = InputButtonResult(1.0);
+const BUTTON_UNPRESSED: InputButtonResult = InputButtonResult(0.0);
+
+impl InputButtonResult {
+    pub fn is_pressed(&self) -> bool {
+        self.0 > 0.0
+    }
+}
+
+impl From<f32> for InputButtonResult {
+    #[inline]
+    fn from(value: f32) -> Self {
+        assert!((0.0..=1.0).contains(&value));
+
+        Self(value)
+    }
+}
+
+impl Deref for InputButtonResult {
+    type Target = f32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub trait InputPoll {
+    fn poll_button_bind(
+        &self,
+        bind: &InputButtonBind,
+        world: &'static ClientWorld,
+    ) -> Pin<DynFuture<Option<InputButtonResult>>>;
+}
+
+#[derive(Debug, Default)]
+pub struct InputState {
+    devices: Vec<Box<dyn InputDevice>>,
+}
+
+impl InputState {
+    #[inline]
+    pub fn register_device(&mut self, device: impl InputDevice + 'static) {
+        self._register_device(Box::new(device));
+    }
+
+    fn _register_device(&mut self, device: Box<dyn InputDevice>) {
+        self.devices.push(device);
+    }
+
+    #[inline]
+    fn get_current_device(&self) -> Option<&dyn InputDevice> {
+        self.devices.first().map(|x| &**x)
+    }
+
+    pub async fn poll_button_bind(
+        &self,
+        bind: &InputButtonBind,
+        world: &'static ClientWorld,
+    ) -> Option<InputButtonResult> {
+        self.get_current_device()?
+            .poll_button_bind(bind, world)
+            .await
+    }
+}

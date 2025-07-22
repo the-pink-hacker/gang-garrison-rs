@@ -30,7 +30,8 @@ lto = "thin"
 
 [workspace.dependencies]
 bytemuck = "1.23.1"
-clap = "4.5.40"
+clap = "4.5.41"
+dyn-future = "3.0.4"
 enum-iterator = "2.1.0"
 env_logger = "0.11.8"
 # I don't want to downgrade wgpu
@@ -41,6 +42,7 @@ gg2-client = { version = "0.1.0", path = "gg2-client" }
 gg2-common = { version = "0.1.0", path = "gg2-common" }
 gg2-custom-common = { version = "0.1.0", path = "gg2-custom-common" }
 glam = "0.30.4"
+gilrs = "0.11.0"
 hex = "0.4.3"
 image = { version = "0.25.6", default-features = false }
 image-atlas = "0.4.1"
@@ -55,7 +57,7 @@ serde_with = "3.14.0"
 string-path = { version = "0.1.0", path = "string-path" }
 thiserror = "2.0.12"
 tokio = { version = "1.46.1", default-features = false }
-toml = "0.9.0"
+toml = "0.9.2"
 uuid = "1.17.0"
 walkdir = "2.5.0"
 wgpu = "25.0.2"

@@ -15,10 +15,6 @@ impl TextureAtlas {
         size: u32,
         mut textures: Vec<(ResourceId, ImageBufferRGBA8)>,
     ) -> Result<(Self, ImageBufferRGBA8), AssetError> {
-        //panic!(
-        //    "{:#?}",
-        //    textures.into_iter().map(|(x, y)| x).collect::<Vec<_>>()
-        //);
         // Sort to keep animations in order
         textures.sort_by(|(id, _), (other_id, _)| id.cmp(other_id));
 
