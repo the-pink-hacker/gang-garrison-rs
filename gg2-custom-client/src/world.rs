@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -6,7 +6,8 @@ use crate::prelude::*;
 
 #[derive(Debug)]
 pub struct ClientWorld {
-    game_to_render_channel: UnboundedSender<GameToRenderMessage>,
+    render_channel: UnboundedSender<RenderMessage>,
+    client_game_channel: UnboundedSender<ClientGameMessage>,
     asset_server: RwLock<AssetServer>,
     camera: RwLock<Camera>,
     client_cli_arguments: ClientCliArguments,
@@ -16,20 +17,26 @@ pub struct ClientWorld {
     network_client: RwLock<NetworkClient>,
     players: RwLock<ClientPlayers>,
     winit_input_state: RwLock<WinitInputState>,
+    gilrs_input_state: RwLock<GilrsInputState>,
     input_state: RwLock<InputState>,
+    winit_input_device: Arc<dyn InputDevice>,
 }
 
 impl ClientWorld {
     #[inline]
     #[must_use]
     pub fn new(
-        game_to_render_channel: UnboundedSender<GameToRenderMessage>,
+        render_channel: UnboundedSender<RenderMessage>,
+        client_game_channel: UnboundedSender<ClientGameMessage>,
         client_cli_arguments: ClientCliArguments,
         config: impl Into<RwLock<ClientConfig>>,
         executable_directory: PathBuf,
     ) -> Self {
+        let winit_input_device = Arc::new(WinitInputDevice::default()) as Arc<dyn InputDevice>;
+
         Self {
-            game_to_render_channel,
+            render_channel,
+            client_game_channel,
             asset_server: AssetServer::default().into(),
             camera: Camera::default().into(),
             client_cli_arguments,
@@ -39,7 +46,9 @@ impl ClientWorld {
             network_client: NetworkClient::default().into(),
             players: ClientPlayers::default().into(),
             winit_input_state: WinitInputState::default().into(),
-            input_state: InputState::default().into(),
+            gilrs_input_state: GilrsInputState::default().into(),
+            input_state: InputState::new(Arc::clone(&winit_input_device)).into(),
+            winit_input_device,
         }
     }
 
@@ -51,8 +60,13 @@ impl ClientWorld {
 
     #[inline]
     #[must_use]
-    pub fn game_to_render_channel(&self) -> &UnboundedSender<GameToRenderMessage> {
-        &self.game_to_render_channel
+    pub fn render_channel(&self) -> &UnboundedSender<RenderMessage> {
+        &self.render_channel
+    }
+
+    #[inline]
+    pub fn client_game_channel(&self) -> &UnboundedSender<ClientGameMessage> {
+        &self.client_game_channel
     }
 
     #[inline]
@@ -95,6 +109,18 @@ impl ClientWorld {
     #[must_use]
     pub fn winit_input_state(&self) -> &RwLock<WinitInputState> {
         &self.winit_input_state
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn gilrs_input_state(&self) -> &RwLock<GilrsInputState> {
+        &self.gilrs_input_state
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn winit_input_device(&self) -> &Arc<dyn InputDevice + 'static> {
+        &self.winit_input_device
     }
 
     #[inline]

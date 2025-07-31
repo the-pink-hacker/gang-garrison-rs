@@ -2,7 +2,7 @@ pub mod bind;
 pub mod code;
 pub mod device;
 
-use std::{ops::Deref, pin::Pin};
+use std::{ops::Deref, pin::Pin, sync::Arc};
 
 use dyn_future::DynFuture;
 
@@ -59,6 +59,12 @@ impl Deref for InputButtonResult {
 }
 
 pub trait InputPoll {
+    fn poll_axis_bind(
+        &self,
+        bind: &InputAxisBind,
+        world: &'static ClientWorld,
+    ) -> Pin<DynFuture<Option<InputAxisResult>>>;
+
     fn poll_button_bind(
         &self,
         bind: &InputButtonBind,
@@ -66,24 +72,21 @@ pub trait InputPoll {
     ) -> Pin<DynFuture<Option<InputButtonResult>>>;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct InputState {
-    devices: Vec<Box<dyn InputDevice>>,
+    current_device: Arc<dyn InputDevice>,
 }
 
 impl InputState {
-    #[inline]
-    pub fn register_device(&mut self, device: impl InputDevice + 'static) {
-        self._register_device(Box::new(device));
+    pub fn new(device: Arc<dyn InputDevice>) -> Self {
+        Self {
+            current_device: device,
+        }
     }
 
-    fn _register_device(&mut self, device: Box<dyn InputDevice>) {
-        self.devices.push(device);
-    }
-
-    #[inline]
-    fn get_current_device(&self) -> Option<&dyn InputDevice> {
-        self.devices.first().map(|x| &**x)
+    pub fn register_device(&mut self, device: Arc<dyn InputDevice>) {
+        trace!("Input device has been swapped to {:?}", device.get_name());
+        self.current_device = device;
     }
 
     pub async fn poll_button_bind(
@@ -91,8 +94,6 @@ impl InputState {
         bind: &InputButtonBind,
         world: &'static ClientWorld,
     ) -> Option<InputButtonResult> {
-        self.get_current_device()?
-            .poll_button_bind(bind, world)
-            .await
+        self.current_device.poll_button_bind(bind, world).await
     }
 }

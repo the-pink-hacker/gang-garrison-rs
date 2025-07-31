@@ -18,7 +18,7 @@ pub enum ClientError {
     #[error("Client player unset")]
     ClientPlayerLookup,
     #[error("Failed to send message: Game => Render")]
-    ChannelGameRender(#[from] tokio::sync::mpsc::error::SendError<GameToRenderMessage>),
+    ChannelGameRender(#[from] tokio::sync::mpsc::error::SendError<RenderMessage>),
     #[error("Network Error: {0}")]
     Network(#[from] NetworkError),
 }

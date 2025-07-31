@@ -12,7 +12,8 @@ pub mod cli;
 
 pub struct App {
     pub world: &'static ClientWorld,
-    pub game_to_render_channel_receiver: UnboundedReceiver<GameToRenderMessage>,
+    pub render_channel_receiver: UnboundedReceiver<RenderMessage>,
+    pub client_game_channel_receiver: UnboundedReceiver<ClientGameMessage>,
 }
 
 impl App {
@@ -31,11 +32,15 @@ impl App {
             ClientConfig::load(&executable_directory).expect("Failed to load client config");
         config.save().expect("Failed to save client config");
 
-        let (game_to_render_channel_sender, game_to_render_channel_receiver) =
+        let (render_channel_sender, render_channel_receiver) =
+            tokio::sync::mpsc::unbounded_channel();
+
+        let (client_game_channel_sender, client_game_channel_receiver) =
             tokio::sync::mpsc::unbounded_channel();
 
         let world = ClientWorld::new(
-            game_to_render_channel_sender,
+            render_channel_sender,
+            client_game_channel_sender,
             client_cli_arguments,
             config,
             executable_directory,
@@ -45,7 +50,8 @@ impl App {
 
         Self {
             world,
-            game_to_render_channel_receiver,
+            render_channel_receiver,
+            client_game_channel_receiver,
         }
     }
 
@@ -75,11 +81,6 @@ impl App {
         asset_server.push_textures(self.world)?;
         asset_server.purge_textures();
 
-        {
-            let mut input = self.world.input_state().write().await;
-            input.register_device(WinitInputDevice);
-        }
-
         Ok(())
     }
 
@@ -92,8 +93,17 @@ impl App {
 
         runtime.block_on(self.setup())?;
 
-        runtime.spawn(ClientGame::new(self.world, CommonGame { world: self.world }).start_update());
+        runtime.spawn(
+            ClientGame::new(
+                self.world,
+                CommonGame { world: self.world },
+                self.client_game_channel_receiver,
+            )
+            .start_update(),
+        );
 
-        self.init_render(runtime)
+        runtime.spawn(GilrsWatcher::new(self.world).listen());
+
+        Self::init_render(self.world, runtime, self.render_channel_receiver)
     }
 }

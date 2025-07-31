@@ -25,6 +25,7 @@ pub use crate::{
         code::{InputAxisCode, InputButtonCode},
         device::{
             InputDevice,
+            gilrs::{GilrsInputDevice, GilrsInputState, GilrsWatcher},
             winit::{WinitInputDevice, WinitInputState},
         },
     },
@@ -32,7 +33,7 @@ pub use crate::{
     networking::io::NetworkClient,
     player::ClientPlayers,
     render::{instance::SpriteInstance, texture::atlas::TextureAtlas},
-    sync::GameToRenderMessage,
+    sync::{ClientGameMessage, RenderMessage},
     world::ClientWorld,
 };
 

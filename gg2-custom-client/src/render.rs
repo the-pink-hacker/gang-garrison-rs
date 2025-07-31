@@ -3,7 +3,6 @@
 
 use std::sync::Arc;
 
-use gilrs::Gilrs;
 use tokio::sync::mpsc::UnboundedReceiver;
 use wgpu::util::DeviceExt;
 use winit::{
@@ -260,15 +259,12 @@ impl State {
         self.gui.resize(self.game_size);
     }
 
-    async fn render(
-        &mut self,
-        game_to_render_channel: &mut UnboundedReceiver<GameToRenderMessage>,
-    ) {
+    async fn render(&mut self, game_to_render_channel: &mut UnboundedReceiver<RenderMessage>) {
         self.update_camera_uniform_buffer().await;
 
-        if let Ok(message) = game_to_render_channel.try_recv() {
+        while let Ok(message) = game_to_render_channel.try_recv() {
             match message {
-                GameToRenderMessage::UpdateSpriteAtlas(atlas, atlas_texture) => {
+                RenderMessage::UpdateSpriteAtlas(atlas, atlas_texture) => {
                     self.textures.update_texture_atlas(
                         &self.device,
                         &self.queue,
@@ -276,7 +272,7 @@ impl State {
                         &atlas_texture,
                     );
                 }
-                GameToRenderMessage::ChangeMap(image) => {
+                RenderMessage::ChangeMap(image) => {
                     let width = image.width() as f32 * MAP_SCALE;
                     let height = image.height() as f32 * MAP_SCALE;
 
@@ -306,7 +302,7 @@ impl State {
                     self.textures
                         .update_texture_map(&self.device, &self.queue, image);
                 }
-                GameToRenderMessage::ExitNextFrame => self.exit_next_frame = true,
+                RenderMessage::ExitNextFrame => self.exit_next_frame = true,
             }
         }
 
@@ -465,16 +461,16 @@ impl State {
 
 impl App {
     /// Initializes render loop
-    pub fn init_render(self, runtime: tokio::runtime::Runtime) -> Result<(), ClientError> {
+    pub fn init_render(
+        world: &'static ClientWorld,
+        runtime: tokio::runtime::Runtime,
+        channel: UnboundedReceiver<RenderMessage>,
+    ) -> Result<(), ClientError> {
         let event_loop = EventLoop::new()?;
 
         event_loop.set_control_flow(ControlFlow::Wait);
 
-        event_loop.run_app(&mut RenderApp::new(
-            self.world,
-            runtime,
-            self.game_to_render_channel_receiver,
-        ))?;
+        event_loop.run_app(&mut RenderApp::new(world, runtime, channel))?;
 
         Ok(())
     }
@@ -484,20 +480,20 @@ pub struct RenderApp {
     world: &'static ClientWorld,
     state: Option<State>,
     runtime: tokio::runtime::Runtime,
-    game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
+    render_channel: UnboundedReceiver<RenderMessage>,
 }
 
 impl RenderApp {
     fn new(
         world: &'static ClientWorld,
         runtime: tokio::runtime::Runtime,
-        game_to_render_channel: UnboundedReceiver<GameToRenderMessage>,
+        render_channel: UnboundedReceiver<RenderMessage>,
     ) -> Self {
         Self {
             world,
             state: None,
             runtime,
-            game_to_render_channel,
+            render_channel,
         }
     }
 }
@@ -548,7 +544,7 @@ impl ApplicationHandler for RenderApp {
                     event_loop.exit();
                 }
                 WindowEvent::RedrawRequested => {
-                    state.render(&mut self.game_to_render_channel).await;
+                    state.render(&mut self.render_channel).await;
 
                     state.get_window().request_redraw();
                 }

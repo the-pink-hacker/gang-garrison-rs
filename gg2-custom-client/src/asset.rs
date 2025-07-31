@@ -68,8 +68,8 @@ impl AssetServer {
             .build(&self.textures)?;
 
         world
-            .game_to_render_channel()
-            .send(GameToRenderMessage::UpdateSpriteAtlas(atlas, atlas_texture))?;
+            .render_channel()
+            .send(RenderMessage::UpdateSpriteAtlas(atlas, atlas_texture))?;
 
         Ok(())
     }

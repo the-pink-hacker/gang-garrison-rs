@@ -32,7 +32,7 @@ string-path = { workspace = true, features = ["serde"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "io-util", "net", "rt-multi-thread", "sync", "time"] }
 toml = { workspace = true, features = ["preserve_order"] }
-uuid = { workspace = true, features = ["v4"] }
+uuid.workspace = true
 walkdir.workspace = true
 wgpu.workspace = true
 winit = { workspace = true, features = ["serde"] }

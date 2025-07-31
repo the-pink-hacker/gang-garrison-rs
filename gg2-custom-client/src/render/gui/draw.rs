@@ -30,8 +30,8 @@ impl GuiRenderer {
 
                 if ui.button("Exit Game").clicked() {
                     self.world
-                        .game_to_render_channel()
-                        .send(GameToRenderMessage::ExitNextFrame)
+                        .render_channel()
+                        .send(RenderMessage::ExitNextFrame)
                         .expect("Failed to send exit message to render thread");
                 }
             });

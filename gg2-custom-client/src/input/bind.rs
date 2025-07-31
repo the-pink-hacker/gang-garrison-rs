@@ -11,6 +11,15 @@ impl From<Vec<InputAxisCode>> for InputAxisBind {
     }
 }
 
+impl IntoIterator for InputAxisBind {
+    type Item = InputAxisCode;
+    type IntoIter = std::vec::IntoIter<InputAxisCode>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InputButtonBind(Vec<InputButtonCode>);
 

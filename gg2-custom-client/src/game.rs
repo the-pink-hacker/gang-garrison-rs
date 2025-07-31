@@ -1,23 +1,31 @@
 use std::time::Duration;
 
+use tokio::sync::mpsc::UnboundedReceiver;
+
 use crate::prelude::*;
 
-const GAME_TPS: f32 = 60.0;
-const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
+pub const GAME_TPS: f32 = 60.0;
+pub const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 
 #[derive(Debug)]
 pub struct ClientGame {
     pub world: &'static ClientWorld,
     pub game: CommonGame<ClientWorld>,
     pub debug_menu_button_pressed_last_frame: bool,
+    pub channel: UnboundedReceiver<ClientGameMessage>,
 }
 
 impl ClientGame {
-    pub fn new(world: &'static ClientWorld, game: CommonGame<ClientWorld>) -> Self {
+    pub fn new(
+        world: &'static ClientWorld,
+        game: CommonGame<ClientWorld>,
+        channel: UnboundedReceiver<ClientGameMessage>,
+    ) -> Self {
         Self {
             world,
             game,
             debug_menu_button_pressed_last_frame: false,
+            channel,
         }
     }
 
@@ -60,6 +68,12 @@ impl ClientGame {
             self.debug_menu_button_pressed_last_frame = true;
         } else {
             self.debug_menu_button_pressed_last_frame = false;
+        }
+
+        while let Ok(message) = self.channel.try_recv() {
+            match message {
+                ClientGameMessage::GilrsEvent(event) => self.handle_gilrs_event(event).await?,
+            }
         }
 
         self.update_network_client().await?;

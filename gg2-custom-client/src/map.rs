@@ -21,8 +21,8 @@ impl ClientGame {
         self.world.map_info().write().await.current_map = Some((map_id.clone(), data));
 
         self.world
-            .game_to_render_channel()
-            .send(GameToRenderMessage::ChangeMap(image))?;
+            .render_channel()
+            .send(RenderMessage::ChangeMap(image))?;
 
         Ok(())
     }

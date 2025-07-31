@@ -1,7 +1,6 @@
-use std::{collections::HashMap, pin::Pin};
+use std::{collections::HashMap, pin::Pin, sync::Arc};
 
 use dyn_future::DynFuture;
-use uuid::Uuid;
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, WindowEvent},
@@ -62,6 +61,8 @@ impl crate::render::State {
                 state,
                 button,
             } => {
+                self.world.register_winit_device().await;
+
                 self.world
                     .winit_input_state()
                     .write()
@@ -72,35 +73,53 @@ impl crate::render::State {
                 device_id: _,
                 event,
                 is_synthetic: _,
-            } => match event.physical_key {
-                PhysicalKey::Code(button) => self
-                    .world
-                    .winit_input_state()
-                    .write()
-                    .await
-                    .set_button(button, &event.state),
-                PhysicalKey::Unidentified(code) => {
-                    warn!("Native key codes are unsupported: {code:?}")
+            } => {
+                self.world.register_winit_device().await;
+
+                match event.physical_key {
+                    PhysicalKey::Code(button) => self
+                        .world
+                        .winit_input_state()
+                        .write()
+                        .await
+                        .set_button(button, &event.state),
+                    PhysicalKey::Unidentified(code) => {
+                        warn!("Native key codes are unsupported: {code:?}")
+                    }
                 }
-            },
+            }
             _ => (),
         }
     }
 }
 
-pub struct WinitInputDevice;
+impl ClientWorld {
+    async fn register_winit_device(&self) {
+        self.input_state()
+            .write()
+            .await
+            .register_device(Arc::clone(self.winit_input_device()));
+    }
+}
+
+#[derive(Default)]
+pub struct WinitInputDevice {}
 
 impl InputDevice for WinitInputDevice {
     fn get_name(&self) -> &str {
         "Winit Input"
     }
-
-    fn get_uuid(&self) -> Uuid {
-        Uuid::new_v4()
-    }
 }
 
 impl InputPoll for WinitInputDevice {
+    fn poll_axis_bind(
+        &self,
+        _bind: &InputAxisBind,
+        _world: &'static ClientWorld,
+    ) -> Pin<DynFuture<Option<InputAxisResult>>> {
+        DynFuture::new(async { None })
+    }
+
     fn poll_button_bind(
         &self,
         bind: &InputButtonBind,
@@ -108,23 +127,18 @@ impl InputPoll for WinitInputDevice {
     ) -> Pin<DynFuture<Option<InputButtonResult>>> {
         let bind = bind.clone();
         DynFuture::new(async move {
-            let mut value_present = false;
             let state = world.winit_input_state().read().await;
-            for key in bind {
-                if let Some(result) = state.get_button(key) {
-                    value_present = true;
-
-                    if result.is_pressed() {
-                        return Some(result);
+            bind.into_iter()
+                .flat_map(|key| {
+                    if let Some(result) = state.get_button(key)
+                        && result.is_pressed()
+                    {
+                        Some(result)
+                    } else {
+                        None
                     }
-                }
-            }
-
-            if value_present {
-                Some(InputButtonResult::default())
-            } else {
-                None
-            }
+                })
+                .next()
         })
     }
 }
