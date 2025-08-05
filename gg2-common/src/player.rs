@@ -61,74 +61,39 @@ impl TryFrom<usize> for PlayerId {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct KeyState(u8);
 
-impl KeyState {
-    const UP_MASK: u8 = 1 << 7;
-    const DOWN_MASK: u8 = 1 << 1;
-    const LEFT_MASK: u8 = 1 << 6;
-    const RIGHT_MASK: u8 = 1 << 5;
+macro_rules! key_state {
+    ($(($name: ident, $offset: literal)),+$(,)?) => {
+        impl KeyState {
+            $(
+                #[inline]
+                #[must_use]
+                pub const fn $name(&self) -> bool {
+                    self.0 & (1 << $offset) != 0
+                }
+
+                #[inline]
+                pub const fn ${concat(set_, $name)}(&mut self, state: bool) {
+                    let offset = 1 << $offset;
+                    if state {
+                        self.0 |= offset;
+                    } else {
+                        self.0 &= offset ^ u8::MAX;
+                    }
+                }
+            )+
+        }
+    };
 }
 
-impl KeyState {
-    #[inline]
-    #[must_use]
-    pub const fn up(&self) -> bool {
-        self.0 & Self::UP_MASK != 0
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn down(&self) -> bool {
-        self.0 & Self::DOWN_MASK != 0
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn left(&self) -> bool {
-        self.0 & Self::LEFT_MASK != 0
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn right(&self) -> bool {
-        self.0 & Self::RIGHT_MASK != 0
-    }
-
-    #[inline]
-    pub const fn set_up(&mut self, state: bool) {
-        if state {
-            self.0 |= Self::UP_MASK;
-        } else {
-            self.0 &= Self::UP_MASK ^ u8::MAX;
-        }
-    }
-
-    #[inline]
-    pub const fn set_down(&mut self, state: bool) {
-        if state {
-            self.0 |= Self::DOWN_MASK;
-        } else {
-            self.0 &= Self::DOWN_MASK ^ u8::MAX;
-        }
-    }
-
-    #[inline]
-    pub const fn set_left(&mut self, state: bool) {
-        if state {
-            self.0 |= Self::LEFT_MASK;
-        } else {
-            self.0 &= Self::LEFT_MASK ^ u8::MAX;
-        }
-    }
-
-    #[inline]
-    pub const fn set_right(&mut self, state: bool) {
-        if state {
-            self.0 |= Self::RIGHT_MASK;
-        } else {
-            self.0 &= Self::RIGHT_MASK ^ u8::MAX;
-        }
-    }
-}
+key_state![
+    (taunt, 1),
+    (down, 2),
+    (secondary, 3),
+    (primary, 4),
+    (right, 5),
+    (left, 6),
+    (up, 7),
+];
 
 impl From<u8> for KeyState {
     fn from(value: u8) -> Self {

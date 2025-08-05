@@ -81,6 +81,12 @@ impl ClientGame {
                 key_state.set_right(self.is_button_pressed(&input_state, &controls.right).await);
             }
 
+            key_state.set_primary(self.is_button_pressed(&input_state, &controls.fire).await);
+            key_state.set_secondary(
+                self.is_button_pressed(&input_state, &controls.special)
+                    .await,
+            );
+
             look_axis = self
                 .get_axis_2d(
                     &input_state,
@@ -94,19 +100,23 @@ impl ClientGame {
         let aim_distance;
 
         {
-            let mouse_position = self
-                .world
-                .winit_input_state()
-                .read()
-                .await
-                .get_mouse_position();
+            let look_position = if let Some(look) = look_axis {
+                look
+            } else {
+                self.world
+                    .winit_input_state()
+                    .read()
+                    .await
+                    .get_mouse_position()
+            };
 
-            aim_distance = mouse_position.length();
-            aim_direction = if mouse_position == Vec2::ZERO {
+            // TODO: Clamp aim distance to 255 * 2 (u8::MAX * fixed scale)
+            aim_distance = look_position.length();
+            aim_direction = if look_position == Vec2::ZERO {
                 0
             } else {
                 use std::f32::consts::TAU;
-                let angle_radians = TAU - ((mouse_position.to_angle() + TAU) % TAU);
+                let angle_radians = TAU - ((look_position.to_angle() + TAU) % TAU);
                 ((angle_radians / TAU) * u16::MAX as f32).trunc() as u16
             };
         }
