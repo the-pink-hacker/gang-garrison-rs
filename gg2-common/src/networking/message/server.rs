@@ -3,7 +3,7 @@ use crate::{
     damage::source::DamageSource,
     game::intel::RawIntel,
     hud::GamemodeHud,
-    networking::PacketKind,
+    networking::{AsPacketKind, PacketKind},
     player::{
         PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo,
         class::ClassGeneric,
@@ -15,16 +15,16 @@ use glam::Vec2;
 use super::{GGMessage, GGStringLong, GGStringShort};
 
 macro_rules! generic_message {
-    ($name:ident {$($case:ident),+$(,)?}) => {
+    ($name: ident {$($case: ident),+$(,)?}) => {
         #[derive(Debug, Clone)]
         pub enum $name {
             $($case(${concat(Server, $case)})),+,
         }
 
-        impl From<ServerMessageGeneric> for PacketKind {
-            fn from(value: ServerMessageGeneric) -> Self {
-                match value {
-                    $(ServerMessageGeneric::$case(_) => PacketKind::$case),+,
+        impl AsPacketKind for ServerMessageGeneric {
+            fn as_packet_kind(&self) -> PacketKind {
+                match self {
+                    $(Self::$case(_) => PacketKind::$case),+,
                 }
             }
         }

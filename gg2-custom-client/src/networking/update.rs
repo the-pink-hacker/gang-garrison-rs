@@ -115,7 +115,7 @@ impl ClientGame {
                             debug!("{message:#?}");
 
                             self.world
-                                .players()
+                                .client_players()
                                 .write()
                                 .await
                                 .set_client_player(message.client_player_id);
@@ -128,7 +128,20 @@ impl ClientGame {
             }
             NetworkingState::InGame => {
                 if let Some(generic_message) = network_client.pop_message(self.world).await? {
-                    self.event_in_game(generic_message).await?;
+                    self.server_message(generic_message).await?;
+                }
+                drop(network_client);
+                if self
+                    .world
+                    .client_players()
+                    .read()
+                    .await
+                    .get_client()
+                    .map(|x| x.team.is_spawnable())
+                    .unwrap_or_default()
+                {
+                    self.send_input_state().await?;
+                    self.update_camera().await?;
                 }
             }
         }

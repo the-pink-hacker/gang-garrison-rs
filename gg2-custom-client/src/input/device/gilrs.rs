@@ -2,7 +2,6 @@ use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 use dyn_future::DynFuture;
 use gilrs::{Filter, GamepadId, Gilrs, GilrsBuilder, ev::filter::Jitter};
-use uuid::Uuid;
 
 use crate::prelude::*;
 

@@ -12,8 +12,8 @@ use gg2_common::{
 use super::{ClientNetworkDeserializationContext, ClientNetworkDeserialize};
 
 macro_rules! generic_message {
-    ($name:ident {$($case:ident),+$(,)?}) => {
-        impl ClientNetworkDeserialize for ServerMessageGeneric {
+    ($name: ident {$($case: ident),+$(,)?}) => {
+        impl ClientNetworkDeserialize for $name {
             async fn deserialize<I, C>(payload: &mut I, context: &C) -> Result<Self> where I: Iterator<Item = u8>, C: ClientNetworkDeserializationContext {
                 let raw_kind = payload.read_u8()?;
                 let kind = raw_kind
@@ -398,12 +398,12 @@ impl ClientNetworkDeserialize for RawInput {
         C: ClientNetworkDeserializationContext,
     {
         let key_state = payload.read_u8()?.into();
-        let net_aim_direction = payload.read_u16()?;
-        let aim_distance = payload.read_fixed_point_u8(0.5)?;
+        let aim_direction = payload.read_u16()?;
+        let aim_distance = payload.read_fixed_point_u8(2.0)?;
 
         Ok(Self {
             key_state,
-            net_aim_direction,
+            aim_direction,
             aim_distance,
         })
     }

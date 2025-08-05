@@ -59,12 +59,7 @@ impl TryFrom<usize> for PlayerId {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct KeyState {
-    pub up: bool,
-    pub down: bool,
-    pub left: bool,
-    pub right: bool,
-}
+pub struct KeyState(u8);
 
 impl KeyState {
     const UP_MASK: u8 = 1 << 7;
@@ -73,54 +68,91 @@ impl KeyState {
     const RIGHT_MASK: u8 = 1 << 5;
 }
 
+impl KeyState {
+    #[inline]
+    #[must_use]
+    pub const fn up(&self) -> bool {
+        self.0 & Self::UP_MASK != 0
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn down(&self) -> bool {
+        self.0 & Self::DOWN_MASK != 0
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn left(&self) -> bool {
+        self.0 & Self::LEFT_MASK != 0
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn right(&self) -> bool {
+        self.0 & Self::RIGHT_MASK != 0
+    }
+
+    #[inline]
+    pub const fn set_up(&mut self, state: bool) {
+        if state {
+            self.0 |= Self::UP_MASK;
+        } else {
+            self.0 &= Self::UP_MASK ^ u8::MAX;
+        }
+    }
+
+    #[inline]
+    pub const fn set_down(&mut self, state: bool) {
+        if state {
+            self.0 |= Self::DOWN_MASK;
+        } else {
+            self.0 &= Self::DOWN_MASK ^ u8::MAX;
+        }
+    }
+
+    #[inline]
+    pub const fn set_left(&mut self, state: bool) {
+        if state {
+            self.0 |= Self::LEFT_MASK;
+        } else {
+            self.0 &= Self::LEFT_MASK ^ u8::MAX;
+        }
+    }
+
+    #[inline]
+    pub const fn set_right(&mut self, state: bool) {
+        if state {
+            self.0 |= Self::RIGHT_MASK;
+        } else {
+            self.0 &= Self::RIGHT_MASK ^ u8::MAX;
+        }
+    }
+}
+
 impl From<u8> for KeyState {
     fn from(value: u8) -> Self {
-        let up = value & Self::UP_MASK != 0;
-        let down = value & Self::DOWN_MASK != 0;
-        let left = value & Self::LEFT_MASK != 0;
-        let right = value & Self::RIGHT_MASK != 0;
-
-        Self {
-            up,
-            down,
-            left,
-            right,
-        }
+        Self(value)
     }
 }
 
 impl From<KeyState> for u8 {
     fn from(value: KeyState) -> Self {
-        let mut output = 0;
-
-        if value.up {
-            output |= KeyState::UP_MASK;
-        }
-        if value.down {
-            output |= KeyState::DOWN_MASK;
-        }
-        if value.left {
-            output |= KeyState::LEFT_MASK;
-        }
-        if value.right {
-            output |= KeyState::RIGHT_MASK;
-        }
-
-        output
+        value.0
     }
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct RawInput {
     pub key_state: KeyState,
-    pub net_aim_direction: u16,
+    pub aim_direction: u16,
     pub aim_distance: f32,
 }
 
 impl RawInput {
     pub fn looking_left(&self) -> bool {
         let quater_rotation = u16::MAX / 4;
-        let aim_rotation = self.net_aim_direction.wrapping_sub(quater_rotation);
+        let aim_rotation = self.aim_direction.wrapping_sub(quater_rotation);
         aim_rotation <= (u16::MAX / 2) + 2
     }
 }

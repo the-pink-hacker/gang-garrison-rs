@@ -128,13 +128,17 @@ impl ClientWorld {
     pub fn input_state(&self) -> &RwLock<InputState> {
         &self.input_state
     }
+
+    #[inline]
+    #[must_use]
+    pub fn client_players(&self) -> &RwLock<ClientPlayers> {
+        &self.players
+    }
 }
 
 impl World for ClientWorld {
-    type Players = ClientPlayers;
-
     #[inline]
-    fn players(&self) -> &RwLock<Self::Players> {
+    fn players(&self) -> &RwLock<dyn Players + Send + Sync> {
         &self.players
     }
 }

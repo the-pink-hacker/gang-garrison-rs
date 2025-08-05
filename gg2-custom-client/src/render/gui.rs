@@ -15,6 +15,8 @@ pub struct GuiRenderer {
     egui_context: Context,
     egui_winit_state: egui_winit::State,
     world: &'static ClientWorld,
+    debug_player_team: Team,
+    debug_player_class: ClassGeneric,
 }
 
 impl GuiRenderer {
@@ -50,6 +52,8 @@ impl GuiRenderer {
             egui_context,
             egui_winit_state,
             world,
+            debug_player_team: Team::default(),
+            debug_player_class: ClassGeneric::default(),
         }
     }
 

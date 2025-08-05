@@ -60,7 +60,7 @@ pub struct State {
     device: wgpu::Device,
     queue: wgpu::Queue,
     size: winit::dpi::PhysicalSize<u32>,
-    game_size: UVec2,
+    pub(crate) game_size: UVec2,
     /// The size of the cropping black bars
     size_difference_half: UVec2,
     surface: wgpu::Surface<'static>,

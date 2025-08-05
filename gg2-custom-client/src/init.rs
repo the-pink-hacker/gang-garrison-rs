@@ -93,14 +93,8 @@ impl App {
 
         runtime.block_on(self.setup())?;
 
-        runtime.spawn(
-            ClientGame::new(
-                self.world,
-                CommonGame { world: self.world },
-                self.client_game_channel_receiver,
-            )
-            .start_update(),
-        );
+        runtime
+            .spawn(ClientGame::new(self.world, self.client_game_channel_receiver).start_update());
 
         runtime.spawn(GilrsWatcher::new(self.world).listen());
 

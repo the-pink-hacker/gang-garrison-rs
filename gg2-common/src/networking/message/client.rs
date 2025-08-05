@@ -1,12 +1,39 @@
 use uuid::Uuid;
 
 use crate::{
-    networking::{GGMessage, PROTOCOL_UUID, PacketKind},
-    player::{class::ClassGeneric, team::Team},
+    networking::{AsPacketKind, GGMessage, PROTOCOL_UUID, PacketKind},
+    player::{RawInput, class::ClassGeneric, team::Team},
 };
 
 use super::GGStringShort;
 
+macro_rules! generic_message {
+    ($name: ident {$($case: ident),+$(,)?}) => {
+        #[derive(Debug, Clone)]
+        pub enum $name {
+            $($case(${concat(Client, $case)})),+,
+        }
+
+        impl AsPacketKind for ClientMessageGeneric {
+            fn as_packet_kind(&self) -> PacketKind {
+                match self {
+                    $(Self::$case(_) => PacketKind::$case),+,
+                }
+            }
+        }
+    };
+}
+
+generic_message!(ClientMessageGeneric {
+    Hello,
+    InputState,
+    PlayerChangeClass,
+    PlayerChangeTeam,
+    PlayerJoin,
+    ReserveSlot,
+});
+
+#[derive(Debug, Clone)]
 pub struct ClientHello {
     pub protocol: Uuid,
 }
@@ -23,7 +50,16 @@ impl Default for ClientHello {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct ClientInputState {
+    pub input: RawInput,
+}
+
+impl GGMessage for ClientInputState {
+    const KIND: PacketKind = PacketKind::InputState;
+}
+
+#[derive(Debug, Clone)]
 pub struct ClientPlayerChangeClass {
     pub class: ClassGeneric,
 }
@@ -32,7 +68,7 @@ impl GGMessage for ClientPlayerChangeClass {
     const KIND: PacketKind = PacketKind::PlayerChangeClass;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClientPlayerChangeTeam {
     pub team: Team,
 }
@@ -41,14 +77,14 @@ impl GGMessage for ClientPlayerChangeTeam {
     const KIND: PacketKind = PacketKind::PlayerChangeTeam;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClientPlayerJoin;
 
 impl GGMessage for ClientPlayerJoin {
     const KIND: PacketKind = PacketKind::PlayerJoin;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClientReserveSlot {
     pub player_name: GGStringShort,
 }

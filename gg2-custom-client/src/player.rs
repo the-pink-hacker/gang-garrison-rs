@@ -33,6 +33,10 @@ impl ClientPlayers {
         self.client_player = Some(id);
     }
 
+    pub fn get_client_id(&self) -> Result<PlayerId, ClientError> {
+        self.client_player.ok_or(ClientError::ClientPlayerLookup)
+    }
+
     pub fn get_client(&self) -> Result<&Player, ClientError> {
         let id = self.client_player.ok_or(ClientError::ClientPlayerLookup)?;
         Ok(self.get(id)?)

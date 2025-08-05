@@ -2,13 +2,39 @@ use crate::prelude::*;
 
 pub mod world;
 
-#[derive(Debug)]
-pub struct CommonGame<W: World + 'static> {
-    pub world: &'static W,
+pub struct CommonGame {
+    pub world: &'static (dyn World + Send + Sync),
 }
 
-impl<W: World + 'static> CommonGame<W> {
-    pub async fn event_in_game(
+impl CommonGame {
+    /// Handles message from the client
+    pub async fn client_message(
+        &self,
+        generic_message: ClientMessageGeneric,
+        player_id: PlayerId,
+    ) -> Result<(), CommonError> {
+        match generic_message {
+            ClientMessageGeneric::Hello(message) => debug!("{message:#?}"),
+            ClientMessageGeneric::InputState(message) => {
+                debug!("Player {player_id}: {message:#?}");
+            }
+            ClientMessageGeneric::PlayerChangeClass(message) => {
+                debug!("Player {player_id}: {message:#?}");
+                self.world.players().write().await.get_mut(player_id)?.class = message.class;
+            }
+            ClientMessageGeneric::PlayerChangeTeam(message) => {
+                debug!("Player {player_id}: {message:#?}");
+                self.world.players().write().await.get_mut(player_id)?.team = message.team;
+            }
+            ClientMessageGeneric::PlayerJoin(message) => debug!("{message:#?}"),
+            ClientMessageGeneric::ReserveSlot(message) => debug!("{message:#?}"),
+        }
+
+        Ok(())
+    }
+
+    /// Handles message from the server
+    pub async fn server_message(
         &self,
         generic_message: ServerMessageGeneric,
     ) -> Result<(), CommonError> {

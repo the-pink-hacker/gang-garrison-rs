@@ -76,8 +76,24 @@ pub trait Players {
         Ok(next_id)
     }
 
+    fn remove(&mut self, id: PlayerId) -> Result<Player, CommonError> {
+        if u8::from(id) < self.len() {
+            Ok(self.as_vec_mut().remove(usize::from(id)))
+        } else {
+            Err(CommonError::PlayerLookup(id))
+        }
+    }
+}
+
+pub trait PlayersIter<'a> {
+    fn flat_zip_mut<T, I>(&'a mut self, iterator: I) -> impl Iterator<Item = (&'a mut Player, T)>
+    where
+        I: IntoIterator<Item = Option<T>>;
+}
+
+impl<'a, P: Players + ?Sized> PlayersIter<'a> for P {
     #[inline]
-    fn flat_zip_mut<T, I>(&mut self, iterator: I) -> impl Iterator<Item = (&mut Player, T)>
+    fn flat_zip_mut<T, I>(&'a mut self, iterator: I) -> impl Iterator<Item = (&'a mut Player, T)>
     where
         I: IntoIterator<Item = Option<T>>,
     {
@@ -85,13 +101,5 @@ pub trait Players {
             .iter_mut()
             .zip(iterator)
             .flat_map(|(player, item)| item.map(|item| (player, item)))
-    }
-
-    fn remove(&mut self, id: PlayerId) -> Result<Player, CommonError> {
-        if u8::from(id) < self.len() {
-            Ok(self.as_vec_mut().remove(usize::from(id)))
-        } else {
-            Err(CommonError::PlayerLookup(id))
-        }
     }
 }

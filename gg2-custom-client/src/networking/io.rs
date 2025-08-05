@@ -133,12 +133,12 @@ impl NetworkClient {
         Ok(self.send_raw(buffer)?)
     }
 
-    pub async fn send_message<T: ClientNetworkSerialize + GGMessage>(
+    pub async fn send_message<T: ClientNetworkSerialize + AsPacketKind>(
         &self,
         message: T,
     ) -> Result<(), CommonError> {
         let mut buffer = Vec::with_capacity(256);
-        buffer.push(T::KIND.into());
+        buffer.push(message.as_packet_kind().into());
         message.serialize(&mut buffer).await?;
 
         Ok(self.send_raw(buffer)?)
@@ -241,6 +241,10 @@ async fn receive_task(
     let mut buffer = [0; MAX_PACKET_LENGTH];
 
     while let Ok(length) = read_socket.read(&mut buffer).await {
+        if length == 0 {
+            continue;
+        }
+
         trace!(
             "Received {} bytes: {}",
             length,

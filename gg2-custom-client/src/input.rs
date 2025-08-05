@@ -89,6 +89,16 @@ impl InputState {
         self.current_device = device;
     }
 
+    #[inline]
+    pub async fn poll_axis_bind(
+        &self,
+        bind: &InputAxisBind,
+        world: &'static ClientWorld,
+    ) -> Option<InputAxisResult> {
+        self.current_device.poll_axis_bind(bind, world).await
+    }
+
+    #[inline]
     pub async fn poll_button_bind(
         &self,
         bind: &InputButtonBind,

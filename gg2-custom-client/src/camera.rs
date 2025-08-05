@@ -23,13 +23,7 @@ impl Default for Camera {
 
 impl ClientGame {
     pub async fn update_camera(&self) -> Result<(), ClientError> {
-        if let Ok(player) = self
-            .world
-            .players()
-            .read()
-            .await
-            .get(PlayerId::from_u8(0).unwrap())
-        {
+        if let Ok(player) = self.world.client_players().read().await.get_client() {
             self.world.camera().write().await.translation = player.transform.translation.xy();
         }
 

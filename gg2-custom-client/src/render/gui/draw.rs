@@ -38,36 +38,38 @@ impl GuiRenderer {
     }
 
     fn draw_debug_player(&mut self, ui: &mut egui::Ui) {
-        let mut players = Promise::spawn_async(self.world.players().write()).block_and_take();
-        let player = if let Ok(player) = players.get_client_mut() {
-            player
-        } else {
-            ui.label("Client player not found");
-            return;
-        };
+        {
+            let players = Promise::spawn_async(self.world.client_players().read()).block_and_take();
+            let player = if let Ok(player) = players.get_client() {
+                player
+            } else {
+                ui.label("Client player not found");
+                return;
+            };
 
-        ui.label(format!("Player Name: {}", player.name));
-        ui.label(format!("Player Team: {}", player.team));
-        ui.label(format!("Player Class: {}", player.class));
+            ui.label(format!("Player Name: {}", player.name));
+            ui.label(format!("Player Team: {}", player.team));
+            ui.label(format!("Player Class: {}", player.class));
+        }
 
         egui::containers::ComboBox::from_label("Select Player Team")
-            .selected_text(player.team.to_string())
+            .selected_text(self.debug_player_team.to_string())
             .show_ui(ui, |ui| {
                 for team in enum_iterator::all::<Team>() {
-                    ui.selectable_value(&mut player.team, team, team.to_string());
+                    ui.selectable_value(&mut self.debug_player_team, team, team.to_string());
                 }
             });
 
         if ui.button("Update Team").clicked() {
-            let team = player.team;
+            let team = self.debug_player_team;
             let world = self.world;
             tokio::spawn(async move {
-                if let Err(error) = world
-                    .network_client()
-                    .read()
-                    .await
-                    .send_message(ClientPlayerChangeTeam { team })
-                    .await
+                if let Err(error) =
+                    world
+                        .client_game_channel()
+                        .send(ClientGameMessage::SendClientMessage(
+                            ClientMessageGeneric::PlayerChangeTeam(ClientPlayerChangeTeam { team }),
+                        ))
                 {
                     error!("Failed to send client player change team: {error}");
                 }
@@ -75,23 +77,25 @@ impl GuiRenderer {
         }
 
         egui::containers::ComboBox::from_label("Select Player Class")
-            .selected_text(player.class.to_string())
+            .selected_text(self.debug_player_class.to_string())
             .show_ui(ui, |ui| {
                 for class in enum_iterator::all::<ClassGeneric>() {
-                    ui.selectable_value(&mut player.class, class, class.to_string());
+                    ui.selectable_value(&mut self.debug_player_class, class, class.to_string());
                 }
             });
 
         if ui.button("Update Class").clicked() {
-            let class = player.class;
+            let class = self.debug_player_class;
             let world = self.world;
             tokio::spawn(async move {
-                if let Err(error) = world
-                    .network_client()
-                    .read()
-                    .await
-                    .send_message(ClientPlayerChangeClass { class })
-                    .await
+                if let Err(error) =
+                    world
+                        .client_game_channel()
+                        .send(ClientGameMessage::SendClientMessage(
+                            ClientMessageGeneric::PlayerChangeClass(ClientPlayerChangeClass {
+                                class,
+                            }),
+                        ))
                 {
                     error!("Failed to send client player change team: {error}");
                 }
@@ -112,11 +116,10 @@ impl GuiRenderer {
                 || (text_response.lost_focus() && text.input(|i| i.key_pressed(egui::Key::Enter)));
 
             if enter {
-                //let player_name = config.game.player_name.clone();
-                //let world = self.world;
-                //poll_promise::Promise::spawn_async(async move {
-                //    world.network_client().read().await.send_message()
-                //});
+                //if let Err(error) = self.world.client_game_channel().send(ClientGameMessage::SendClientMessage(ClientMessageGeneric::PlayerChangeName())) {
+                //    error!("Failed to update player name: {error}");
+                //}
+                //
                 todo!("Send new player name to server.");
             }
         });

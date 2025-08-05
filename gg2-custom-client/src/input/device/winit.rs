@@ -28,8 +28,21 @@ impl WinitInputState {
         self.buttons.entry(button).insert_entry(state.is_pressed());
     }
 
-    fn set_mouse_position(&mut self, position: &PhysicalPosition<f64>) {
+    fn set_mouse_position(&mut self, position: &PhysicalPosition<f64>, game_size: UVec2) {
         self.mouse_position = Vec2::new(position.x as f32, position.y as f32);
+        let half_game = (game_size / 2).as_vec2();
+        self.mouse_position -= half_game;
+        self.mouse_position = self.mouse_position.clamp(-half_game, half_game);
+        self.mouse_position /= game_size.as_vec2();
+        self.mouse_position *= Vec2::new(
+            (crate::render::GAME_WIDTH / 4) as f32,
+            (crate::render::GAME_HEIGHT / 4) as f32,
+        );
+    }
+
+    #[inline]
+    pub fn get_mouse_position(&self) -> Vec2 {
+        self.mouse_position
     }
 
     fn get_button(&self, code: InputButtonCode) -> Option<InputButtonResult> {
@@ -54,7 +67,7 @@ impl crate::render::State {
                     .winit_input_state()
                     .write()
                     .await
-                    .set_mouse_position(position);
+                    .set_mouse_position(position, self.game_size);
             }
             WindowEvent::MouseInput {
                 device_id: _,

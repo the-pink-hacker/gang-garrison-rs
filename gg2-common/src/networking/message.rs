@@ -72,6 +72,7 @@ where
         })
     }
 
+    #[inline]
     fn read_fixed_point_u8(&mut self, scale: f32) -> Result<f32> {
         self.read_u8().map(|value| value as f32 / scale)
     }
@@ -82,6 +83,7 @@ where
         Ok(Vec2::new(x, y))
     }
 
+    #[inline]
     fn read_fixed_point_u16(&mut self, scale: f32) -> Result<f32> {
         self.read_u16().map(|value| value as f32 / scale)
     }
@@ -136,12 +138,32 @@ where
 
 pub trait MessageWriter {
     fn write_utf8_short_string(&mut self, value: &GGStringShort);
+
+    fn write_u8(&mut self, value: u8);
+
+    fn write_u16(&mut self, value: u16);
+
+    fn write_fixed_point_u16(&mut self, value: f32, scale: f32);
 }
 
 impl MessageWriter for Vec<u8> {
     fn write_utf8_short_string(&mut self, value: &GGStringShort) {
         self.push(value.len());
         self.extend(value.bytes());
+    }
+
+    #[inline]
+    fn write_u8(&mut self, value: u8) {
+        self.push(value);
+    }
+
+    fn write_u16(&mut self, value: u16) {
+        self.extend(value.to_le_bytes());
+    }
+
+    #[inline]
+    fn write_fixed_point_u16(&mut self, value: f32, scale: f32) {
+        self.write_u16((value * scale) as u16);
     }
 }
 

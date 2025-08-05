@@ -9,5 +9,8 @@ pub enum RenderMessage {
 
 #[derive(Debug)]
 pub enum ClientGameMessage {
+    /// Gamepad event
     GilrsEvent(gilrs::Event),
+    /// Send client message to server
+    SendClientMessage(ClientMessageGeneric),
 }

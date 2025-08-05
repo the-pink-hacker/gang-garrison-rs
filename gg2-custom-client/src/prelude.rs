@@ -25,7 +25,7 @@ pub use crate::{
         code::{InputAxisCode, InputButtonCode},
         device::{
             InputDevice,
-            gilrs::{GilrsInputDevice, GilrsInputState, GilrsWatcher},
+            gilrs::{GilrsInputState, GilrsWatcher},
             winit::{WinitInputDevice, WinitInputState},
         },
     },

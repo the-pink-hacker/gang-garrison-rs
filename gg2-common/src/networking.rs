@@ -71,3 +71,21 @@ pub enum PacketKind {
     KickMultiClient = 59,
     ReserveSlot = 60,
 }
+
+pub trait AsPacketKind {
+    fn as_packet_kind(&self) -> PacketKind;
+}
+
+impl<T: GGMessage> AsPacketKind for T {
+    #[inline]
+    fn as_packet_kind(&self) -> PacketKind {
+        T::KIND
+    }
+}
+
+impl<T: AsPacketKind> From<T> for PacketKind {
+    #[inline]
+    fn from(value: T) -> Self {
+        value.as_packet_kind()
+    }
+}
