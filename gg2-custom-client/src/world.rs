@@ -4,7 +4,6 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::prelude::*;
 
-#[derive(Debug)]
 pub struct ClientWorld {
     render_channel: UnboundedSender<RenderMessage>,
     client_game_channel: UnboundedSender<ClientGameMessage>,
@@ -20,6 +19,7 @@ pub struct ClientWorld {
     gilrs_input_state: RwLock<GilrsInputState>,
     input_state: RwLock<InputState>,
     winit_input_device: Arc<dyn InputDevice>,
+    gamemode_state: RwLock<Option<Box<dyn ClientGamemodeState + Send + Sync>>>,
 }
 
 impl ClientWorld {
@@ -49,6 +49,8 @@ impl ClientWorld {
             gilrs_input_state: GilrsInputState::default().into(),
             input_state: InputState::new(Arc::clone(&winit_input_device)).into(),
             winit_input_device,
+            // TODO: Auto dectect gamemode
+            gamemode_state: RwLock::new(Some(Box::new(CaptureTheFlagState::default()))),
         }
     }
 
@@ -133,6 +135,14 @@ impl ClientWorld {
     #[must_use]
     pub fn client_players(&self) -> &RwLock<ClientPlayers> {
         &self.players
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn client_gamemode_state(
+        &self,
+    ) -> &RwLock<Option<Box<dyn ClientGamemodeState + Send + Sync>>> {
+        &self.gamemode_state
     }
 }
 

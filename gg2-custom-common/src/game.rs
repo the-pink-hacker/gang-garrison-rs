@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+pub mod gamemode;
 pub mod world;
 
 pub struct CommonGame {
@@ -73,9 +74,27 @@ impl CommonGame {
             }
             ServerMessageGeneric::ReturnIntel(message) => debug!("{message:#?}"),
             ServerMessageGeneric::ScoreIntel(message) => debug!("{message:#?}"),
-            ServerMessageGeneric::WeaponFire(message) => trace!("{message:#?}"),
+            ServerMessageGeneric::WeaponFire(message) => {
+                self.event_weapon_fire(message).await?;
+            }
             _ => Err(NetworkError::IncorrectMessage(generic_message.into()))?,
         }
+
+        Ok(())
+    }
+
+    async fn event_weapon_fire(&self, message: ServerWeaponFire) -> Result<(), CommonError> {
+        debug!("{message:#?}");
+
+        let mut players = self.world.players().write().await;
+        let player = players.get_mut(message.player_id)?;
+
+        // TODO: Verify if player has character
+        player.transform.translation.x = message.position.x;
+        player.transform.translation.y = message.position.y;
+        player.velocity = message.velocity;
+
+        // TODO: Implement weapons
 
         Ok(())
     }

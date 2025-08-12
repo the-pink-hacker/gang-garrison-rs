@@ -287,14 +287,23 @@ impl ClientNetworkDeserializationContext for ClientWorld {
         self.players().read().await.len()
     }
 
-    async fn current_map_gamemode(&self) -> Result<Gamemode, CommonError> {
-        self.map_info()
-            .read()
-            .await
-            .current_map
-            .as_ref()
-            .ok_or(CommonError::MapUnloaded)
-            .map(|(_, map_data)| map_data.gamemode)
+    async fn deserialize_gamemode_state<I>(
+        &self,
+        payload: &mut I,
+        kind: PacketKind,
+    ) -> Result<(), CommonError>
+    where
+        I: Iterator<Item = u8>,
+    {
+        let mut gamemode = self.client_gamemode_state().write().await;
+
+        if let Some(state) = gamemode.as_mut() {
+            state.deserialize(payload, kind)?;
+        } else {
+            error!("Gamemode unknown for deserialization.");
+        }
+
+        Ok(())
     }
 
     async fn current_map_control_points_length(&self) -> Result<u8, CommonError> {

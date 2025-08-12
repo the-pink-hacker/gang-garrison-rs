@@ -2,13 +2,13 @@ use std::time::Duration;
 
 use crate::game::{control_point::RawControlPoint, generator::RawGenerator};
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct HudMatchTimer {
-    pub start: Duration,
-    pub current: Duration,
+    pub total: Duration,
+    pub left: Duration,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct HudKothTimer {
     pub capture_unlock: Duration,
     pub red_timer: Duration,

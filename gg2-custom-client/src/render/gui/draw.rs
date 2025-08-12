@@ -8,6 +8,14 @@ const DEBUG_MENU_TRANSPARENCY_U8: u8 = (DEBUG_MENU_TRANSPARENCY * u8::MAX as f32
 
 impl GuiRenderer {
     pub fn draw(&mut self, ctx: &egui::Context) {
+        if let Some(gamemode_state) =
+            Promise::spawn_async(self.world.client_gamemode_state().read())
+                .block_and_take()
+                .as_ref()
+        {
+            gamemode_state.render_hud(ctx);
+        }
+
         let debug_ui = Promise::spawn_async(self.world.config().read())
             .block_and_take()
             .debug
@@ -60,20 +68,17 @@ impl GuiRenderer {
                 }
             });
 
-        if ui.button("Update Team").clicked() {
-            let team = self.debug_player_team;
-            let world = self.world;
-            tokio::spawn(async move {
-                if let Err(error) =
-                    world
-                        .client_game_channel()
-                        .send(ClientGameMessage::SendClientMessage(
-                            ClientMessageGeneric::PlayerChangeTeam(ClientPlayerChangeTeam { team }),
-                        ))
-                {
-                    error!("Failed to send client player change team: {error}");
-                }
-            });
+        if ui.button("Update Team").clicked()
+            && let Err(error) =
+                self.world
+                    .client_game_channel()
+                    .send(ClientGameMessage::SendClientMessage(
+                        ClientMessageGeneric::PlayerChangeTeam(ClientPlayerChangeTeam {
+                            team: self.debug_player_team,
+                        }),
+                    ))
+        {
+            error!("Failed to send client player change team: {error}");
         }
 
         egui::containers::ComboBox::from_label("Select Player Class")
@@ -84,22 +89,17 @@ impl GuiRenderer {
                 }
             });
 
-        if ui.button("Update Class").clicked() {
-            let class = self.debug_player_class;
-            let world = self.world;
-            tokio::spawn(async move {
-                if let Err(error) =
-                    world
-                        .client_game_channel()
-                        .send(ClientGameMessage::SendClientMessage(
-                            ClientMessageGeneric::PlayerChangeClass(ClientPlayerChangeClass {
-                                class,
-                            }),
-                        ))
-                {
-                    error!("Failed to send client player change team: {error}");
-                }
-            });
+        if ui.button("Update Class").clicked()
+            && let Err(error) =
+                self.world
+                    .client_game_channel()
+                    .send(ClientGameMessage::SendClientMessage(
+                        ClientMessageGeneric::PlayerChangeClass(ClientPlayerChangeClass {
+                            class: self.debug_player_class,
+                        }),
+                    ))
+        {
+            error!("Failed to send client player change team: {error}");
         }
     }
 

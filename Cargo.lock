@@ -971,6 +971,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "clap",
+ "dyn-future",
  "gg2-common",
  "glam",
  "log",

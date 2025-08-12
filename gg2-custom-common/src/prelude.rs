@@ -12,7 +12,11 @@ pub use log::{debug, error, info, trace, warn};
 pub use tokio::sync::RwLock;
 
 pub use crate::{
-    game::{CommonGame, world::World},
+    game::{
+        CommonGame,
+        gamemode::{CaptureTheFlagState, GamemodeState},
+        world::World,
+    },
     init::cli::CommonCliJoinServer,
     player::{Player, Players, PlayersIter},
     resource::{

@@ -1,4 +1,6 @@
-pub use gg2_client::networking::state::NetworkingState;
+pub use gg2_client::networking::{
+    message::server::ClientNetworkDeserializeHudMatchTimer, state::NetworkingState,
+};
 pub use gg2_custom_common::prelude::*;
 pub use serde_with::skip_serializing_none;
 
@@ -14,7 +16,7 @@ pub use crate::{
     camera::Camera,
     config::ClientConfig,
     error::ClientError,
-    game::ClientGame,
+    game::{ClientGame, gamemode::ClientGamemodeState},
     init::{
         App,
         cli::{ClientCliArguments, ClientCliSubcommand},

@@ -3,8 +3,7 @@ use std::time::Duration;
 use gg2_common::{
     error::{CommonError, Result},
     game::{control_point::RawControlPoint, generator::RawGenerator, intel::RawIntel},
-    gamemode::Gamemode,
-    hud::{GamemodeHud, GamemodeHudArenaFull, HudKothTimer, HudMatchTimer},
+    hud::{GamemodeHudArenaFull, HudKothTimer, HudMatchTimer},
     networking::{PacketKind, error::NetworkError as Error, message::*},
     player::{PlayerId, RawAdditionalPlayerInfo, RawInput, RawPlayerInfo, team::Captures},
 };
@@ -107,19 +106,19 @@ impl ClientNetworkDeserialize for Captures {
     }
 }
 
-impl ClientNetworkDeserialize for HudMatchTimer {
-    async fn deserialize<I, C>(payload: &mut I, _context: &C) -> Result<Self>
-    where
-        I: Iterator<Item = u8>,
-        C: ClientNetworkDeserializationContext,
-    {
-        let start = payload.read_u8().map(u64::from).map(Duration::from_mins)?;
-        let current = payload
-            .read_u32()
-            .map(|time| time as u64 / (30 * 60))
-            .map(Duration::from_secs)?;
+pub trait ClientNetworkDeserializeHudMatchTimer: Sized {
+    fn deserialize(payload: &mut dyn Iterator<Item = u8>) -> Result<Self>;
+}
 
-        Ok(Self { start, current })
+impl ClientNetworkDeserializeHudMatchTimer for HudMatchTimer {
+    fn deserialize(mut payload: &mut dyn Iterator<Item = u8>) -> Result<Self> {
+        let total = payload.read_u8().map(u64::from).map(Duration::from_mins)?;
+        let left = payload
+            .read_u32()
+            .map(|time| time as f32 / 30.0)
+            .map(Duration::from_secs_f32)?;
+
+        Ok(Self { total, left })
     }
 }
 
@@ -203,117 +202,6 @@ impl ClientNetworkDeserialize for HudKothTimer {
     }
 }
 
-trait GamemodeHudDeserialization: Sized {
-    async fn deserialize<I, C>(payload: &mut I, context: &C, full_update: bool) -> Result<Self>
-    where
-        I: Iterator<Item = u8>,
-        C: ClientNetworkDeserializationContext;
-}
-
-impl GamemodeHudDeserialization for GamemodeHud {
-    async fn deserialize<I, C>(payload: &mut I, context: &C, full_update: bool) -> Result<Self>
-    where
-        I: Iterator<Item = u8>,
-        C: ClientNetworkDeserializationContext,
-    {
-        let current_gamemode = context.current_map_gamemode().await?;
-
-        match current_gamemode {
-            Gamemode::Arena => {
-                let full_update = if full_update {
-                    Some(GamemodeHudArenaFull::deserialize(payload, context).await?)
-                } else {
-                    None
-                };
-
-                let match_timer = HudMatchTimer::deserialize(payload, context).await?;
-                let control_point_unlock = payload.read_duration_u16_sec()?;
-                let round_start = payload.read_u8()?;
-                let control_point = RawControlPoint::deserialize(payload, context).await?;
-
-                Ok(Self::Arena {
-                    full_update,
-                    match_timer,
-                    control_point_unlock,
-                    round_start,
-                    control_point,
-                })
-            }
-            Gamemode::CaptureTheFlag => {
-                let match_timer = HudMatchTimer::deserialize(payload, context).await?;
-
-                Ok(Self::CaptureTheFlag { match_timer })
-            }
-            Gamemode::ControlPoint | Gamemode::AttackDefenceControlPoint => {
-                let match_timer = HudMatchTimer::deserialize(payload, context).await?;
-                let setup_timer = payload.read_duration_u16_sec()?;
-
-                let control_points_length = context.current_map_control_points_length().await?;
-                let mut control_points = Vec::with_capacity(control_points_length as usize);
-
-                for _ in 0..control_points_length {
-                    control_points.push(RawControlPoint::deserialize(payload, context).await?);
-                }
-
-                Ok(Self::ControlPoint {
-                    match_timer,
-                    setup_timer,
-                    control_points,
-                })
-            }
-            Gamemode::KingOfTheHill => {
-                let timer = HudKothTimer::deserialize(payload, context).await?;
-                let control_point = RawControlPoint::deserialize(payload, context).await?;
-
-                Ok(Self::KingOfTheHill {
-                    timer,
-                    control_point,
-                })
-            }
-            Gamemode::DualKingOfTheHill => {
-                let timer = HudKothTimer::deserialize(payload, context).await?;
-                let red_control_point = RawControlPoint::deserialize(payload, context).await?;
-                let blu_control_point = RawControlPoint::deserialize(payload, context).await?;
-
-                Ok(Self::DualKingOfTheHill {
-                    timer,
-                    red_control_point,
-                    blu_control_point,
-                })
-            }
-            Gamemode::Generator => {
-                let match_timer = HudMatchTimer::deserialize(payload, context).await?;
-                let blu_generator = RawGenerator::deserialize(payload, context).await?;
-                let red_generator = RawGenerator::deserialize(payload, context).await?;
-
-                Ok(Self::Generator {
-                    match_timer,
-                    blu_generator,
-                    red_generator,
-                })
-            }
-            Gamemode::Inavsion => {
-                let match_timer = HudMatchTimer::deserialize(payload, context).await?;
-                let setup_timer = payload.read_duration_u16_sec()?;
-
-                Ok(Self::Invasion {
-                    match_timer,
-                    setup_timer,
-                })
-            }
-            Gamemode::TeamDeathmatch => {
-                let match_timer = HudMatchTimer::deserialize(payload, context).await?;
-                let kill_limit = payload.read_u16()?;
-
-                Ok(Self::TeamDeathmatch {
-                    match_timer,
-                    kill_limit,
-                })
-            }
-        }
-    }
-}
-
 impl ClientNetworkDeserialize for ServerCaptureUpdate {
     async fn deserialize<I, C>(payload: &mut I, context: &C) -> Result<Self>
     where
@@ -322,12 +210,13 @@ impl ClientNetworkDeserialize for ServerCaptureUpdate {
     {
         let player_amount = payload.read_u8()?;
         let captures = Captures::deserialize(payload, context).await?;
-        let hud = GamemodeHud::deserialize(payload, context, false).await?;
+        context
+            .deserialize_gamemode_state(payload, Self::KIND)
+            .await?;
 
         Ok(Self {
             player_amount,
             captures,
-            hud,
         })
     }
 }
@@ -560,7 +449,9 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
 
         let capture_limit = payload.read_u8()?;
         let captures = Captures::deserialize(payload, context).await?;
-        let hud = GamemodeHud::deserialize(payload, context, true).await?;
+        context
+            .deserialize_gamemode_state(payload, Self::KIND)
+            .await?;
 
         let scout_limit = payload.read_u8()?;
         let soldier_limit = payload.read_u8()?;
@@ -580,7 +471,6 @@ impl ClientNetworkDeserialize for ServerFullUpdate {
             blu_intel,
             capture_limit,
             captures,
-            hud,
             scout_limit,
             soldier_limit,
             sniper_limit,

@@ -1,30 +1,35 @@
 use gg2_common::{
-    error::Result, gamemode::Gamemode, networking::message::MessageWriter, string::GGStringShort,
+    error::Result,
+    networking::{PacketKind, message::MessageWriter},
+    string::GGStringShort,
 };
 
 pub mod client;
 pub mod server;
 
-#[allow(async_fn_in_trait)]
 pub trait ClientNetworkSerialize: Sized {
-    async fn serialize(self, buffer: &mut Vec<u8>) -> Result<()>;
+    fn serialize(self, buffer: &mut Vec<u8>) -> impl Future<Output = Result<()>>;
 }
 
-#[allow(async_fn_in_trait)]
 pub trait ClientNetworkDeserialize: Sized {
-    async fn deserialize<I, C>(payload: &mut I, context: &C) -> Result<Self>
+    fn deserialize<I, C>(payload: &mut I, context: &C) -> impl Future<Output = Result<Self>>
     where
         I: Iterator<Item = u8>,
         C: ClientNetworkDeserializationContext;
 }
 
-#[allow(async_fn_in_trait)]
 pub trait ClientNetworkDeserializationContext {
-    async fn players_length(&self) -> u8;
+    fn players_length(&self) -> impl Future<Output = u8>;
 
-    async fn current_map_gamemode(&self) -> Result<Gamemode>;
+    fn deserialize_gamemode_state<I>(
+        &self,
+        payload: &mut I,
+        kind: PacketKind,
+    ) -> impl Future<Output = Result<()>>
+    where
+        I: Iterator<Item = u8>;
 
-    async fn current_map_control_points_length(&self) -> Result<u8>;
+    fn current_map_control_points_length(&self) -> impl Future<Output = Result<u8>>;
 }
 
 impl ClientNetworkSerialize for &GGStringShort {

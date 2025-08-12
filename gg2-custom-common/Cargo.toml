@@ -9,6 +9,7 @@ repository.workspace = true
 [dependencies]
 bytemuck = { workspace = true, features = ["derive"] }
 clap = { workspace = true, features = ["derive"] }
+dyn-future.workspace = true
 gg2-common.workspace = true
 glam = { workspace = true, features = ["bytemuck"] }
 log.workspace = true

@@ -4,6 +4,8 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::prelude::*;
 
+pub mod gamemode;
+
 pub const GAME_TPS: f32 = 60.0;
 pub const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 
