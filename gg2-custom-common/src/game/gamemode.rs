@@ -20,7 +20,6 @@ impl GamemodeState for CaptureTheFlagState {
         world: &'a dyn World,
     ) -> Pin<Box<dyn Future<Output = Result<(), CommonError>> + 'a + Send>> {
         Box::pin(async {
-            println!("DELTA: {}", world.delta_tick());
             self.match_timer.left = self
                 .match_timer
                 .left
