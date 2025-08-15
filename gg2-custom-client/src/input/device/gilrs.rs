@@ -1,11 +1,10 @@
 use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
-use dyn_future::DynFuture;
 use gilrs::{Filter, GamepadId, Gilrs, GilrsBuilder, ev::filter::Jitter};
 
 use crate::prelude::*;
 
-const GILRS_POLL_INTERVAL: f32 = crate::game::GAME_LOOP_INTERVAL;
+const GILRS_POLL_INTERVAL: f32 = GAME_LOOP_INTERVAL;
 const JITTER: Jitter = Jitter { threshold: 0.01 };
 
 pub struct GilrsWatcher {

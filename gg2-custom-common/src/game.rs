@@ -1,13 +1,57 @@
+use std::time::Duration;
+
+use tokio::time::Instant;
+
 use crate::prelude::*;
+
+pub const GAME_TPS: f32 = 60.0;
+pub const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
 
 pub mod gamemode;
 pub mod world;
 
 pub struct CommonGame {
-    pub world: &'static (dyn World + Send + Sync),
+    pub world: &'static dyn World,
+    last_tick: Instant,
 }
 
 impl CommonGame {
+    pub fn new(world: &'static dyn World) -> Self {
+        let last_tick = Instant::now() - Duration::from_secs_f32(GAME_LOOP_INTERVAL);
+
+        Self { world, last_tick }
+    }
+
+    pub async fn pre_tick(&mut self) -> Result<(), CommonError> {
+        self.update_tick_delta().await;
+
+        Ok(())
+    }
+
+    pub async fn tick(&mut self) -> Result<(), CommonError> {
+        self.world
+            .with_gamemode_state_mut(Box::new(|gamemode_state| {
+                Box::pin(async {
+                    if let Some(gamemode_state) = gamemode_state {
+                        gamemode_state.tick(self.world).await
+                    } else {
+                        Ok(())
+                    }
+                })
+            }))
+            .await?;
+
+        Ok(())
+    }
+
+    async fn update_tick_delta(&mut self) {
+        let delta = self.last_tick.elapsed();
+
+        self.world.set_delta_tick(delta.as_secs_f32());
+
+        self.last_tick = Instant::now();
+    }
+
     /// Handles message from the client
     pub async fn client_message(
         &self,

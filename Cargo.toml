@@ -29,6 +29,7 @@ lto = "thin"
 #unsafe_code = "deny"
 
 [workspace.dependencies]
+atomic_float = "1.1.0"
 bytemuck = "1.23.1"
 clap = "4.5.41"
 dyn-future = "3.0.4"

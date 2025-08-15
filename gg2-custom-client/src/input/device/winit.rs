@@ -1,6 +1,5 @@
 use std::{collections::HashMap, pin::Pin, sync::Arc};
 
-use dyn_future::DynFuture;
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, WindowEvent},

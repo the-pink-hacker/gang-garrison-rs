@@ -1,5 +1,6 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, pin::Pin, sync::Arc};
 
+use atomic_float::AtomicF32;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::prelude::*;
@@ -19,7 +20,8 @@ pub struct ClientWorld {
     gilrs_input_state: RwLock<GilrsInputState>,
     input_state: RwLock<InputState>,
     winit_input_device: Arc<dyn InputDevice>,
-    gamemode_state: RwLock<Option<Box<dyn ClientGamemodeState + Send + Sync>>>,
+    gamemode_state: RwLock<Option<Box<dyn ClientGamemodeState>>>,
+    delta_tick: AtomicF32,
 }
 
 impl ClientWorld {
@@ -51,6 +53,7 @@ impl ClientWorld {
             winit_input_device,
             // TODO: Auto dectect gamemode
             gamemode_state: RwLock::new(Some(Box::new(CaptureTheFlagState::default()))),
+            delta_tick: AtomicF32::new(GAME_LOOP_INTERVAL),
         }
     }
 
@@ -139,16 +142,42 @@ impl ClientWorld {
 
     #[inline]
     #[must_use]
-    pub fn client_gamemode_state(
-        &self,
-    ) -> &RwLock<Option<Box<dyn ClientGamemodeState + Send + Sync>>> {
+    pub fn client_gamemode_state(&self) -> &RwLock<Option<Box<dyn ClientGamemodeState>>> {
         &self.gamemode_state
     }
 }
 
 impl World for ClientWorld {
     #[inline]
-    fn players(&self) -> &RwLock<dyn Players + Send + Sync> {
+    fn players(&self) -> &RwLock<dyn Players> {
         &self.players
+    }
+
+    fn delta_tick(&self) -> f32 {
+        self.delta_tick.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    fn set_delta_tick(&self, seconds: f32) {
+        self.delta_tick
+            .store(seconds, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    fn with_gamemode_state_mut(
+        &self,
+        function: Box<
+            dyn FnOnce(
+                    Option<&mut dyn GamemodeState>,
+                )
+                    -> Pin<Box<dyn Future<Output = Result<(), CommonError>> + '_ + Send>>
+                + Send,
+        >,
+    ) -> Pin<Box<dyn Future<Output = Result<(), CommonError>> + '_ + Send>> {
+        Box::pin(async {
+            let mut gamemode_state = self.gamemode_state.write().await;
+            let gamemode_state_generic = gamemode_state
+                .as_deref_mut()
+                .map(|x| x as &mut dyn GamemodeState);
+            function(gamemode_state_generic).await
+        })
     }
 }

@@ -13,7 +13,7 @@ impl GuiRenderer {
                 .block_and_take()
                 .as_ref()
         {
-            gamemode_state.render_hud(ctx);
+            gamemode_state.render_hud(ctx, self.world);
         }
 
         let debug_ui = Promise::spawn_async(self.world.config().read())

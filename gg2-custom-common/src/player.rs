@@ -25,7 +25,7 @@ impl Player {
     }
 }
 
-pub trait Players {
+pub trait Players: Send + Sync {
     fn as_vec(&self) -> &Vec<Player>;
 
     fn as_vec_mut(&mut self) -> &mut Vec<Player>;

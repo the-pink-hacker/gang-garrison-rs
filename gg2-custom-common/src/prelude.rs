@@ -1,3 +1,4 @@
+pub use dyn_future::DynFuture;
 pub use gg2_common::{
     error::CommonError,
     gamemode::Gamemode,
@@ -13,7 +14,7 @@ pub use tokio::sync::RwLock;
 
 pub use crate::{
     game::{
-        CommonGame,
+        CommonGame, GAME_LOOP_INTERVAL, GAME_TPS,
         gamemode::{CaptureTheFlagState, GamemodeState},
         world::World,
     },

@@ -6,9 +6,6 @@ use crate::prelude::*;
 
 pub mod gamemode;
 
-pub const GAME_TPS: f32 = 60.0;
-pub const GAME_LOOP_INTERVAL: f32 = 1.0 / GAME_TPS;
-
 pub struct ClientGame {
     pub world: &'static ClientWorld,
     pub game: CommonGame,
@@ -20,7 +17,7 @@ impl ClientGame {
     pub fn new(world: &'static ClientWorld, channel: UnboundedReceiver<ClientGameMessage>) -> Self {
         Self {
             world,
-            game: CommonGame { world },
+            game: CommonGame::new(world),
             debug_menu_button_pressed_last_frame: false,
             channel,
         }
@@ -39,8 +36,10 @@ impl ClientGame {
     }
 
     async fn update(&mut self) -> Result<(), ClientError> {
+        self.game.pre_tick().await?;
         self.check_debug_menu_input().await;
         self.handle_client_events().await?;
+        self.game.tick().await?;
         self.update_network_client().await?;
 
         Ok(())

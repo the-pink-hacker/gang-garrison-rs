@@ -4,8 +4,6 @@ pub mod device;
 
 use std::{ops::Deref, pin::Pin, sync::Arc};
 
-use dyn_future::DynFuture;
-
 use crate::prelude::*;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
