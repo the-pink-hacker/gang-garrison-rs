@@ -5,7 +5,6 @@ members = [
     "gg2-common",
     "gg2-custom-client",
     "gg2-custom-common",
-    "string-path",
 ]
 
 [workspace.package]
@@ -55,7 +54,7 @@ semver = "1.0.26"
 serde = "1.0.219"
 serde-hjson = "1.1.0"
 serde_with = "3.14.0"
-string-path = { version = "0.1.0", path = "string-path" }
+string-path = { git = "https://github.com/the-pink-hacker/string-path", rev = "b55be1bcb951fd21b047475577f6711990003932" }
 thiserror = "2.0.14"
 tokio = { version = "1.47.1", default-features = false }
 toml = "0.9.5"
