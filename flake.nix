@@ -72,6 +72,15 @@
                 stdenv = pkgs.stdenvAdapters.useMoldLinker pkgs.clangStdenv;
             } {
                 inputsFrom = [self.packages.${system}.gang-garrison-rs];
+                packages = with pkgs; [
+                    (rust-bin.selectLatestNightlyWith (toolchain:
+                        toolchain.default.override {
+                            extensions = [
+                                "rust-analyzer"
+                                "rust-src"
+                            ];
+                        }))
+                ];
             };
         })
         pkgsFor;
